@@ -369,9 +369,7 @@ test.describe("TC002 登录后菜单显示", () => {
 
     await waitForRouteReady(page);
     await expect(page).toHaveURL(/\/profile$/);
-    await expect(page.getByText("个人中心").first()).toBeVisible({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId("profile-page")).toBeVisible({ timeout: 5000 });
 
     const menuItems = page.getByRole("menuitem");
     expect(await menuItems.count()).toBe(0);

@@ -122,7 +122,10 @@ test.describe('TC003 菜单治理标题国际化专项回归', () => {
     await adminPage.getByRole('button', { name: /搜索|Search/i }).click();
 
     await expect(
-      adminPage.locator('.vxe-body--row', { hasText: 'Menus' }).first(),
+      adminPage
+        .getByTestId('menu-table')
+        .locator('.semi-table-tbody > .semi-table-row', { hasText: 'Menus' })
+        .first(),
     ).toBeVisible();
   });
 
@@ -254,7 +257,10 @@ test.describe('TC003 菜单治理标题国际化专项回归', () => {
     for (const buttonName of pluginButtonChineseNames) {
       await menuPage.searchMenu(buttonName);
       await expect(
-        adminPage.locator('.vxe-body--row', { hasText: buttonName }).first(),
+        adminPage
+          .getByTestId('menu-table')
+          .locator('.semi-table-tbody > .semi-table-row', { hasText: buttonName })
+          .first(),
       ).toBeVisible();
     }
   });

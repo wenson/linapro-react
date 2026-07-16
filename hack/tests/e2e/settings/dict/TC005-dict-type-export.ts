@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { test, expect } from '../../../fixtures/auth';
 import { DictPage } from '../../../pages/DictPage';
+import { waitForConfirmOverlay } from '../../../support/ui';
 import * as XLSX from 'xlsx';
 
 // XLSX module functions
@@ -33,7 +34,7 @@ test.describe('TC005 字典管理导出', () => {
     await exportBtn.click();
 
     // Verify modal appears with combined export message
-    const modalContent = adminPage.locator('.ant-modal-content');
+    const modalContent = await waitForConfirmOverlay(adminPage);
     await expect(modalContent).toBeVisible({ timeout: 5000 });
     await expect(modalContent.getByText(/字典类型.*字典数据/)).toBeVisible();
 
@@ -44,7 +45,7 @@ test.describe('TC005 字典管理导出', () => {
     );
 
     // Click confirm button
-    const confirmBtn = modalContent.getByRole('button', { name: /确\s*认/ });
+    const confirmBtn = modalContent.getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm/i });
     await confirmBtn.click();
 
     // Wait for response and verify
@@ -66,9 +67,9 @@ test.describe('TC005 字典管理导出', () => {
     await exportBtn.click();
 
     // Confirm in modal
-    const modalContent = adminPage.locator('.ant-modal-content');
+    const modalContent = await waitForConfirmOverlay(adminPage);
     await expect(modalContent).toBeVisible({ timeout: 5000 });
-    await modalContent.getByRole('button', { name: /确\s*认/ }).click();
+    await modalContent.getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm/i }).click();
 
     // Wait for download
     const download = await downloadPromise;
@@ -122,9 +123,9 @@ test.describe('TC005 字典管理导出', () => {
     await exportBtn.click();
 
     // Confirm in modal
-    const modalContent = adminPage.locator('.ant-modal-content');
+    const modalContent = await waitForConfirmOverlay(adminPage);
     await expect(modalContent).toBeVisible({ timeout: 5000 });
-    await modalContent.getByRole('button', { name: /确\s*认/ }).click();
+    await modalContent.getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm/i }).click();
 
     // Wait for download
     const download = await downloadPromise;

@@ -24,7 +24,7 @@ test.describe('TC005 英文环境内置治理数据本地化回归', () => {
 
     const typePanel = adminPage.locator('#dict-type');
     const typeRow = typePanel
-      .locator('.vxe-body--row', {
+      .locator('.semi-table-tbody > .semi-table-row', {
         hasText: 'cron_job_status',
       })
       .first();
@@ -35,16 +35,16 @@ test.describe('TC005 英文环境内置治理数据本地化回归', () => {
 
     const dataPanel = adminPage.locator('#dict-data');
     await expect(
-      dataPanel.locator('.vxe-body--row', { hasText: 'enabled' }),
+      dataPanel.locator('.semi-table-tbody > .semi-table-row', { hasText: 'enabled' }),
     ).toContainText('Enabled');
     await expect(
-      dataPanel.locator('.vxe-body--row', { hasText: 'disabled' }),
+      dataPanel.locator('.semi-table-tbody > .semi-table-row', { hasText: 'disabled' }),
     ).toContainText('Disabled');
     await expect(
-      dataPanel.locator('.vxe-body--row', { hasText: 'paused_by_plugin' }),
+      dataPanel.locator('.semi-table-tbody > .semi-table-row', { hasText: 'paused_by_plugin' }),
     ).toContainText('Unavailable');
 
-    const dataText = await dataPanel.locator('.vxe-table--body').innerText();
+    const dataText = await adminPage.getByTestId('dict-data-table').innerText();
     expect(dataText).not.toContain('启用');
     expect(dataText).not.toContain('停用');
     expect(dataText).not.toContain('插件处理器不可用');
@@ -138,14 +138,14 @@ test.describe('TC005 英文环境内置治理数据本地化回归', () => {
     await expect
       .poll(async () =>
         adminPage
-          .locator('[data-testid="job-log-page"] .vxe-table--body')
+          .getByTestId('job-log-table')
           .first()
           .innerText(),
       )
       .toMatch(/Job Log Cleanup|Online Session Cleanup/);
 
     const jobLogText = await adminPage
-      .locator('[data-testid="job-log-page"] .vxe-table--body')
+      .getByTestId('job-log-table')
       .first()
       .innerText();
     expect(jobLogText).not.toMatch(

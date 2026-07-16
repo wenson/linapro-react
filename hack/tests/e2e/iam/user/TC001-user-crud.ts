@@ -80,7 +80,7 @@ test.describe('TC001 用户管理 CRUD', () => {
 
       await searchUser(userPage, testUsername);
       await expect(
-        adminPage.locator('.vxe-body--row', { hasText: testUsername }).first(),
+        userPage.getUserRow(testUsername),
       ).toContainText('修改后的E2E用户');
     } finally {
       await deleteUserIfExists(testUsername);

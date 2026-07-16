@@ -18,7 +18,7 @@ test.describe('TC001 字典类型管理 CRUD', () => {
     try {
       await dictPage.createType(record.name, record.type);
 
-      await expect(adminPage.getByText(/创建成功|success/i)).toBeVisible({
+      await expect(dictPage.toast(/创建成功|success/i)).toBeVisible({
         timeout: 5000,
       });
     } finally {
@@ -59,7 +59,7 @@ test.describe('TC001 字典类型管理 CRUD', () => {
       await dictPage.createType(record.name, record.type);
       await dictPage.editType(record.name, { name: updatedName });
 
-      await expect(adminPage.getByText(/更新成功|success/i)).toBeVisible({
+      await expect(dictPage.toast(/更新成功|success/i)).toBeVisible({
         timeout: 5000,
       });
     } finally {

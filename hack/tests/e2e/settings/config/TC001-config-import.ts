@@ -2,13 +2,20 @@ import { test, expect } from '../../../fixtures/auth';
 import { ConfigPage } from '../../../pages/ConfigPage';
 
 test.describe('TC001 参数设置导入', () => {
+  function importDialog(adminPage: import('@playwright/test').Page) {
+    return adminPage
+      .locator('.semi-modal-content[role="dialog"]:visible')
+      .filter({ has: adminPage.getByTestId('settings-import-dialog') })
+      .last();
+  }
+
   test('TC001a: 点击导入按钮打开导入弹窗', async ({ adminPage }) => {
     const configPage = new ConfigPage(adminPage);
     await configPage.goto();
 
     await configPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
     await expect(modal).toContainText('参数设置导入');
   });
@@ -19,7 +26,7 @@ test.describe('TC001 参数设置导入', () => {
 
     await configPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
     await expect(modal.getByText('下载模板')).toBeVisible();
   });
@@ -30,7 +37,7 @@ test.describe('TC001 参数设置导入', () => {
 
     await configPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
     await expect(modal.getByText('点击或者拖拽到此处上传文件')).toBeVisible();
     await expect(modal.getByText('允许导入xlsx, xls文件')).toBeVisible();
@@ -43,7 +50,7 @@ test.describe('TC001 参数设置导入', () => {
 
     await configPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     const responsePromise = adminPage.waitForResponse(

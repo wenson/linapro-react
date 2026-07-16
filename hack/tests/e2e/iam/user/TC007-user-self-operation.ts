@@ -32,9 +32,7 @@ test.describe('TC007 当前用户禁止自操作', () => {
     await userPage.goto();
 
     // Toolbar delete button is the non-ghost, non-small primary danger button
-    const deleteBtn = adminPage.locator(
-      'button.ant-btn-dangerous.ant-btn-primary:not(.ant-btn-sm):not(.ant-btn-background-ghost)',
-    );
+    const deleteBtn = adminPage.getByTestId('user-batch-delete-button');
     await expect(deleteBtn).toBeVisible();
     await expect(deleteBtn).toBeDisabled();
   });

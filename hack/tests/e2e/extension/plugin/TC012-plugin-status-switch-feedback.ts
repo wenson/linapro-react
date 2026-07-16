@@ -161,16 +161,17 @@ test.describe('TC-12 插件状态开关即时反馈', () => {
     await pluginPage.searchByPluginId(successPluginID);
 
     const switcher = pluginPage.pluginEnabledSwitch(successPluginID);
+    const switchContainer = pluginPage.pluginEnabledSwitchContainer(successPluginID);
     await expect(switcher).toHaveAttribute('aria-checked', 'false');
     await switcher.click();
     await mock.waitForEnableSuccessRequest();
 
     await expect(switcher).toHaveAttribute('aria-checked', 'true');
-    await expect(switcher).toHaveClass(/ant-switch-loading/);
-    await expect(switcher).toHaveClass(/ant-switch-disabled/);
+    await expect(switchContainer).toHaveClass(/semi-switch-loading/);
+    await expect(switcher).toBeDisabled();
     await expect(pluginPage.messageNotices('插件已启用')).toHaveCount(0);
 
-    await expect(switcher).not.toHaveClass(/ant-switch-loading/);
+    await expect(switchContainer).not.toHaveClass(/semi-switch-loading/);
     await expect(pluginPage.messageNotice('插件已启用')).toBeVisible();
   });
 
@@ -188,7 +189,7 @@ test.describe('TC-12 插件状态开关即时反馈', () => {
     await switcher.click();
 
     await expect(switcher).toHaveAttribute('aria-checked', 'false');
-    await expect(switcher).not.toHaveClass(/ant-switch-loading/);
+    await expect(pluginPage.pluginEnabledSwitchContainer(failurePluginID)).not.toHaveClass(/semi-switch-loading/);
     await expect(pluginPage.messageNotice('Enable failed for E2E')).toBeVisible();
   });
 });

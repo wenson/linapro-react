@@ -479,9 +479,7 @@ test.describe("TC-3 插件管理动作权限校验", () => {
       await pluginPage.searchByPluginId(pluginID);
 
       await expect(page.getByRole("button", { name: /卸\s*载/ })).toHaveCount(0);
-      await expect(pluginPage.pluginEnabledSwitch(pluginID)).toHaveClass(
-        /ant-switch-disabled/,
-      );
+      await expect(pluginPage.pluginEnabledSwitch(pluginID)).toBeDisabled();
 
       const disableResponse = await queryUserApi.put(`plugins/${pluginID}/disable`);
       await expectApiFailure(

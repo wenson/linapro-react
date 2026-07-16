@@ -18,9 +18,9 @@ export class ConfigPage {
 
   private localizedLabelPattern(label: string) {
     const labelMap: Record<string, RegExp> = {
-      参数名称: /参数名称|Parameter Name/i,
-      参数键名: /参数键名|Parameter Key/i,
-      参数键值: /参数键值|Parameter Value/i,
+      参数名称: /参数名称|Parameter Name|Configuration Name/i,
+      参数键名: /参数键(?:名)?|Parameter Key|Configuration Key/i,
+      参数键值: /参数(?:键)?值|Parameter Value|Configuration Value/i,
       备注: /备注|Remark/i,
     };
     return (
@@ -41,7 +41,7 @@ export class ConfigPage {
   }
 
   private get searchForm() {
-    return this.page.locator(".vxe-grid--form-wrapper").first();
+    return this.page.locator('[data-testid="config-page"] .iam-search-form').first();
   }
 
   private async fillInputAndWaitForStableValue(input: Locator, value: string) {
@@ -63,13 +63,20 @@ export class ConfigPage {
 
   /** The modal dialog container */
   private get dialog() {
-    return this.page.locator('[role="dialog"]');
+    return this.page.locator('.semi-sidesheet-inner[role="dialog"]:visible').last();
+  }
+
+  private get importDialog() {
+    return this.page
+      .locator('.semi-modal-content[role="dialog"]:visible')
+      .filter({ has: this.page.getByTestId("settings-import-dialog") })
+      .last();
   }
 
   private get builtinDeleteTooltip() {
     return this.page
       .locator(
-        '[role="tooltip"]:visible, .ant-tooltip:visible, .ant-popover:visible',
+        '[role="tooltip"]:visible, .semi-popover:visible',
       )
       .filter({
         hasText:
@@ -84,7 +91,7 @@ export class ConfigPage {
 
   private getRowByDeleteActionId(id: number) {
     return this.page
-      .locator(".vxe-body--row")
+      .locator(".semi-table-tbody > .semi-table-row")
       .filter({ has: this.getDeleteActionById(id) })
       .first();
   }
@@ -103,17 +110,17 @@ export class ConfigPage {
   // ========== CRUD operations ==========
 
   async create(name: string, key: string, value: string, remark?: string) {
-    await this.page.getByRole("button", { name: /新\s*增/ }).click();
+    await this.page.getByRole("button", { name: /新\s*增|Add/i }).click();
     await waitForDialogReady(this.dialog);
 
-    await this.dialog.getByLabel("参数名称").fill(name);
-    await this.dialog.getByLabel("参数键名").fill(key);
-    await this.dialog.getByLabel("参数键值").fill(value);
+    await this.resolveLocalizedLabel(this.dialog, "参数名称").fill(name);
+    await this.resolveLocalizedLabel(this.dialog, "参数键名").fill(key);
+    await this.resolveLocalizedLabel(this.dialog, "参数键值").fill(value);
     if (remark) {
-      await this.dialog.getByLabel("备注").fill(remark);
+      await this.resolveLocalizedLabel(this.dialog, "备注").fill(remark);
     }
 
-    await this.dialog.getByRole("button", { name: /确\s*认/ }).click();
+    await this.dialog.getByRole("button", { name: /保\s*存|Save|确\s*认|Confirm/i }).click();
     await waitForRouteReady(this.page);
     await this.dialog
       .waitFor({ state: "hidden", timeout: 10000 })
@@ -130,34 +137,33 @@ export class ConfigPage {
 
     // Click edit button
     await this.page
-      .locator(".ant-btn-sm")
-      .filter({ hasText: /编\s*辑/ })
+      .getByRole("button", { name: /编\s*辑|Edit/i })
       .first()
       .click();
     await waitForDialogReady(this.dialog);
 
     if (fields.name) {
-      const input = this.dialog.getByLabel("参数名称");
+      const input = this.resolveLocalizedLabel(this.dialog, "参数名称");
       await input.clear();
       await input.fill(fields.name);
     }
     if (fields.key) {
-      const input = this.dialog.getByLabel("参数键名");
+      const input = this.resolveLocalizedLabel(this.dialog, "参数键名");
       await input.clear();
       await input.fill(fields.key);
     }
     if (fields.value) {
-      const input = this.dialog.getByLabel("参数键值");
+      const input = this.resolveLocalizedLabel(this.dialog, "参数键值");
       await input.clear();
       await input.fill(fields.value);
     }
     if (fields.remark) {
-      const input = this.dialog.getByLabel("备注");
+      const input = this.resolveLocalizedLabel(this.dialog, "备注");
       await input.clear();
       await input.fill(fields.remark);
     }
 
-    await this.dialog.getByRole("button", { name: /确\s*认/ }).click();
+    await this.dialog.getByRole("button", { name: /保\s*存|Save|确\s*认|Confirm/i }).click();
     await waitForRouteReady(this.page);
     await this.dialog
       .waitFor({ state: "hidden", timeout: 10000 })
@@ -170,45 +176,28 @@ export class ConfigPage {
     await this.clickSearch();
 
     const targetRow = this.page
-      .locator(".vxe-body--row")
+      .locator(".semi-table-tbody > .semi-table-row")
       .filter({ hasText: configName })
       .first();
     await targetRow.waitFor({ state: "visible", timeout: 5000 });
     await targetRow.hover();
 
     // Click delete button
-    const rowDeleteButton = targetRow
-      .locator(".ant-btn-sm")
-      .filter({ hasText: /删\s*除/ })
-      .first();
-    if (await rowDeleteButton.isVisible().catch(() => false)) {
-      await rowDeleteButton.click();
-    } else {
-      await this.page
-        .locator(".ant-btn-sm")
-        .filter({ hasText: /删\s*除/ })
-        .first()
-        .click();
-    }
+    await targetRow.getByRole("button", { name: /删\s*除|Delete/i }).click();
 
     // Confirm deletion in Popconfirm
     const popconfirm = await waitForConfirmOverlay(this.page);
     const confirmBtn = popconfirm.getByRole("button", {
-      name: /确\s*定|OK|是/i,
+      name: /确\s*定|确\s*认|OK|Confirm|是/i,
     });
-    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await confirmBtn.click();
-    } else {
-      const modal = this.page.locator(".ant-modal-confirm");
-      await modal.getByRole("button", { name: /确\s*定|OK/i }).click();
-    }
+    await confirmBtn.click();
 
     await waitForRouteReady(this.page);
   }
 
   async hasConfig(text: string): Promise<boolean> {
     return this.page
-      .locator(".vxe-body--row")
+      .locator(".semi-table-tbody > .semi-table-row")
       .filter({ hasText: text })
       .first()
       .isVisible({ timeout: 5000 })
@@ -219,8 +208,8 @@ export class ConfigPage {
     const keyPattern = new RegExp(`^\\s*${this.escapeRegex(key)}\\s*$`);
 
     return this.page
-      .locator(".vxe-body--row", {
-        has: this.page.locator(".vxe-cell").filter({ hasText: keyPattern }),
+      .locator(".semi-table-tbody > .semi-table-row", {
+        has: this.page.locator(".semi-table-row-cell").filter({ hasText: keyPattern }),
       })
       .first();
   }
@@ -269,7 +258,7 @@ export class ConfigPage {
   }
 
   async getRowCount(): Promise<number> {
-    return this.page.locator(".vxe-body--row").count();
+    return this.page.locator(".semi-table-tbody > .semi-table-row").count();
   }
 
   // ========== Search helpers ==========
@@ -286,15 +275,6 @@ export class ConfigPage {
       }
     }
 
-    const input = this.searchForm
-      .locator(".ant-form-item")
-      .filter({ hasText: this.localizedLabelPattern(label) })
-      .locator("input")
-      .first();
-    if (await input.isVisible().catch(() => false)) {
-      await this.fillInputAndWaitForStableValue(input, value);
-      return;
-    }
     const fallbackInput = this.resolveLocalizedLabel(this.searchForm, label);
     await this.fillInputAndWaitForStableValue(fallbackInput, value);
   }
@@ -321,10 +301,8 @@ export class ConfigPage {
     await this.fillSearchField("参数名称", configName);
     await this.clickSearch();
     // Click the first checkbox in the body rows
-    const checkbox = this.page
-      .locator(".vxe-body--row .vxe-checkbox--icon")
-      .first();
-    await checkbox.click();
+    const row = this.page.locator(".semi-table-tbody > .semi-table-row").first();
+    await row.locator(".semi-checkbox").first().click();
     await waitForBusyIndicatorsToClear(this.page);
   }
 
@@ -332,13 +310,13 @@ export class ConfigPage {
 
   async clickExport() {
     await this.page.getByRole("button", { name: /导\s*出|Export/i }).click();
-    await waitForDialogReady(this.page.locator('[role="dialog"]'));
+    await waitForDialogReady(this.page.locator('.semi-modal-content[role="dialog"]:visible'));
   }
 
   /** Click confirm button in the export confirm modal */
   async clickExportConfirm() {
-    const modal = this.page.locator('[role="dialog"]');
-    await modal.getByRole("button", { name: /确\s*认/ }).click();
+    const modal = this.page.locator('.semi-modal-content[role="dialog"]:visible').last();
+    await modal.getByRole("button", { name: /^确\s*认$|^确\s*定$|^Confirm$|^OK$/i }).click();
     await waitForRouteReady(this.page);
   }
 
@@ -346,6 +324,6 @@ export class ConfigPage {
 
   async clickImport() {
     await this.page.getByRole("button", { name: /导\s*入|Import/i }).click();
-    await waitForDialogReady(this.dialog);
+    await waitForDialogReady(this.importDialog);
   }
 }

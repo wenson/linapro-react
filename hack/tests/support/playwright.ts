@@ -4,6 +4,7 @@ export type {
   APIResponse,
   Browser,
   BrowserContext,
+  FrameLocator,
   Locator,
   Page,
   Request,

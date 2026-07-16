@@ -13,6 +13,7 @@ import {
   refreshPluginProjection,
   syncPlugins,
 } from '../fixtures/plugin';
+import { waitForRouteReady } from './ui';
 
 export type SourcePluginLifecycleCase = {
   assertAvailable: (page: Page) => Promise<void>;
@@ -129,13 +130,7 @@ export async function expectPluginRouteAvailable(
   let lastError: unknown;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await page.goto(item.route, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => {});
-    await page
-      .locator('.ant-message-notice-content', {
-        hasText: /加载菜单中|Loading menu/i,
-      })
-      .waitFor({ state: 'hidden', timeout: 5000 })
-      .catch(() => {});
+    await waitForRouteReady(page, 15000);
 
     try {
       await item.assertAvailable(page);
@@ -151,7 +146,11 @@ export async function expectPluginRouteAvailable(
 export async function expectPluginRouteMissing(page: Page, route: string) {
   await page.goto(route);
   await page.waitForLoadState('networkidle');
-  await expect(page.getByText('未找到页面')).toBeVisible({ timeout: 10000 });
+  await expect(
+    page.getByRole('heading', {
+      name: /页面不存在|未找到页面|Not Found/i,
+    }),
+  ).toBeVisible({ timeout: 10000 });
 }
 
 export async function smokeSourcePluginLifecycle(

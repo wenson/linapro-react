@@ -3,6 +3,7 @@ import {
   request as playwrightRequest,
   type APIRequestContext,
   type APIResponse,
+  type Response,
 } from "@playwright/test";
 
 import { config } from "../../fixtures/config";
@@ -156,7 +157,7 @@ export async function createAdminApiContext(): Promise<APIRequestContext> {
   return createApiContext(config.adminUser, config.adminPass);
 }
 
-export async function expectSuccess<T>(response: APIResponse): Promise<T> {
+export async function expectSuccess<T>(response: APIResponse | Response): Promise<T> {
   expect(response.ok()).toBeTruthy();
   const payload = (await response.json()) as ApiEnvelope<T> & {
     errorCode?: string;

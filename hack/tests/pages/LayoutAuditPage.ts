@@ -27,7 +27,7 @@ export class LayoutAuditPage {
 
   formLabel(text: RegExp | string, scope?: Locator): Locator {
     return (scope ?? this.page)
-      .locator(".ant-form-item-label, .ant-form-item-label label, label", {
+      .locator(".semi-form-field-label, .semi-form-field-label-text, label", {
         hasText: text,
       })
       .first();
@@ -35,7 +35,7 @@ export class LayoutAuditPage {
 
   searchForm(): Locator {
     return this.page
-      .locator(".vxe-grid form")
+      .locator("form.iam-search-form")
       .filter({
         has: this.page.getByRole("button", { name: /搜\s*索|Search/u }),
       })
@@ -47,7 +47,7 @@ export class LayoutAuditPage {
 
   searchCollapseToggle(): Locator {
     return this.searchForm()
-      .locator(".vben-link", { hasText: /展\s*开|收\s*起|Expand|Collapse/u })
+      .getByTestId("search-collapse-toggle")
       .first();
   }
 
@@ -121,7 +121,7 @@ export class LayoutAuditPage {
 
   tableHeader(text: RegExp | string, scope?: Locator): Locator {
     return (scope ?? this.page)
-      .locator(".vxe-header--column, th", { hasText: text })
+      .locator(".semi-table-row-head, th", { hasText: text })
       .first();
   }
 

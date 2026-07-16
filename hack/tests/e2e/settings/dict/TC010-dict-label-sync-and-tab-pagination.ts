@@ -157,21 +157,31 @@ test.describe('TC-10 字典标签同步与 Tab 分页保持', () => {
 
     try {
       await menuPage.goto();
-      await expect(
-        adminPage.locator('#system-menu-table').getByText(originalLabel).first(),
-      ).toBeVisible();
+      const originalStatus = adminPage
+        .locator('[data-testid="menu-table"] [data-testid^="menu-status-"]')
+        .filter({ hasText: originalLabel })
+        .first();
+      await originalStatus.scrollIntoViewIfNeeded();
+      await expect(originalStatus).toBeVisible();
 
       await dictPage.goto();
       await dictPage.clickTypeRow('sys_normal_disable');
       await dictPage.editData(originalLabel, { label: updatedLabel });
-      await expect(adminPage.getByText(/更新成功|success/i)).toBeVisible();
+      await expect(dictPage.toast(/更新成功|success/i)).toBeVisible();
 
       await new MainLayout(adminPage).tabTitle('菜单管理').click();
       await waitForRouteReady(adminPage);
 
-      const menuTable = adminPage.locator('#system-menu-table');
-      await expect(menuTable.getByText(updatedLabel).first()).toBeVisible();
-      await expect(menuTable.getByText(originalLabel).first()).toHaveCount(0);
+      const menuTable = adminPage.getByTestId('menu-table');
+      const updatedStatus = menuTable
+        .locator('[data-testid^="menu-status-"]')
+        .filter({ hasText: updatedLabel })
+        .first();
+      await updatedStatus.scrollIntoViewIfNeeded();
+      await expect(updatedStatus).toBeVisible();
+      await expect(
+        menuTable.locator('[data-testid^="menu-status-"]').filter({ hasText: originalLabel }),
+      ).toHaveCount(0);
     } finally {
       const latest = await listDictData(api, 'sys_normal_disable');
       const current = latest.list.find((item) => item.value === '1');

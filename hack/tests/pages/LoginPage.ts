@@ -43,7 +43,7 @@ export class LoginPage {
   }
 
   get loadingTitle() {
-    return this.page.locator("#__app-loading__ .title").first();
+    return this.page.getByTestId("app-startup-loading-title").first();
   }
 
   get brandLogoImage() {
@@ -58,7 +58,7 @@ export class LoginPage {
   }
 
   get loginSubtitle() {
-    return this.page.locator("span.text-muted-foreground").first();
+    return this.page.getByTestId("login-subtitle").first();
   }
 
   get forgotPasswordEntry() {

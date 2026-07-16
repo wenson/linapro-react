@@ -8,10 +8,9 @@ test.describe('TC005 用户导入', () => {
 
     await userPage.clickImport();
 
-    // VbenModal uses Dialog component, find by role
-    const modal = adminPage.getByRole('dialog');
+    const modal = adminPage.getByTestId('user-import-dialog');
     await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal).toContainText('用户导入');
+    await expect(modal).toContainText(/点击或拖拽 Excel 文件到此处上传/);
   });
 
   test('TC005b: 导入弹窗中有下载模板链接', async ({ adminPage }) => {
@@ -20,7 +19,7 @@ test.describe('TC005 用户导入', () => {
 
     await userPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = adminPage.getByTestId('user-import-dialog');
     await expect(modal).toBeVisible({ timeout: 5000 });
     await expect(modal.getByText('下载模板')).toBeVisible();
   });
@@ -31,11 +30,11 @@ test.describe('TC005 用户导入', () => {
 
     await userPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = adminPage.getByTestId('user-import-dialog');
     await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal.getByText('点击或者拖拽到此处上传文件')).toBeVisible();
-    await expect(modal.getByText('允许导入xlsx, xls文件')).toBeVisible();
-    await expect(modal.getByText(/是否更新\/覆盖已存在的用户数据/)).toBeVisible();
+    await expect(modal.getByText(/点击或拖拽 Excel 文件到此处上传/)).toBeVisible();
+    await expect(modal.getByText(/仅支持 .xlsx、.xls 文件/)).toBeVisible();
+    await expect(modal.getByText(/覆盖已有用户数据/)).toBeVisible();
   });
 
   test('TC005d: 下载模板请求发送到正确的端点', async ({ adminPage }) => {
@@ -44,7 +43,7 @@ test.describe('TC005 用户导入', () => {
 
     await userPage.clickImport();
 
-    const modal = adminPage.getByRole('dialog');
+    const modal = adminPage.getByTestId('user-import-dialog');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     const responsePromise = adminPage.waitForResponse(

@@ -66,8 +66,10 @@ test.describe('Debug Export', () => {
     await exportBtn.click();
 
     // Check if modal appeared
-    const modalContent = await waitForDialogReady(adminPage.locator('.ant-modal-wrap'))
-      .then((dialog) => dialog.locator('.ant-modal-content').first())
+    const modalContent = await waitForDialogReady(
+      adminPage.locator('.semi-modal-content[role="dialog"]:visible'),
+    )
+      .then((dialog) => dialog)
       .catch(() => null);
     const modalVisible = modalContent !== null;
     console.log('MODAL VISIBLE:', modalVisible);

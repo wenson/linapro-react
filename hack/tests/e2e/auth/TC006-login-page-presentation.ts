@@ -6,6 +6,7 @@ import {
   getConfigByKey,
   updateConfigValue,
 } from "../../support/api/job";
+import { workspacePath } from "../../fixtures/config";
 
 test.describe("TC-2 登录页展示收口与布局", () => {
   let api: APIRequestContext;
@@ -39,7 +40,7 @@ test.describe("TC-2 登录页展示收口与布局", () => {
       "/auth/forget-password",
       "/auth/register",
     ]) {
-      await page.goto(path);
+      await page.goto(workspacePath(path));
       await page.waitForURL(/\/auth\/login$/, { timeout: 10000 });
       await expect(loginPage.usernameInput).toBeVisible();
     }

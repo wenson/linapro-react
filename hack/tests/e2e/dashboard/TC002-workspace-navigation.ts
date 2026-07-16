@@ -23,16 +23,13 @@ test.describe('TC002 默认工作台', () => {
       dashboardPage.workspaceProjects.locator('img[alt="GoFrame"]'),
     ).toHaveAttribute('src', /\/goframe-logo\.webp$/);
     await expect(
-      dashboardPage.workspaceProjects.getByText('Vue', { exact: true }),
+      dashboardPage.workspaceProjects.getByText('React', { exact: true }),
     ).toBeVisible();
     await expect(
-      dashboardPage.workspaceProjects.getByText('Vben', { exact: true }),
+      dashboardPage.workspaceProjects.getByText('Semi Design', { exact: true }),
     ).toBeVisible();
     await expect(
-      dashboardPage.workspaceProjects.locator('img[alt="Vben"]'),
-    ).toHaveAttribute('src', /\/vben-logo\.webp$/);
-    await expect(
-      dashboardPage.workspaceProjects.getByText('Ant Design', { exact: true }),
+      dashboardPage.workspaceProjects.getByText('TapCanvas', { exact: true }),
     ).toBeVisible();
     await expect(
       dashboardPage.workspaceProjects.getByText('TypeScript', { exact: true }),

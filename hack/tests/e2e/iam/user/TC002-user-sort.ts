@@ -15,7 +15,10 @@ test.describe('TC002 用户列表排序', () => {
 
     // Verify sort was applied by checking the sort class on visible header
     const header = userPage.columnHeader('账号');
-    await expect(header.locator('.vxe-cell--sort')).toBeVisible({ timeout: 3000 });
+    await expect(header.locator('.semi-table-column-sorter-wrapper')).toHaveAttribute(
+      'aria-label',
+      /ascending|descending/,
+    );
   });
 
   test('TC002b: 点击创建时间列头可触发排序', async ({ adminPage }) => {
@@ -25,7 +28,10 @@ test.describe('TC002 用户列表排序', () => {
     await userPage.clickColumnSort('创建时间');
 
     const header = userPage.columnHeader('创建时间');
-    await expect(header.locator('.vxe-cell--sort')).toBeVisible({ timeout: 3000 });
+    await expect(header.locator('.semi-table-column-sorter-wrapper')).toHaveAttribute(
+      'aria-label',
+      /ascending|descending/,
+    );
   });
 
   test('TC002c: 排序请求包含正确的排序参数', async ({ adminPage }) => {

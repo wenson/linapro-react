@@ -38,7 +38,9 @@ export class DashboardPage {
   }
 
   analyticsTab(label: string): Locator {
-    return this.page.getByTestId('dashboard-analytics-tabs').getByText(label, { exact: true });
+    return this.page
+      .getByTestId('dashboard-analytics-tabs')
+      .getByRole('button', { name: label, exact: true });
   }
 
   analyticsCardTitle(title: string): Locator {

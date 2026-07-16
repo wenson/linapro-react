@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { APIRequestContext } from "@playwright/test";
 
@@ -27,6 +28,21 @@ type FileListItem = {
 };
 
 const password = "test123456";
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(currentDir, "../../../../..");
+
+function pad(value: number, length = 2) {
+  return String(value).padStart(length, "0");
+}
+
+function testTempDirectory(now: Date) {
+  const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  return path.join(projectRoot, "temp", date);
+}
+
+function timePrefix(now: Date) {
+  return `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+}
 
 async function uploadTextFile(
   api: APIRequestContext,
@@ -64,11 +80,14 @@ test.describe("TC-3 文件管理数据权限", () => {
 
   test.beforeAll(async () => {
     adminApi = await createAdminApiContext();
+    const now = new Date();
     const suffix = Date.now().toString();
-    visibleName = `e2e_visible_${suffix}.txt`;
-    hiddenName = `e2e_hidden_${suffix}.txt`;
-    visiblePath = path.join("/tmp", visibleName);
-    hiddenPath = path.join("/tmp", hiddenName);
+    const tempDirectory = testTempDirectory(now);
+    fs.mkdirSync(tempDirectory, { recursive: true });
+    visibleName = `${timePrefix(now)}-e2e_visible_${suffix}.txt`;
+    hiddenName = `${timePrefix(now)}-e2e_hidden_${suffix}.txt`;
+    visiblePath = path.join(tempDirectory, visibleName);
+    hiddenPath = path.join(tempDirectory, hiddenName);
     fs.writeFileSync(visiblePath, "visible file");
     fs.writeFileSync(hiddenPath, "hidden file");
 

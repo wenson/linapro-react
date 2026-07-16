@@ -165,7 +165,7 @@ test.describe("TC-5 角色权限树模式切换", () => {
       await rolePage.goto();
       await rolePage.searchRole(role.name);
       await expect(
-        adminPage.locator(".vxe-body--row", { hasText: role.name }).first(),
+        rolePage.roleRowByName(role.name),
       ).toBeVisible();
 
       const drawer = await rolePage.openEditDrawer(role.name);

@@ -161,7 +161,7 @@ async function mockPluginApis(page: Page, options: { exposeBuiltinInList: boolea
   };
 }
 
-test.describe('TC-16 内建插件管理只读治理', () => {
+test.describe('TC-16 内建插件管理隐藏治理', () => {
   test('TC-16a: 普通插件管理列表不请求 builtin 诊断参数', async ({
     adminPage,
   }) => {
@@ -184,7 +184,7 @@ test.describe('TC-16 内建插件管理只读治理', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('TC-16b: 诊断返回 builtin 行时普通生命周期操作完全隐藏', async ({
+  test('TC-16b: 后端意外返回 builtin 行时前端仍完全隐藏', async ({
     adminPage,
   }) => {
     const pageErrors: string[] = [];
@@ -193,23 +193,19 @@ test.describe('TC-16 内建插件管理只读治理', () => {
 
     const pluginPage = new PluginPage(adminPage);
     await pluginPage.gotoManage();
-    await pluginPage.searchByPluginId(builtinPluginID);
+    await pluginPage.filterByPluginId(builtinPluginID);
 
-    await expect(pluginPage.pluginRow(builtinPluginID)).toBeVisible();
+    await expect(pluginPage.pluginRow(builtinPluginID)).toHaveCount(0);
     await expect(pluginPage.pluginEnabledSwitches(builtinPluginID)).toHaveCount(0);
     await expect(
       pluginPage.pluginTenantProvisioningSwitches(builtinPluginID),
     ).toHaveCount(0);
-    await pluginPage.expectInstallActionHidden(builtinPluginID);
-    await pluginPage.expectUpgradeActionHidden(builtinPluginID);
-    await pluginPage.expectUninstallActionHidden(builtinPluginID);
-    await expect(pluginPage.pluginDetailAction(builtinPluginID)).toBeVisible();
-    await captureEvidence(adminPage, 'builtin-plugin-management-readonly-row');
-
-    await pluginPage.openPluginDetail(builtinPluginID);
-    await expect(pluginPage.pluginDetailModal()).toContainText('Builtin Readonly E2E');
+    await expect(adminPage.getByTestId(`plugin-detail-button-${builtinPluginID}`)).toHaveCount(0);
+    await expect(adminPage.getByTestId(`plugin-install-${builtinPluginID}`)).toHaveCount(0);
+    await expect(adminPage.getByTestId(`plugin-upgrade-${builtinPluginID}`)).toHaveCount(0);
+    await expect(adminPage.getByTestId(`plugin-uninstall-${builtinPluginID}`)).toHaveCount(0);
     await expectNoRawPluginI18nKeys(adminPage);
-    await captureEvidence(adminPage, 'builtin-plugin-management-detail');
+    await captureEvidence(adminPage, 'builtin-plugin-management-hidden-boundary');
     expect(pageErrors).toEqual([]);
   });
 });

@@ -20,7 +20,7 @@ export class JobPage {
   private get dialog(): Locator {
     return this.page
       .locator('[role="dialog"]')
-      .filter({ hasText: /新增任务|编辑任务|任务详情/ })
+      .filter({ hasText: /新增任务|编辑任务|任务详情|Add Job|Edit Job|Job Details/ })
       .last();
   }
 
@@ -52,21 +52,17 @@ export class JobPage {
   async openEditSearchedJob() {
     await this.page.locator('[data-testid^="job-edit-"]').first().click();
     await waitForDialogReady(this.dialog);
-    await this.dialog.getByLabel("任务名称").waitFor({ state: "visible" });
   }
 
   async selectCombobox(label: string, optionText: string) {
     const combobox = this.dialog
       .getByRole("combobox", { name: new RegExp(label) })
       .first();
-    const select = combobox.locator(
-      'xpath=ancestor::*[contains(@class, "ant-select-selector")][1]',
-    );
     await combobox.waitFor({ state: "visible" });
-    if ((await select.textContent())?.includes(optionText)) {
+    if ((await combobox.inputValue().catch(() => "")).includes(optionText)) {
       return;
     }
-    await select.click();
+    await combobox.click();
     await this.page.getByText(optionText, { exact: true }).last().click();
   }
 
@@ -88,7 +84,7 @@ export class JobPage {
       await this.replaceFieldValue(description, params.description);
     }
     if (params.cronExpr) {
-      const cron = this.dialog.getByLabel("定时表达式");
+      const cron = this.dialog.getByLabel("定时表达式", { exact: true });
       await cron.clear();
       await cron.fill(params.cronExpr);
     }
@@ -146,12 +142,7 @@ export class JobPage {
     if (await footerClose.count()) {
       await footerClose.click();
     } else {
-      const iconClose = this.dialog.locator(".ant-modal-close").first();
-      if (await iconClose.count()) {
-        await iconClose.click();
-      } else {
-        await this.page.keyboard.press("Escape");
-      }
+      await this.page.keyboard.press("Escape");
     }
     await this.dialog.waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
     await waitForBusyIndicatorsToClear(this.page);
@@ -166,12 +157,10 @@ export class JobPage {
 
   async setTaskStatus(statusLabel: "停用" | "启用") {
     const option = this.dialog
-      .locator(".ant-radio-button-wrapper")
-      .filter({ hasText: statusLabel })
-      .first();
+      .getByTestId("job-status-radio-group")
+      .getByText(statusLabel, { exact: true });
     await option.waitFor({ state: "visible" });
     await option.click();
-    await option.waitFor({ state: "visible" });
   }
 
   async hasSearchedJobMoreButton() {
@@ -242,9 +231,7 @@ export class JobPage {
       .first()
       .hover();
     await this.page
-      .locator(
-        '[role="tooltip"]:visible, .side-content:visible, .ant-tooltip:visible, .ant-popover:visible',
-      )
+      .locator('[role="tooltip"]:visible')
       .first()
       .waitFor({ state: "visible", timeout: 1500 })
       .catch(() => {});
@@ -252,24 +239,34 @@ export class JobPage {
 
   async hasJob(name: string) {
     return this.page
-      .locator(".vxe-body--row", { hasText: name })
+      .getByTestId("job-table")
+      .locator(".semi-table-tbody > .semi-table-row", { hasText: name })
       .first()
       .isVisible({ timeout: 3000 })
       .catch(() => false);
   }
 
   async getJobRowText(name: string) {
-    const row = this.page.locator(".vxe-body--row", { hasText: name }).first();
+    const row = this.page
+      .getByTestId("job-table")
+      .locator(".semi-table-tbody > .semi-table-row", { hasText: name })
+      .first();
     await row.waitFor({ state: "visible" });
     return (await row.textContent())?.replace(/\s+/g, " ").trim() ?? "";
   }
 
   async hoverFieldHelp(label: string) {
+    await this.page.mouse.move(4, 4);
+    const openTooltips = this.page.locator('[role="tooltip"]:visible');
+    const tooltipCount = await openTooltips.count();
+    for (let index = 0; index < tooltipCount; index += 1) {
+      await openTooltips.nth(index).waitFor({ state: "hidden", timeout: 3000 }).catch(() => {});
+    }
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const labelNode = this.getFieldLabel(label);
       const trigger = labelNode
-        .locator('svg, .anticon, [class*="question"], [data-grace-area-trigger]')
+        .locator("svg")
         .first();
       try {
         await trigger.waitFor({ state: "visible", timeout: 5000 });
@@ -285,9 +282,7 @@ export class JobPage {
       }
     }
     await this.page
-      .locator(
-        '[role="tooltip"]:visible, .side-content:visible, .ant-tooltip:visible, .ant-popover:visible',
-      )
+      .locator('[role="tooltip"]:visible')
       .first()
       .waitFor({ state: "visible", timeout: 1500 })
       .catch(() => {});
@@ -295,9 +290,7 @@ export class JobPage {
 
   async isTooltipVisible(text: string) {
     return this.page
-      .locator(
-        '[role="tooltip"]:visible, .side-content:visible, .ant-tooltip:visible, .ant-popover:visible',
-      )
+      .locator('[role="tooltip"]:visible')
       .getByText(text)
       .first()
       .isVisible({ timeout: 1500 })
@@ -321,10 +314,11 @@ export class JobPage {
   }
 
   async getCronEditorMetrics() {
-    const editor = this.dialog.getByLabel("定时表达式").first();
+    const editor = this.dialog.getByLabel("定时表达式", { exact: true }).first();
     await editor.waitFor({ state: "visible" });
     return editor.evaluate((node) => {
-      const style = getComputedStyle(node);
+      const input = node instanceof HTMLInputElement ? node : node.querySelector("input");
+      const style = getComputedStyle(input ?? node);
       return {
         backgroundColor: style.backgroundColor,
         borderRadius: style.borderRadius,
@@ -346,7 +340,7 @@ export class JobPage {
   }
 
   messageNotice(text: string) {
-    return this.page.locator(".ant-message-notice").filter({ hasText: text }).last();
+    return this.page.locator(".semi-toast-content-text:visible").filter({ hasText: text }).last();
   }
 
   private async confirmPopconfirm() {
