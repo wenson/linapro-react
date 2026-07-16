@@ -109,14 +109,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version-file: "apps/lina-vben/.node-version"
+          node-version-file: "apps/lina-web/.node-version"
           cache: "pnpm"
-          cache-dependency-path: "apps/lina-vben/pnpm-lock.yaml"
+          cache-dependency-path: "apps/lina-web/pnpm-lock.yaml"
 
       # Install frontend dependencies needed by the image build.
       # 安装镜像构建所需的前端依赖。
       - name: Install Frontend Dependencies
-        working-directory: apps/lina-vben
+        working-directory: apps/lina-web
         run: pnpm install --frozen-lockfile
 
       # Enable emulation for non-native target platforms.

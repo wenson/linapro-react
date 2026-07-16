@@ -26,8 +26,8 @@ env:
   TZ: "Asia/Shanghai"
 
 jobs:
-  # Installs frontend dependencies and runs the Vben workspace unit-test suite.
-  # 安装前端依赖并运行 Vben 工作区单元测试套件。
+  # Installs frontend dependencies and runs the React workbench unit-test suite.
+  # 安装前端依赖并运行 React 工作台单元测试套件。
   frontend-unit-tests:
     name: Frontend unit tests
     runs-on: ubuntu-latest
@@ -61,18 +61,18 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version-file: "apps/lina-vben/.node-version"
+          node-version-file: "apps/lina-web/.node-version"
           cache: "pnpm"
-          cache-dependency-path: "apps/lina-vben/pnpm-lock.yaml"
+          cache-dependency-path: "apps/lina-web/pnpm-lock.yaml"
 
       # Install frontend dependencies from the committed lockfile.
       # 根据已提交的 lockfile 安装前端依赖。
       - name: Install Frontend Dependencies
-        working-directory: apps/lina-vben
+        working-directory: apps/lina-web
         run: pnpm install --frozen-lockfile
 
-      # Run the frontend unit-test command for the Lina Vben workspace.
-      # 运行 Lina Vben 工作区的前端单元测试命令。
+      # Run the frontend unit-test command for the React workbench.
+      # 运行 React 工作台的前端单元测试命令。
       - name: Run Frontend Unit Tests
-        working-directory: apps/lina-vben
+        working-directory: apps/lina-web
         run: pnpm test:unit

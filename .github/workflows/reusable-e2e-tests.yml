@@ -134,9 +134,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version-file: "apps/lina-vben/.node-version"
+          node-version-file: "apps/lina-web/.node-version"
           cache: "pnpm"
-          cache-dependency-path: "apps/lina-vben/pnpm-lock.yaml"
+          cache-dependency-path: "apps/lina-web/pnpm-lock.yaml"
 
       # make dev/stop/status use lsof to detect and clean processes bound to
       # the backend and frontend ports. Keep this explicit because GitHub's
@@ -151,7 +151,7 @@ jobs:
       # Install frontend workspace dependencies from the committed lockfile.
       # 根据已提交的 lockfile 安装前端工作区依赖。
       - name: Install Frontend Dependencies
-        working-directory: apps/lina-vben
+        working-directory: apps/lina-web
         run: pnpm install --frozen-lockfile
 
       # Install Playwright test runner dependencies for the shared E2E workspace.
@@ -208,6 +208,6 @@ jobs:
             hack/tests/playwright-report/
             hack/tests/test-results/
             temp/lina-core.log
-            temp/lina-vben.log
+            temp/lina-web.log
           if-no-files-found: ignore
           retention-days: ${{ inputs.retention-days }}

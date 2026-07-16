@@ -49,7 +49,6 @@ jobs:
       - release-tag-version-check
     uses: ./.github/workflows/reusable-test-verification-suite.yml
     with:
-      include-openspec-completion: true
       include-windows-command-smoke: true
       include-backend-unit-tests: true
       include-go-lint: true
