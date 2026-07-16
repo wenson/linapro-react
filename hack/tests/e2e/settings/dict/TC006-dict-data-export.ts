@@ -13,7 +13,7 @@ test.describe('TC006 字典数据面板无独立导出导入功能', () => {
 
     // Data panel should NOT have export button
     const dataPanel = adminPage.locator('#dict-data');
-    await expect(dataPanel.locator('.vxe-body--row').first()).toBeVisible();
+    await expect(dataPanel.locator('.semi-table-tbody > .semi-table-row').first()).toBeVisible();
     await expect(dataPanel.getByRole('button', { name: /导\s*出/ })).toHaveCount(0);
   });
 
@@ -26,7 +26,7 @@ test.describe('TC006 字典数据面板无独立导出导入功能', () => {
 
     // Data panel should NOT have import button
     const dataPanel = adminPage.locator('#dict-data');
-    await expect(dataPanel.locator('.vxe-body--row').first()).toBeVisible();
+    await expect(dataPanel.locator('.semi-table-tbody > .semi-table-row').first()).toBeVisible();
     await expect(dataPanel.getByRole('button', { name: /导\s*入/ })).toHaveCount(0);
   });
 
@@ -40,8 +40,8 @@ test.describe('TC006 字典数据面板无独立导出导入功能', () => {
     // Assert against the toolbar actions only. The data table also renders
     // row-level delete buttons, so an unscoped role query becomes ambiguous.
     const dataPanel = adminPage.locator('#dict-data');
-    await expect(dataPanel.locator('.vxe-body--row').first()).toBeVisible();
-    const dataToolbar = dataPanel.locator('.vxe-grid--toolbar, .vxe-toolbar').first();
+    await expect(dataPanel.locator('.semi-table-tbody > .semi-table-row').first()).toBeVisible();
+    const dataToolbar = dataPanel.locator('.iam-toolbar').first();
     await expect(dataToolbar.getByRole('button', { name: /新\s*增/ }).first()).toBeVisible();
     await expect(dataToolbar.getByRole('button', { name: /删\s*除/ }).first()).toBeVisible();
   });

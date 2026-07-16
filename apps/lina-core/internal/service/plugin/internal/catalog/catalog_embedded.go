@@ -172,24 +172,14 @@ func (s *serviceImpl) HasMockSQLData(manifest *Manifest) bool {
 	return len(s.ListMockSQLPaths(manifest)) > 0
 }
 
-// ListFrontendPagePaths returns the frontend page source paths for a source plugin manifest.
+// ListFrontendPagePaths deliberately returns no source UI paths because
+// apps/lina-web owns React plugin UI discovery.
 func (s *serviceImpl) ListFrontendPagePaths(manifest *Manifest) []string {
-	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
-		return resourcefs.DiscoverVuePathsFromFS(embeddedFiles, "frontend/pages")
-	}
-	if manifest == nil {
-		return []string{}
-	}
-	return s.DiscoverPagePaths(manifest.RootDir)
+	return []string{}
 }
 
-// ListFrontendSlotPaths returns the frontend slot source paths for a source plugin manifest.
+// ListFrontendSlotPaths deliberately returns no source UI paths because
+// apps/lina-web owns React plugin UI discovery.
 func (s *serviceImpl) ListFrontendSlotPaths(manifest *Manifest) []string {
-	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
-		return resourcefs.DiscoverVuePathsFromFS(embeddedFiles, "frontend/slots")
-	}
-	if manifest == nil {
-		return []string{}
-	}
-	return s.DiscoverSlotPaths(manifest.RootDir)
+	return []string{}
 }

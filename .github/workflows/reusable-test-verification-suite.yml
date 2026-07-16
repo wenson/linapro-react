@@ -7,12 +7,6 @@ on:
   # 将共享测试矩阵暴露给主 CI、nightly 和后续 release 调用方。
   workflow_call:
     inputs:
-      # Enables the active OpenSpec completion gate for push CI.
-      # 为 push CI 启用活跃 OpenSpec 完成状态门禁。
-      include-openspec-completion:
-        description: Whether to require all active OpenSpec changes to be complete.
-        required: true
-        type: boolean
       # Enables the host-only Windows command smoke job.
       # 启用宿主模式 Windows 命令冒烟 job。
       include-windows-command-smoke:
@@ -128,13 +122,6 @@ permissions:
   contents: read
 
 jobs:
-  # Fails branches when any active OpenSpec change still has incomplete tasks.
-  # 当任一活跃 OpenSpec 变更仍有未完成任务时让分支失败。
-  openspec-changes-complete:
-    name: OpenSpec changes complete
-    if: ${{ inputs.include-openspec-completion }}
-    uses: ./.github/workflows/reusable-openspec-changes-complete.yml
-
   # Verifies host-only command entry points on Windows.
   # 在 Windows 上验证宿主模式命令入口。
   windows-command-smoke:

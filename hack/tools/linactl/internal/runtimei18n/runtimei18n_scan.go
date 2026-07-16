@@ -98,43 +98,35 @@ var scannerRules = []scanRule{
 		Identifier: "frontend-property-han",
 		Category:   "UserMessage",
 		Include: []string{
-			"apps/lina-vben/apps/web-antd/src/**/*.js",
-			"apps/lina-vben/apps/web-antd/src/**/*.ts",
-			"apps/lina-vben/apps/web-antd/src/**/*.tsx",
-			"apps/lina-vben/apps/web-antd/src/**/*.vue",
-			"apps/lina-plugins/*/frontend/**/*.js",
+			"apps/lina-web/src/**/*.ts",
+			"apps/lina-web/src/**/*.tsx",
 			"apps/lina-plugins/*/frontend/**/*.ts",
 			"apps/lina-plugins/*/frontend/**/*.tsx",
-			"apps/lina-plugins/*/frontend/**/*.vue",
 		},
 		Pattern: regexp.MustCompile(`\b(?:title|label|placeholder|content|emptyText)\s*:\s*['"][^'"]*[\x{3400}-\x{9fff}]`),
-		Message: "Frontend visible properties must use $t or runtime i18n keys.",
+		Message: "Frontend visible properties must use t() or runtime i18n keys.",
 	},
 	{
 		Identifier: "frontend-message-call-han",
 		Category:   "UserMessage",
 		Include: []string{
-			"apps/lina-vben/apps/web-antd/src/**/*.js",
-			"apps/lina-vben/apps/web-antd/src/**/*.ts",
-			"apps/lina-vben/apps/web-antd/src/**/*.tsx",
-			"apps/lina-vben/apps/web-antd/src/**/*.vue",
-			"apps/lina-plugins/*/frontend/**/*.js",
+			"apps/lina-web/src/**/*.ts",
+			"apps/lina-web/src/**/*.tsx",
 			"apps/lina-plugins/*/frontend/**/*.ts",
 			"apps/lina-plugins/*/frontend/**/*.tsx",
-			"apps/lina-plugins/*/frontend/**/*.vue",
 		},
-		Pattern: regexp.MustCompile(`\b(?:message|notification)\.(?:success|error|warning|info|loading)\([^)\n]*['"][^'"]*[\x{3400}-\x{9fff}]`),
-		Message: "Frontend toast/notification text must use $t or runtime i18n keys.",
+		Pattern: regexp.MustCompile(`\b(?:Toast|Notification)\.(?:success|error|warning|info)\([^)\n]*['"][^'"]*[\x{3400}-\x{9fff}]`),
+		Message: "Frontend toast/notification text must use t() or runtime i18n keys.",
 	},
 	{
-		Identifier: "frontend-template-text-han",
+		Identifier: "frontend-jsx-text-han",
 		Category:   "UserMessage",
 		Include: []string{
-			"apps/lina-vben/apps/web-antd/src/**/*.vue",
-			"apps/lina-plugins/*/frontend/**/*.vue",
+			"apps/lina-web/src/**/*.tsx",
+			"apps/lina-plugins/*/frontend/**/*.tsx",
 		},
 		Pattern: regexp.MustCompile(`>[^<>{}$]*[\x{3400}-\x{9fff}][^<>{}$]*<`),
-		Message: "Vue template text nodes must use $t or runtime i18n keys.",
+		Message: "React JSX text nodes must use t() or runtime i18n keys.",
 	},
 }
 
@@ -161,7 +153,9 @@ var generatedSourcePatterns = []string{
 var testFixturePatterns = []string{
 	"**/*_test.go",
 	"**/*.test.ts",
+	"**/*.test.tsx",
 	"**/*.spec.ts",
+	"**/*.spec.tsx",
 }
 
 // runtimeExcludedPatterns stores repository-relative glob patterns skipped by
@@ -376,7 +370,7 @@ func loadAllowlist(path string) (map[allowlistKey]allowlistEntry, error) {
 func iterSourceFiles(repoRoot string) ([]string, error) {
 	roots := []string{
 		filepath.Join(repoRoot, "apps", "lina-core"),
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src"),
+		filepath.Join(repoRoot, "apps", "lina-web", "src"),
 		filepath.Join(repoRoot, "apps", "lina-plugins"),
 	}
 	files := make([]string, 0)
@@ -414,7 +408,7 @@ func iterSourceFiles(repoRoot string) ([]string, error) {
 // isScannableSourceSuffix reports whether one file suffix is included in scanning.
 func isScannableSourceSuffix(path string) bool {
 	switch filepath.Ext(path) {
-	case ".go", ".js", ".ts", ".tsx", ".vue":
+	case ".go", ".ts", ".tsx":
 		return true
 	default:
 		return false

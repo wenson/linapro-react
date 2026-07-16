@@ -115,7 +115,7 @@ test.describe('TC005 用户头像下拉菜单', () => {
     expect(menuTexts.join(',')).not.toContain('GitHub');
     expect(menuTexts.join(',')).not.toMatch(/问题/);
 
-    // Verify "个人中心" still exists (with possible ant-design spacing)
+    // Verify "个人中心" still exists even when the UI inserts visual spacing.
     expect(menuTexts.join(',')).toMatch(/个\s*人\s*中\s*心/);
   });
 

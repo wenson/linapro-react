@@ -1,0 +1,51 @@
+{
+  "plugin": {
+    "linapro-monitor-loginlog": {
+      "description": "提供登录日志持久化与治理的官方源码插件",
+      "detail": {
+        "title": "登录日志详情"
+      },
+      "exportFileName": "登录日志导出.xlsx",
+      "fields": {
+        "beginDate": "开始日期",
+        "browser": "浏览器",
+        "endDate": "结束日期",
+        "ipAddress": "IP 地址",
+        "loginDate": "登录日期",
+        "loginTime": "登录时间",
+        "message": "提示信息",
+        "os": "操作系统",
+        "status": "登录状态",
+        "userName": "用户账号"
+      },
+      "logMessage": {
+        "invalidCredentials": "用户名或密码错误",
+        "ipBlacklisted": "登录IP已被禁止",
+        "loginFailed": "登录失败",
+        "loginSuccessful": "登录成功",
+        "logoutSuccessful": "登出成功",
+        "userDisabled": "用户已停用"
+      },
+      "messages": {
+        "clearConfirm": "确认清空所有登录日志吗？",
+        "clearSuccess": "清空登录日志成功",
+        "deleteAllHint": "勾选后将忽略日期范围，删除当前权限范围内的所有登录日志。",
+        "deleteAllLabel": "删除所有登录日志",
+        "deleteRangeDescription": "请选择登录日志删除方式。默认按日期范围清理，勾选全部日志后将清理当前权限范围内的所有日志。",
+        "deleteRangeRequired": "请选择完整的登录日志日期范围",
+        "deleteRangeSuccess": "已删除 {count} 条登录日志",
+        "deleteRangeTitle": "删除登录日志"
+      },
+      "name": "系统监控-登录日志",
+      "tableTitle": "登录日志列表",
+      "lifecycleGuard": {
+        "uninstall_blocked": {
+          "retention_required": "登录日志仍处于要求的留存周期内。卸载前请先导出或等待过期。"
+        },
+        "disable_blocked": {
+          "audit_required": "租户审计策略要求登录日志保持启用。"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+# Plugin identifier, stable across routes, permissions, assets, and storage.
+# 插件唯一标识，在路由、权限、资源和存储边界中保持稳定。
+id: linapro-tapcanvas-studio
+
+# Plugin display name used by host governance and documentation.
+# 插件显示名称，用于宿主治理和文档展示。
+name: TapCanvas Studio
+
+# Plugin semantic version used for managed-plugin reconciliation.
+# 插件语义化版本号，用于受插件管理的收敛。
+version: v0.1.2
+
+# Source plugins are compiled and embedded with the LinaPro host.
+# 源码插件随 LinaPro宿主编译和嵌入交付。
+type: source
+
+# Managed plugins are not automatically enabled by host startup governance.
+# 受插件管理的插件不会由宿主启动治理自动启用。
+distribution: managed
+
+# The plugin always executes inside a governed tenant context.
+# 插件始终在受治理的 Tenant上下文内执行。
+scope_nature: tenant_aware
+
+# Tenant-aware business data is isolated by tenant_id in later schema stages.
+# 后续业务表通过 tenant_id实现多租户隔离。
+supports_multi_tenant: true
+
+# One host installation serves governed tenant contexts.
+# 一个宿主级安装服务于受治理的 Tenant上下文。
+default_install_mode: global
+
+description: Managed TapCanvas project and infinite-canvas workspace for LinaPro
+author: linapro
+license: Apache-2.0
+
+# English is the source locale; Chinese is maintained as a complete mirror.
+# 英文是源语言，中文作为完整镜像维护。
+i18n:
+  enabled: true
+  default: en-US
+  locales:
+    - locale: en-US
+      nativeName: English
+    - locale: zh-CN
+      nativeName: 简体中文
+
+# AI is an owner-plugin capability, not an optional host fallback.
+# AI是 owner插件能力，不是可选的宿主降级路径。
+dependencies:
+  framework:
+    version: ">=0.1.0 <1.0.0"
+  plugins:
+    - id: linapro-ai-core
+      version: ">=0.1.0 <0.2.0"
+
+# Menus declare the project entry, workspace, and action permissions.
+# 菜单声明项目入口、工作区和动作权限。
+menus:
+  - key: plugin:linapro-tapcanvas-studio:root
+    name: TapCanvas Studio
+    path: tapcanvas
+    perms: tapcanvas:studio:view
+    icon: lucide:infinity
+    type: D
+    sort: 2
+    remark: TapCanvas creation workspace
+  - key: plugin:linapro-tapcanvas-studio:projects
+    parent_key: plugin:linapro-tapcanvas-studio:root
+    name: Projects
+    path: /tapcanvas/projects
+    component: system/plugin/dynamic-page
+    perms: tapcanvas:project:view
+    icon: lucide:panels-top-left
+    type: M
+    sort: 1
+    remark: TapCanvas project entry
+  - key: plugin:linapro-tapcanvas-studio:projects-create
+    parent_key: plugin:linapro-tapcanvas-studio:projects
+    name: Create Project
+    perms: tapcanvas:project:create
+    type: B
+    sort: 1
+  - key: plugin:linapro-tapcanvas-studio:projects-update
+    parent_key: plugin:linapro-tapcanvas-studio:projects
+    name: Update Project
+    perms: tapcanvas:project:update
+    type: B
+    sort: 2
+  - key: plugin:linapro-tapcanvas-studio:projects-delete
+    parent_key: plugin:linapro-tapcanvas-studio:projects
+    name: Delete Project
+    perms: tapcanvas:project:delete
+    type: B
+    sort: 3
+  - key: plugin:linapro-tapcanvas-studio:studio
+    parent_key: plugin:linapro-tapcanvas-studio:root
+    name: Studio
+    path: /tapcanvas/studio
+    component: system/plugin/dynamic-page
+    perms: tapcanvas:studio:view
+    icon: lucide:workflow
+    type: M
+    sort: 2
+    remark: TapCanvas infinite-canvas workspace
+  - key: plugin:linapro-tapcanvas-studio:flow-view
+    parent_key: plugin:linapro-tapcanvas-studio:studio
+    name: View Flow
+    perms: tapcanvas:flow:view
+    type: B
+    sort: 1
+  - key: plugin:linapro-tapcanvas-studio:flow-mutate
+    parent_key: plugin:linapro-tapcanvas-studio:studio
+    name: Mutate Flow
+    perms: tapcanvas:flow:mutate
+    type: B
+    sort: 2

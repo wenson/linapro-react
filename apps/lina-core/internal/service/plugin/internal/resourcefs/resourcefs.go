@@ -21,7 +21,6 @@ const (
 
 var (
 	sqlFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
-	vueFileExts        = map[string]struct{}{".vue": {}}
 )
 
 // BuildEmbeddedManifestPath builds the host-visible virtual manifest path for one embedded source plugin.
@@ -214,49 +213,6 @@ func DiscoverMockSQLPathsFromFS(fileSystem fs.FS) []string {
 	return items
 }
 
-// DiscoverVuePaths discovers plugin Vue resources under one relative directory.
-func DiscoverVuePaths(rootDir string, relativeDir string) []string {
-	searchDir := filepath.Join(rootDir, relativeDir)
-	if !gfile.Exists(searchDir) || !gfile.IsDir(searchDir) {
-		return []string{}
-	}
-
-	resourceFiles, err := gfile.ScanDirFile(searchDir, "*.vue", true)
-	if err != nil {
-		return []string{}
-	}
-
-	items := make([]string, 0, len(resourceFiles))
-	for _, resourceFile := range resourceFiles {
-		relativePath, relErr := filepath.Rel(rootDir, resourceFile)
-		if relErr != nil {
-			continue
-		}
-		items = append(items, path.Clean(strings.ReplaceAll(relativePath, "\\", "/")))
-	}
-	sort.Strings(items)
-	return items
-}
-
-// DiscoverVuePathsFromFS discovers plugin Vue resources from one embedded filesystem.
-func DiscoverVuePathsFromFS(fileSystem fs.FS, searchDir string) []string {
-	items := make([]string, 0)
-	if err := fs.WalkDir(fileSystem, searchDir, func(currentPath string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil || d == nil || d.IsDir() {
-			return walkErr
-		}
-		if path.Ext(currentPath) != ".vue" {
-			return nil
-		}
-		items = append(items, path.Clean(currentPath))
-		return nil
-	}); err != nil {
-		return []string{}
-	}
-	sort.Strings(items)
-	return items
-}
-
 // ValidateSQLPaths validates install or uninstall SQL asset paths under one plugin root.
 func ValidateSQLPaths(rootDir string, relativePaths []string, uninstall bool) error {
 	return validateSQLPaths(
@@ -294,31 +250,6 @@ func ValidateMockSQLPaths(rootDir string, relativePaths []string) error {
 func ValidateMockSQLPathsFromFS(fileSystem fs.FS, relativePaths []string) error {
 	return validateMockSQLPaths(
 		relativePaths,
-		func(normalizedPath string) bool {
-			_, err := fs.Stat(fileSystem, normalizedPath)
-			return err == nil
-		},
-	)
-}
-
-// ValidateVuePaths validates plugin Vue asset paths under one plugin root.
-func ValidateVuePaths(rootDir string, relativePaths []string, expectedPrefix string) error {
-	return validateFilePaths(
-		relativePaths,
-		expectedPrefix,
-		vueFileExts,
-		func(normalizedPath string) bool {
-			return gfile.Exists(filepath.Join(rootDir, filepath.FromSlash(normalizedPath)))
-		},
-	)
-}
-
-// ValidateVuePathsFromFS validates plugin Vue asset paths under one embedded filesystem.
-func ValidateVuePathsFromFS(fileSystem fs.FS, relativePaths []string, expectedPrefix string) error {
-	return validateFilePaths(
-		relativePaths,
-		expectedPrefix,
-		vueFileExts,
 		func(normalizedPath string) bool {
 			_, err := fs.Stat(fileSystem, normalizedPath)
 			return err == nil
@@ -406,39 +337,6 @@ func validateMockSQLPaths(relativePaths []string, exists func(normalizedPath str
 		}
 		if !exists(normalizedPath) {
 			return gerror.Newf("Mock SQL resource file does not exist: %s", relativePath)
-		}
-	}
-
-	return nil
-}
-
-// validateFilePaths validates relative asset paths against the expected
-// directory prefix, extension allowlist, and existence contract.
-func validateFilePaths(
-	relativePaths []string,
-	expectedPrefix string,
-	allowedExt map[string]struct{},
-	exists func(normalizedPath string) bool,
-) error {
-	for _, relativePath := range relativePaths {
-		if relativePath == "" {
-			return gerror.New("plugin resource path cannot be empty")
-		}
-
-		normalizedPath, err := NormalizeRelativePath(relativePath)
-		if err != nil {
-			return err
-		}
-		if !strings.HasPrefix(normalizedPath, expectedPrefix) {
-			return gerror.Newf("plugin resource path must be under %s: %s", expectedPrefix, relativePath)
-		}
-		if len(allowedExt) > 0 {
-			if _, ok := allowedExt[strings.ToLower(path.Ext(normalizedPath))]; !ok {
-				return gerror.Newf("plugin resource file type is unsupported: %s", relativePath)
-			}
-		}
-		if !exists(normalizedPath) {
-			return gerror.Newf("plugin resource file does not exist: %s", relativePath)
 		}
 	}
 

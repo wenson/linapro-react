@@ -24,5 +24,5 @@ func EnsureDeps(ctx context.Context, root string, out io.Writer, run CommandRunn
 		return nil
 	}
 	fmt.Fprintln(out, "Frontend dependencies not installed; running pnpm install...")
-	return run(ctx, filepath.Join(root, "apps", "lina-vben"), "pnpm", "install")
+	return run(ctx, filepath.Join(root, "apps", "lina-web"), "pnpm", "install")
 }

@@ -1,156 +1,135 @@
 import { test, expect } from '../../../fixtures/auth';
 import { DictPage } from '../../../pages/DictPage';
+import { createAdminApiContext, expectSuccess } from '../../../support/api/job';
+import { waitForConfirmOverlay } from '../../../support/ui';
+
+type DictDataList = {
+  list: Array<{ id: number }>;
+  total: number;
+};
+
+function makeRecord(label: string) {
+  const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    code: `cascade_${label}_${suffix}`,
+    dataLabel: `级联数据_${label}_${suffix}`,
+    name: `级联测试_${label}_${suffix}`,
+  };
+}
 
 test.describe('TC007 字典类型级联删除', () => {
-  const testTypeName = `级联测试_${Date.now()}`;
-  const testTypeCode = `cascade_test_${Date.now()}`;
-  const testDataLabel1 = `选项A_${Date.now()}`;
-  const testDataValue1 = 'option_a';
-  const testDataLabel2 = `选项B_${Date.now()}`;
-  const testDataValue2 = 'option_b';
-
   test('TC007a: 删除字典类型时显示级联删除提示', async ({ adminPage }) => {
     const dictPage = new DictPage(adminPage);
+    const record = makeRecord('prompt');
     await dictPage.goto();
 
-    // Create a new dict type for testing
-    await dictPage.createType(testTypeName, testTypeCode);
+    try {
+      await dictPage.createType(record.name, record.code);
+      await dictPage.clickTypeRow(record.name);
+      await dictPage.createData(record.dataLabel, 'option_a');
+      await dictPage.fillTypeSearchField('字典名称', record.name);
+      await dictPage.clickTypeSearch();
+      await dictPage.clickCurrentTypeDeleteAction(record.name);
 
-    // Create dict data for this type
-    await dictPage.clickTypeRow(testTypeName);
-    await dictPage.createData(testDataLabel1, testDataValue1);
-
-    // Search for the type
-    await dictPage.fillTypeSearchField('字典名称', testTypeName);
-    await dictPage.clickTypeSearch();
-
-    // Click delete button
-    await dictPage.clickCurrentTypeDeleteAction(testTypeName);
-
-    // Wait for confirmation modal
-    const modal = adminPage.locator('.ant-modal-confirm');
-    await modal.waitFor({ state: 'visible', timeout: 3000 });
-
-    // Verify the cascade delete warning message
-    await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
-
-    // Click cancel to close (cleanup will happen in afterAll)
-    await modal.getByRole('button', { name: /取\s*消/ }).click();
-    await modal.waitFor({ state: 'hidden', timeout: 3000 });
+      const modal = await waitForConfirmOverlay(adminPage);
+      await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
+      await modal.getByRole('button', { name: /取\s*消|Cancel/i }).click();
+      await modal.waitFor({ state: 'hidden', timeout: 5000 });
+      expect(await dictPage.hasType(record.name)).toBeTruthy();
+    } finally {
+      if (await dictPage.hasType(record.name)) {
+        await dictPage.deleteType(record.name);
+      }
+    }
   });
 
   test('TC007b: 删除字典类型时级联删除关联的字典数据', async ({ adminPage }) => {
     const dictPage = new DictPage(adminPage);
+    const record = makeRecord('delete');
+    const api = await createAdminApiContext();
     await dictPage.goto();
 
-    // Create a new dict type for testing
-    const typeName = `级联删除_${Date.now()}`;
-    const typeCode = `cascade_del_${Date.now()}`;
-    await dictPage.createType(typeName, typeCode);
+    try {
+      await dictPage.createType(record.name, record.code);
+      await dictPage.clickTypeRow(record.name);
+      await dictPage.createData(record.dataLabel, 'data_a');
+      expect(await dictPage.hasData(record.dataLabel)).toBeTruthy();
 
-    // Create dict data for this type
-    await dictPage.clickTypeRow(typeName);
-    const dataLabelA = `数据A_${Date.now()}`;
-    await dictPage.createData(dataLabelA, 'data_a');
+      await dictPage.fillTypeSearchField('字典名称', record.name);
+      await dictPage.clickTypeSearch();
+      await dictPage.clickCurrentTypeDeleteAction(record.name);
+      const modal = await waitForConfirmOverlay(adminPage);
+      await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
+      const confirm = modal.getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm/i });
+      const [response] = await Promise.all([
+        adminPage.waitForResponse(
+          (candidate) =>
+            candidate.url().includes('/dict/type/') &&
+            candidate.request().method() === 'DELETE',
+          { timeout: 10000 },
+        ),
+        confirm.click(),
+      ]);
+      expect(response.status()).toBe(200);
+      await modal.waitFor({ state: 'hidden', timeout: 5000 });
+      await expect(dictPage.toast(/删除成功|Deleted successfully/i)).toBeVisible();
+      expect(await dictPage.hasType(record.name)).toBeFalsy();
 
-    // Verify data exists
-    await dictPage.fillDataSearchField('字典标签', dataLabelA.split('_')[0]);
-    await dictPage.clickDataSearch();
-    expect(await dictPage.hasData(dataLabelA.split('_')[0])).toBeTruthy();
-
-    // Now delete the type - search first
-    await dictPage.fillTypeSearchField('字典名称', typeName);
-    await dictPage.clickTypeSearch();
-
-    // Click single row delete button (ghost button in action column)
-    await dictPage.clickCurrentTypeDeleteAction(typeName);
-
-    // Wait for modal and verify cascade delete warning
-    const modal = adminPage.locator('.ant-modal-confirm');
-    await modal.waitFor({ state: 'visible', timeout: 3000 });
-    await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
-
-    // Set up promise to wait for the delete API call
-    const deletePromise = adminPage.waitForResponse(
-      resp => resp.url().includes('/dict/type/') && resp.request().method() === 'DELETE',
-      { timeout: 10000 }
-    );
-
-    // Click confirm button
-    await modal.getByRole('button', { name: /确\s*定/ }).click();
-
-    // Wait for delete API to complete
-    const response = await deletePromise;
-    console.log('Delete API response status:', response.status());
-
-    // Wait for modal to close
-    await modal.waitFor({ state: 'hidden', timeout: 5000 });
-
-    // Wait for delete success message (filter to avoid strict mode with multiple messages)
-    await adminPage.locator('.ant-message-success').filter({ hasText: /删\s*除成功/ }).waitFor({ state: 'visible', timeout: 5000 });
-
-    // Verify the type is deleted
-    await dictPage.fillTypeSearchField('字典名称', typeName);
-    await dictPage.clickTypeSearch();
-    expect(await dictPage.hasType(typeName)).toBeFalsy();
-
-    // Verify the associated data is also deleted
-    await dictPage.clickTypeReset();
-
-    // Try to search for the deleted data - it should not exist
-    await dictPage.fillDataSearchField('字典标签', dataLabelA.split('_')[0]);
-    await dictPage.clickDataSearch();
-    expect(await dictPage.hasData(dataLabelA.split('_')[0])).toBeFalsy();
+      const remaining = await expectSuccess<DictDataList>(
+        await api.get(
+          `dict/data?pageNum=1&pageSize=20&dictType=${encodeURIComponent(record.code)}`,
+        ),
+      );
+      expect(remaining.total).toBe(0);
+      expect(remaining.list).toHaveLength(0);
+    } finally {
+      if (await dictPage.hasType(record.name)) {
+        await dictPage.deleteType(record.name);
+      }
+      await api.dispose();
+    }
   });
 
   test('TC007c: 批量删除字典类型时显示级联删除提示', async ({ adminPage }) => {
     const dictPage = new DictPage(adminPage);
+    const first = makeRecord('batch_1');
+    const second = makeRecord('batch_2');
     await dictPage.goto();
 
-    // Create two dict types
-    const typeName1 = `批量删除1_${Date.now()}`;
-    const typeCode1 = `batch_del_1_${Date.now()}`;
-    const typeName2 = `批量删除2_${Date.now()}`;
-    const typeCode2 = `batch_del_2_${Date.now()}`;
+    try {
+      await dictPage.createType(first.name, first.code);
+      await dictPage.createType(second.name, second.code);
+      await dictPage.fillTypeSearchField('字典名称', '级联测试_batch');
+      await dictPage.clickTypeSearch();
+      await dictPage.selectTypeRowByText(first.name);
+      await dictPage.selectTypeRowByText(second.name);
 
-    await dictPage.createType(typeName1, typeCode1);
-    await dictPage.createType(typeName2, typeCode2);
-
-    // Search and select both types
-    await dictPage.fillTypeSearchField('字典名称', '批量删除');
-    await dictPage.clickTypeSearch();
-
-    // Select the two dedicated rows by text to avoid touching built-in system dictionaries.
-    await dictPage.selectTypeRowByText(typeName1);
-    await dictPage.selectTypeRowByText(typeName2);
-
-    // Click batch delete button - it's the danger button in toolbar (not the small action column buttons)
-    // The toolbar button does NOT have the .ant-btn-sm class - use .first() to select the toolbar button
-    await adminPage.locator('#dict-type').getByRole('button', { name: /删\s*除/ }).first().click();
-
-    // Wait for confirmation modal
-    const modal = adminPage.locator('.ant-modal-confirm');
-    await modal.waitFor({ state: 'visible', timeout: 3000 });
-
-    // Verify the cascade delete warning message
-    await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
-
-    // Set up promise to wait for the delete API call
-    const deletePromise = adminPage.waitForResponse(
-      resp => resp.url().includes('/dict/type/') && resp.request().method() === 'DELETE',
-      { timeout: 15000 }
-    );
-
-    // Click confirm button
-    await modal.getByRole('button', { name: /确\s*定/ }).click();
-
-    // Wait for the delete API to complete
-    await deletePromise;
-
-    // Verify both types are deleted
-    await dictPage.clickTypeReset();
-    await dictPage.fillTypeSearchField('字典名称', typeName1);
-    await dictPage.clickTypeSearch();
-    expect(await dictPage.hasType(typeName1)).toBeFalsy();
+      await adminPage
+        .locator('#dict-type .iam-toolbar')
+        .getByRole('button', { name: /删\s*除|Delete/i })
+        .click();
+      const modal = await waitForConfirmOverlay(adminPage);
+      await expect(modal.getByText(/同时删除.*字典数据/)).toBeVisible();
+      const confirm = modal.getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm/i });
+      await Promise.all([
+        adminPage.waitForResponse(
+          (candidate) =>
+            candidate.url().includes('/dict/type/') &&
+            candidate.request().method() === 'DELETE',
+          { timeout: 15000 },
+        ),
+        confirm.click(),
+      ]);
+      await modal.waitFor({ state: 'hidden', timeout: 5000 });
+      await expect(dictPage.toast(/删除成功|Deleted successfully/i)).toBeVisible();
+      expect(await dictPage.hasType(first.name)).toBeFalsy();
+      expect(await dictPage.hasType(second.name)).toBeFalsy();
+    } finally {
+      for (const record of [first, second]) {
+        if (await dictPage.hasType(record.name)) {
+          await dictPage.deleteType(record.name);
+        }
+      }
+    }
   });
 });

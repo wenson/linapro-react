@@ -38,7 +38,7 @@ test.describe('TC-4 Workbench English i18n regression', () => {
       dashboardPage.workspaceProjects.locator('img[alt="GoFrame"]'),
     ).toHaveAttribute('src', /\/goframe-logo\.webp$/);
     await expect(
-      dashboardPage.workspaceProjects.getByText('Ant Design', { exact: true }),
+      dashboardPage.workspaceProjects.getByText('Semi Design', { exact: true }),
     ).toBeVisible();
     await expect(
       dashboardPage.workspaceProjects.getByText('2026-05-01', { exact: true }),

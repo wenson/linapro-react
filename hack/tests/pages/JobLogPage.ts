@@ -49,7 +49,7 @@ export class JobLogPage {
     }
     await this.page.getByTestId("job-log-delete").click();
     return waitForDialogReady(
-      this.page.locator(".ant-modal-wrap:visible").filter({
+      this.page.locator('[role="dialog"]:visible').filter({
         hasText: /删除执行日志|Delete Execution Logs/i,
       }),
     );
@@ -63,7 +63,10 @@ export class JobLogPage {
   }
 
   async getVisibleRowCount() {
-    return this.page.locator(".vxe-body--row").count();
+    return this.page
+      .getByTestId("job-log-table")
+      .locator(".semi-table-tbody > .semi-table-row")
+      .count();
   }
 
   async detailContains(text: RegExp | string) {

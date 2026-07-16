@@ -1,0 +1,51 @@
+{
+  "plugin": {
+    "linapro-monitor-loginlog": {
+      "description": "Official source plugin for login-log persistence and governance.",
+      "detail": {
+        "title": "Login Log Details"
+      },
+      "exportFileName": "login-logs.xlsx",
+      "fields": {
+        "beginDate": "Start Date",
+        "browser": "Browser",
+        "endDate": "End Date",
+        "ipAddress": "IP Address",
+        "loginDate": "Login Date",
+        "loginTime": "Login Time",
+        "message": "Message",
+        "os": "Operating System",
+        "status": "Login Status",
+        "userName": "User Account"
+      },
+      "logMessage": {
+        "invalidCredentials": "Invalid username or password",
+        "ipBlacklisted": "Login IP is blacklisted",
+        "loginFailed": "Login failed",
+        "loginSuccessful": "Login successful",
+        "logoutSuccessful": "Logout successful",
+        "userDisabled": "User account is disabled"
+      },
+      "messages": {
+        "clearConfirm": "Clear all login logs?",
+        "clearSuccess": "Login logs cleared successfully",
+        "deleteAllHint": "When selected, the date range is ignored and all login logs in the current permission scope are deleted.",
+        "deleteAllLabel": "Delete all login logs",
+        "deleteRangeDescription": "Select how to delete login logs. By default, logs are cleaned by date range; selecting all logs cleans every log in the current permission scope.",
+        "deleteRangeRequired": "Select a complete login log date range",
+        "deleteRangeSuccess": "Deleted {count} login log(s)",
+        "deleteRangeTitle": "Delete Login Logs"
+      },
+      "name": "Monitoring - Login Logs",
+      "tableTitle": "Login Log List",
+      "lifecycleGuard": {
+        "uninstall_blocked": {
+          "retention_required": "Login logs are still inside the required retention window. Export or expire them before uninstalling."
+        },
+        "disable_blocked": {
+          "audit_required": "Tenant audit policy requires login logging to remain enabled."
+        }
+      }
+    }
+  }
+}

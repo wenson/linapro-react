@@ -12,9 +12,9 @@ test.describe('TC004 用户导出', () => {
     await exportBtn.click();
 
     // Verify modal appears
-    const modalContent = adminPage.locator('.ant-modal-content');
+    const modalContent = adminPage.locator('.semi-modal-content[role="dialog"]:visible');
     await expect(modalContent).toBeVisible({ timeout: 5000 });
-    await expect(modalContent.getByText(/是否导出全部数据/)).toBeVisible();
+    await expect(modalContent.getByText(/确认导出当前筛选结果|Export the current filtered result/)).toBeVisible();
 
     // Set up response listener
     const responsePromise = adminPage.waitForResponse(
@@ -23,7 +23,9 @@ test.describe('TC004 用户导出', () => {
     );
 
     // Click confirm button
-    const confirmBtn = modalContent.getByRole('button', { name: /确\s*认/ });
+    const confirmBtn = modalContent.getByRole('button', {
+      name: /^确\s*认$|^确\s*定$|^Confirm$|^OK$/i,
+    });
     await confirmBtn.click();
 
     // Wait for response and verify

@@ -2,6 +2,7 @@ import type { APIRequestContext, Page } from '@playwright/test';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { request as playwrightRequest } from '@playwright/test';
 
@@ -10,7 +11,10 @@ import { execPgSQLFile } from '../support/postgres';
 import { waitForRouteReady } from '../support/ui';
 
 const apiBaseURL = config.apiBaseURL;
-const repoRoot = path.resolve(process.cwd(), '../..');
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../..',
+);
 
 type PluginListItem = {
   enabled?: number;

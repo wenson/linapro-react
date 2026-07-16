@@ -1,0 +1,2 @@
+import { useQuery } from "@tanstack/react-query"; import { useMemo } from "react"; import { createSystemDictApi } from "#/api/system/dict"; import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
+export function useDictOptions(type: string) { const { apiClient } = useWorkbenchRuntime(); const api = useMemo(() => createSystemDictApi(apiClient), [apiClient]); return useQuery({ enabled: Boolean(type), queryFn: () => api.getDataByType(type), queryKey: ["runtime", "dictionary", type], staleTime: 30_000 }); }

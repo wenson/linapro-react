@@ -23,6 +23,11 @@ import (
 // before generated frontend build assets exist in a clean checkout.
 const packedPublicPlaceholderName = ".gitkeep"
 
+// defaultHostFrontendBasePath matches the default workspace base path shipped
+// in the host manifest. Deployments can still override LINA_WEB_BASE_PATH for
+// a custom build-time asset prefix.
+const defaultHostFrontendBasePath = "/admin"
+
 type buildOptions struct {
 	Targets    []targetPlatform
 	OutputDir  string
@@ -150,7 +155,7 @@ func runBuildDir(ctx context.Context, a *app, input commandInput, options buildO
 		return runBuild(ctx, a, input)
 	}
 	switch {
-	case sameBuildPath(dir, filepath.Join(a.root, "apps", "lina-vben")):
+	case sameBuildPath(dir, filepath.Join(a.root, "apps", "lina-web")):
 		env := plugins.BuildEnv(a.root, a.env, false, "")
 		return runHostFrontendBuild(ctx, a, env, options.Verbose)
 	case sameBuildPath(dir, filepath.Join(a.root, "apps", "lina-core")):
@@ -295,7 +300,8 @@ func resolveBuildDir(root string, rawDir string) (string, error) {
 
 func runHostFrontendBuild(ctx context.Context, a *app, env []string, verbose bool) error {
 	fmt.Fprintln(a.stdout, "Building frontend...")
-	if err := a.runCommand(ctx, commandOptions{Dir: filepath.Join(a.root, "apps", "lina-vben"), Env: env, Quiet: !verbose}, "pnpm", "run", "build"); err != nil {
+	env = hostFrontendBuildEnv(env)
+	if err := a.runCommand(ctx, commandOptions{Dir: filepath.Join(a.root, "apps", "lina-web"), Env: env, Quiet: !verbose}, "pnpm", "run", "build"); err != nil {
 		return err
 	}
 
@@ -306,7 +312,7 @@ func runHostFrontendBuild(ctx context.Context, a *app, env []string, verbose boo
 	if err := os.MkdirAll(embedDir, 0o755); err != nil {
 		return fmt.Errorf("create frontend embed directory: %w", err)
 	}
-	if err := fileutil.CopyDirContents(filepath.Join(a.root, "apps", "lina-vben", "apps", "web-antd", "dist"), embedDir); err != nil {
+	if err := fileutil.CopyDirContents(filepath.Join(a.root, "apps", "lina-web", "dist"), embedDir); err != nil {
 		return err
 	}
 	if err := ensurePackedPublicPlaceholder(embedDir); err != nil {
@@ -314,6 +320,13 @@ func runHostFrontendBuild(ctx context.Context, a *app, env []string, verbose boo
 	}
 	fmt.Fprintln(a.stdout, "Host frontend embedded assets generated")
 	return nil
+}
+
+func hostFrontendBuildEnv(env []string) []string {
+	if strings.TrimSpace(toolutil.EnvValue(env, "LINA_WEB_BASE_PATH")) != "" {
+		return env
+	}
+	return toolutil.SetEnvValue(env, "LINA_WEB_BASE_PATH", defaultHostFrontendBasePath)
 }
 
 func runHostBackendBuild(ctx context.Context, a *app, env []string, options buildOptions) error {

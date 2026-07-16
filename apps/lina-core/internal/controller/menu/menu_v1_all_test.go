@@ -71,21 +71,21 @@ func TestConvertToRouteItemsBuildsNewWindowRouteForHostedXAssets(t *testing.T) {
 	}
 }
 
-// TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedXAssets verifies
-// embedded-mount runtime menus keep the hosted shell component and forward the
-// target URL through query parameters.
-func TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedXAssets(t *testing.T) {
+// TestConvertToRouteItemsBuildsDynamicIframeRoute verifies isolated dynamic
+// pages keep an internal route and expose only governed iframe metadata.
+func TestConvertToRouteItemsBuildsDynamicIframeRoute(t *testing.T) {
 	routes := convertToRouteItems([]*menusvc.MenuItem{
 		{
 			Id:         103,
-			Name:       "Runtime Embedded Entry",
-			Path:       "/x-assets/plugin-runtime-demo/v0.1.0/mount.js",
+			Name:       "Runtime Isolated Entry",
+			MenuKey:    "plugin:plugin-runtime-demo:main-entry",
+			Path:       "/extension/plugin-runtime-demo",
 			Component:  "system/plugin/dynamic-page",
 			Type:       menutype.Menu.String(),
 			IsFrame:    0,
 			Visible:    1,
 			Status:     1,
-			QueryParam: `{"pluginAccessMode":"embedded-mount"}`,
+			QueryParam: `{"pluginAccessMode":"iframe","pluginAssetUrl":"/x-assets/plugin-runtime-demo/v0.1.0/standalone.html"}`,
 		},
 	})
 
@@ -95,19 +95,42 @@ func TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedXAssets(t *testing.
 
 	route := routes[0]
 	if route.Component != "#/views/system/plugin/dynamic-page" {
-		t.Fatalf("expected embedded route to keep runtime host component, got %s", route.Component)
+		t.Fatalf("expected isolated route to keep runtime host component, got %s", route.Component)
 	}
 	if route.Meta == nil || route.Meta.Query == nil {
-		t.Fatalf("expected embedded route query to be present, got %#v", route.Meta)
+		t.Fatalf("expected isolated route query to be present, got %#v", route.Meta)
 	}
-	if route.Meta.Query["pluginAccessMode"] != "embedded-mount" {
-		t.Fatalf("expected embedded access mode query, got %#v", route.Meta.Query)
+	if route.Meta.Query["pluginAccessMode"] != "iframe" {
+		t.Fatalf("expected iframe access mode query, got %#v", route.Meta.Query)
 	}
-	if route.Meta.Query["embeddedSrc"] != "/x-assets/plugin-runtime-demo/v0.1.0/mount.js" {
-		t.Fatalf("expected embedded asset url to be preserved, got %#v", route.Meta.Query)
+	if route.Meta.Query["pluginAssetUrl"] != "/x-assets/plugin-runtime-demo/v0.1.0/standalone.html" {
+		t.Fatalf("expected governed HTML asset URL to be preserved, got %#v", route.Meta.Query)
 	}
-	if route.Path == "/x-assets/plugin-runtime-demo/v0.1.0/mount.js" {
-		t.Fatalf("expected virtual host route instead of raw asset path, got %s", route.Path)
+	if route.Meta.PluginID != "plugin-runtime-demo" {
+		t.Fatalf("expected plugin owner projection, got %#v", route.Meta)
+	}
+	if route.Path != "/extension/plugin-runtime-demo" {
+		t.Fatalf("expected internal host route, got %s", route.Path)
+	}
+}
+
+// TestConvertToRouteItemsRejectsLegacyDynamicMount verifies stale persisted
+// embedded-mount metadata cannot re-enter the React workbench route tree.
+func TestConvertToRouteItemsRejectsLegacyDynamicMount(t *testing.T) {
+	routes := convertToRouteItems([]*menusvc.MenuItem{{
+		Id:         104,
+		Name:       "Legacy Runtime Entry",
+		MenuKey:    "plugin:plugin-runtime-demo:legacy-entry",
+		Path:       "/extension/plugin-runtime-demo-legacy",
+		Component:  "system/plugin/dynamic-page",
+		Type:       menutype.Menu.String(),
+		Visible:    1,
+		Status:     1,
+		QueryParam: `{"embeddedSrc":"/x-assets/plugin-runtime-demo/v0.1.0/mount.js","pluginAccessMode":"embedded-mount"}`,
+	}})
+
+	if len(routes) != 0 {
+		t.Fatalf("expected legacy dynamic route to be rejected, got %#v", routes)
 	}
 }
 
@@ -116,7 +139,7 @@ func TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedXAssets(t *testing.
 func TestConvertToRouteItemsKeepsRegularViewRouteUnchanged(t *testing.T) {
 	routes := convertToRouteItems([]*menusvc.MenuItem{
 		{
-			Id:        104,
+			Id:        105,
 			Name:      "Plugin Demo Source",
 			Path:      "linapro-demo-source-sidebar-entry",
 			Component: "system/plugin/dynamic-page",

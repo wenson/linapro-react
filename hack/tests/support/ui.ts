@@ -1,20 +1,13 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 const busySelector = [
-  '.ant-spin-spinning:visible',
-  '.ant-skeleton:visible',
-  '.vxe-loading:visible',
-  '.vxe-grid.is--loading:visible',
-  '.vxe-table.is--loading:visible',
-  '.bg-overlay-content:not(.invisible):visible',
-  '.dark\\:bg-overlay:not(.invisible):visible',
+  '.semi-spin-wrapper:visible',
   '[aria-busy="true"]:visible',
 ].join(', ');
 
 const routeBlockingSelector = [
-  '.ant-spin-spinning:visible',
-  '.bg-overlay-content:not(.invisible):visible',
-  '.dark\\:bg-overlay:not(.invisible):visible',
+  '.semi-spin-wrapper:visible',
+  '[aria-busy="true"]:visible',
 ].join(', ');
 
 export async function waitForBusyIndicatorsToClear(
@@ -32,7 +25,7 @@ export async function waitForRouteReady(page: Page, timeout = 10000) {
 
 export async function waitForTableReady(
   page: Page,
-  selector = '.vxe-table',
+  selector = '.semi-table-container, .semi-table',
   timeout = 10000,
 ) {
   const table = page.locator(selector).first();
@@ -40,14 +33,6 @@ export async function waitForTableReady(
   await page.waitForLoadState('domcontentloaded');
   await page.waitForLoadState('networkidle', { timeout }).catch(() => {});
   await waitForBusyIndicatorsToClear(table, timeout);
-  const owningGrid = table
-    .locator(
-      'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " vxe-grid ")][1]',
-    )
-    .first();
-  if ((await owningGrid.count()) > 0) {
-    await waitForBusyIndicatorsToClear(owningGrid, timeout);
-  }
 }
 
 export async function waitForDialogReady(dialog: Locator, timeout = 10000) {
@@ -68,7 +53,9 @@ export async function waitForDialogReady(dialog: Locator, timeout = 10000) {
 
 export async function waitForConfirmOverlay(page: Page, timeout = 5000) {
   const overlay = page
-    .locator('.ant-popconfirm:visible, .ant-popover:visible, .ant-modal-confirm:visible')
+    .locator(
+      '.semi-popover:visible, .semi-modal-content[role="dialog"]:visible',
+    )
     .first();
   await overlay.waitFor({ state: 'visible', timeout });
   return overlay;
@@ -82,28 +69,14 @@ export async function dismissTourOverlayIfPresent(page: Page) {
     await endTourBtn.click({ force: true });
     await waitForBusyIndicatorsToClear(page);
   }
-
-  const tourClose = page.locator('.ant-tour-close');
-  if (await tourClose.isVisible({ timeout: 300 }).catch(() => false)) {
-    await tourClose.click({ force: true });
-    await waitForBusyIndicatorsToClear(page);
-  }
-
-  await page
-    .locator('.ant-tour:visible, .ant-tour-mask:visible')
-    .first()
-    .waitFor({ state: 'hidden', timeout: 1000 })
-    .catch(async () => {
-      await page.evaluate(() => {
-        for (const selector of ['.ant-tour', '.ant-tour-mask']) {
-          document.querySelectorAll(selector).forEach((element) => element.remove());
-        }
-      });
-    });
 }
 
 export async function waitForDropdown(page: Page, timeout = 5000) {
-  const dropdown = page.locator('.ant-select-dropdown:visible').last();
+  const dropdown = page
+    .locator(
+      '.semi-select-option-list:visible, .semi-select-dropdown:visible',
+    )
+    .last();
   await dropdown.waitFor({ state: 'visible', timeout });
   return dropdown;
 }
@@ -113,7 +86,14 @@ export async function closeDialogWithEscape(
   dialog: Locator,
   timeout = 5000,
 ) {
-  await page.keyboard.press('Escape');
+  const closeButton = dialog
+    .locator('.semi-sidesheet-close, .semi-modal-close')
+    .first();
+  if (await closeButton.isVisible().catch(() => false)) {
+    await closeButton.click();
+  } else {
+    await page.keyboard.press('Escape');
+  }
   await dialog.waitFor({ state: 'hidden', timeout }).catch(() => {});
   await waitForBusyIndicatorsToClear(page, timeout);
 }
@@ -122,10 +102,14 @@ export async function waitForUploadReady(
   scope: Locator | Page,
   timeout = 10000,
 ) {
-  const uploadItem = scope.locator('.ant-upload-list-item').last();
+  const uploadItem = scope
+    .locator('.semi-upload-file-card')
+    .last();
   await uploadItem.waitFor({ state: 'visible', timeout });
   await scope
-    .locator('.ant-upload-list-item.ant-upload-list-item-uploading')
+    .locator(
+      '.semi-upload-file-card-icon-loading, .semi-upload-picture-file-card-uploading',
+    )
     .first()
     .waitFor({ state: 'hidden', timeout })
     .catch(() => {});
@@ -150,7 +134,10 @@ export async function dismissResultDialog(
   title: string | RegExp,
   timeout = 2000,
 ) {
-  const dialog = page.locator('.ant-modal-wrap:visible').filter({ hasText: title }).last();
+  const dialog = page
+    .locator('.semi-modal-content[role="dialog"]:visible')
+    .filter({ hasText: title })
+    .last();
   const appeared = await dialog
     .waitFor({ state: 'visible', timeout })
     .then(() => true)
@@ -159,7 +146,7 @@ export async function dismissResultDialog(
     return false;
   }
   await dialog
-    .getByRole('button', { name: /确\s*定|OK|知道了/i })
+    .getByRole('button', { name: /确\s*定|确\s*认|OK|Confirm|知道了/i })
     .last()
     .click();
   await dialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});

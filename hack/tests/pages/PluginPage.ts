@@ -63,49 +63,37 @@ export class PluginPage {
   }
 
   get sidebarMenu(): Locator {
-    return this.page
-      .locator("aside")
-      .filter({ has: this.page.locator('ul[role="menu"]') })
-      .first();
+    return this.page.locator(".workbench-sider").first();
   }
 
   sidebarMenuItem(menuName: SidebarMenuName): Locator {
     if (typeof menuName !== "string") {
-      return this.sidebarMenu.getByRole("menuitem", { name: menuName }).first();
+      return this.sidebarMenu.getByText(menuName).first();
     }
     return this.sidebarMenu
-      .getByRole("menuitem", { name: menuName, exact: true })
+      .getByText(menuName, { exact: true })
       .first();
   }
 
   private sidebarSubmenuForMenuItem(menuName: SidebarMenuName): Locator {
-    return this.sidebarMenu
-      .locator(".ant-menu-submenu, .vben-sub-menu")
-      .filter({ hasText: menuName })
-      .locator(".ant-menu-submenu-title, .vben-sub-menu-content")
-      .first();
+    return this.sidebarMenu.getByText(menuName).first();
   }
 
   private sidebarSubmenuForPattern(pattern: RegExp): Locator {
-    return this.sidebarMenu
-      .locator(".ant-menu-submenu-title, .vben-sub-menu-content")
-      .filter({ hasText: pattern })
-      .first();
+    return this.sidebarMenu.getByText(pattern).first();
   }
 
   private async expandSidebarSubmenu(submenuTitle: Locator) {
     const submenu = submenuTitle
-      .locator(
-        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-menu-submenu ') or contains(concat(' ', normalize-space(@class), ' '), ' vben-sub-menu ')][1]",
-      )
+      .locator("xpath=ancestor-or-self::*[@aria-expanded][1]")
       .first();
-    const className = (await submenu.getAttribute("class").catch(() => "")) ?? "";
-    if (
-      !className.includes("ant-menu-submenu-open") &&
-      !className.includes("is-opened")
-    ) {
-      await submenuTitle.click();
+    if ((await submenu.count()) > 0) {
+      if ((await submenu.getAttribute("aria-expanded")) !== "true") {
+        await submenu.click();
+      }
+      return;
     }
+    await submenuTitle.click();
   }
 
   private async expandExtensionCenterIfVisible() {
@@ -135,7 +123,7 @@ export class PluginPage {
 
   pluginPageRefreshNotice(): Locator {
     return this.page
-      .locator(".ant-notification-notice", { hasText: "插件已更新" })
+      .locator('[role="alert"], .semi-toast-content', { hasText: "插件已更新" })
       .last();
   }
 
@@ -161,12 +149,12 @@ export class PluginPage {
 
   dynamicUploadHint(): Locator {
     return this.dynamicUploadDialog().getByText(
-      /上传单个 `?\.wasm`? 动态插件包|Upload a single `?\.wasm`? artifact/iu,
-    );
+      /上传单个 WASM 动态插件包|Upload a single WASM dynamic plugin package/iu,
+    ).first();
   }
 
   dynamicUploadListItem(): Locator {
-    return this.dynamicUploadDialog().locator(".ant-upload-list-item").last();
+    return this.dynamicUploadDialog().locator(".semi-upload-file-list-main").last();
   }
 
   dynamicOverwriteHint(): Locator {
@@ -190,7 +178,7 @@ export class PluginPage {
   }
 
   dynamicUploadCloseButton(): Locator {
-    return this.dynamicUploadDialog().locator(".ant-modal-close").last();
+    return this.dynamicUploadDialog().locator(".semi-modal-close").last();
   }
 
   uploadSuccessDialog(): Locator {
@@ -204,24 +192,28 @@ export class PluginPage {
   }
 
   messageNotices(text: string): Locator {
-    return this.page.locator(".ant-message-notice").filter({ hasText: text });
+    return this.page.locator(".semi-toast-content-text:visible").filter({ hasText: text });
   }
 
   tableColumn(title: string): Locator {
     return this.page
-      .locator(".vxe-table--header .vxe-cell--title", { hasText: title })
+      .getByTestId("plugin-table")
+      .locator(".semi-table-row-head", { hasText: title })
       .first();
   }
 
   tableHeaderCell(title: string): Locator {
     return this.page
-      .locator(".vxe-table--header .vxe-header--column")
+      .getByTestId("plugin-table")
+      .locator(".semi-table-row-head")
       .filter({ hasText: title })
       .first();
   }
 
   pluginMainRows(): Locator {
-    return this.page.locator(".vxe-table--main-wrapper .vxe-body--row");
+    return this.page
+      .getByTestId("plugin-table")
+      .locator(".semi-table-tbody > .semi-table-row");
   }
 
   pluginRow(pluginId: string): Locator {
@@ -229,11 +221,11 @@ export class PluginPage {
   }
 
   private pluginLifecycleSwitch(row: Locator): Locator {
-    return row
-      .locator(
-        '.ant-switch:not(.ant-switch-small):not([data-testid^="plugin-tenant-provisioning-"])',
-      )
-      .first();
+    return row.locator('[data-testid^="plugin-enabled-"]').first();
+  }
+
+  private pluginLifecycleSwitchControl(row: Locator): Locator {
+    return this.pluginLifecycleSwitch(row).getByRole("switch");
   }
 
   private pluginIdSearchInput(): Locator {
@@ -242,7 +234,7 @@ export class PluginPage {
       .first();
   }
 
-  private async filterByPluginId(pluginId: string) {
+  async filterByPluginId(pluginId: string) {
     const input = this.pluginIdSearchInput();
     await expect(input).toBeVisible();
     await input.fill(pluginId);
@@ -398,7 +390,7 @@ export class PluginPage {
 
     await expect(detailAction).toBeVisible();
     await expect(manualRepairAction).toBeVisible();
-    await expect(manualRepairAction).toHaveClass(/ant-btn/u);
+    await expect(manualRepairAction).toHaveClass(/semi-button/u);
 
     const [detailMetrics, manualRepairMetrics] = await Promise.all([
       detailAction.evaluate((node) => {
@@ -532,7 +524,7 @@ export class PluginPage {
   }
 
   pluginManagedActionDialog(): Locator {
-    return this.page.locator(".ant-modal-confirm").last();
+    return this.page.locator('[role="dialog"]:visible').last();
   }
 
   uninstallPurgeCheckbox(): Locator {
@@ -580,14 +572,16 @@ export class PluginPage {
   }
 
   pluginEnabledSwitch(pluginId: string): Locator {
+    return this.pluginLifecycleSwitchControl(this.pluginRow(pluginId));
+  }
+
+  pluginEnabledSwitchContainer(pluginId: string): Locator {
     return this.pluginLifecycleSwitch(this.pluginRow(pluginId));
   }
 
   pluginEnabledSwitches(pluginId: string): Locator {
     const row = this.pluginRow(pluginId);
-    return row.locator(
-      '.ant-switch:not(.ant-switch-small):not([data-testid^="plugin-tenant-provisioning-"])',
-    );
+    return row.locator('[data-testid^="plugin-enabled-"]');
   }
 
   pluginDescriptionCell(pluginId: string): Locator {
@@ -596,8 +590,8 @@ export class PluginPage {
       .first();
   }
 
-  antTooltip(): Locator {
-    return this.page.locator(".ant-tooltip:visible");
+  semiTooltip(): Locator {
+    return this.page.locator('[role="tooltip"]:visible');
   }
 
   async expectColumnHelpTooltip(
@@ -605,11 +599,7 @@ export class PluginPage {
     text: string | RegExp,
   ) {
     await this.pluginColumnHelpIcon(name).hover();
-    await expect(this.antTooltip().filter({ hasText: text }).last()).toBeVisible();
-  }
-
-  vxeTooltip(): Locator {
-    return this.page.locator(".vxe-table--tooltip-wrapper:visible");
+    await expect(this.semiTooltip().filter({ hasText: text }).last()).toBeVisible();
   }
 
   async gotoManage() {
@@ -624,7 +614,7 @@ export class PluginPage {
 
   async syncPlugins() {
     await this.page
-      .getByRole("button", { name: /同步插件|Synchronize Plugins/iu })
+      .getByRole("button", { name: /同步(?:源码)?插件|Sync (?:Source )?Plugins/iu })
       .click();
     await this.page.waitForLoadState("networkidle");
   }
@@ -746,9 +736,9 @@ export class PluginPage {
   }
 
   async selectInstallMode(modeLabel: string | RegExp) {
-    await this.pluginInstallModeSelect().locator(".ant-select-selector").click();
+    await this.pluginInstallModeSelect().click();
     const option = this.page
-      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .locator('[role="listbox"]:visible [role="option"]')
       .filter({ hasText: modeLabel })
       .last();
     await expect(option).toBeVisible();
@@ -796,7 +786,9 @@ export class PluginPage {
       const checkbox = this.pluginInstallMockDataCheckbox();
       const isChecked = await checkbox.isChecked();
       if (!isChecked) {
-        await checkbox.check();
+        await this.pluginInstallMockDataSection()
+          .getByText(/是否安装示例数据|是否安裝示例資料|Install mock data\?/iu)
+          .click();
       }
       await expect(checkbox).toBeChecked();
     } else {
@@ -809,7 +801,9 @@ export class PluginPage {
         const checkbox = this.pluginInstallMockDataCheckbox();
         const isChecked = await checkbox.isChecked();
         if (isChecked) {
-          await checkbox.uncheck();
+          await this.pluginInstallMockDataSection()
+            .getByText(/是否安装示例数据|是否安裝示例資料|Install mock data\?/iu)
+            .click();
         }
         await expect(checkbox).not.toBeChecked();
       }
@@ -901,7 +895,14 @@ export class PluginPage {
       await expect(this.uninstallPurgeWarning()).toBeVisible();
       const isChecked = await this.uninstallPurgeCheckbox().isChecked();
       if (isChecked !== purgeStorageData) {
-        await this.uninstallPurgeCheckbox().click();
+        await this.uninstallPurgeCheckboxWrapper()
+          .getByText(
+            /同时清理插件自有存储数据|同時清理插件自有存儲數據|Also clear plugin-owned storage data/iu,
+          )
+          .click();
+        await expect(this.uninstallPurgeCheckbox()).toBeChecked({
+          checked: purgeStorageData,
+        });
       }
     }
     const uninstallResponse = this.page.waitForResponse(
@@ -939,7 +940,8 @@ export class PluginPage {
   async setPluginEnabled(pluginId: string, enabled: boolean) {
     for (let attempt = 1; attempt <= 4; attempt += 1) {
       const row = await this.ensurePluginRowVisible(pluginId);
-      const switcher = this.pluginLifecycleSwitch(row);
+      const switchContainer = this.pluginLifecycleSwitch(row);
+      const switcher = this.pluginLifecycleSwitchControl(row);
       await expect(
         switcher,
         `未找到插件启用状态开关: ${pluginId}`,
@@ -949,14 +951,14 @@ export class PluginPage {
         return;
       }
 
-      const className = (await switcher.getAttribute("class")) ?? "";
-      if (className.includes("ant-switch-disabled")) {
+      const className = (await switchContainer.getAttribute("class")) ?? "";
+      if (className.includes("semi-switch-disabled")) {
         if (attempt < 4) {
           await this.filterByPluginId(pluginId);
           await waitForRouteReady(this.page, 15000);
           continue;
         }
-        await expect(switcher).not.toHaveClass(/ant-switch-disabled/, {
+        await expect(switcher).toBeEnabled({
           timeout: pluginLifecycleActionTimeout,
         });
       }
@@ -1016,7 +1018,7 @@ export class PluginPage {
       ).toBe(true);
       await Promise.all([pluginStateRefresh, menuRefresh]);
       await this.filterByPluginId(pluginId);
-      const refreshedSwitcher = this.pluginLifecycleSwitch(
+      const refreshedSwitcher = this.pluginLifecycleSwitchControl(
         this.pluginRow(pluginId),
       );
       await expect(refreshedSwitcher).toHaveAttribute(
@@ -1093,9 +1095,7 @@ export class PluginPage {
   }
 
   async expectPluginSwitchDisabled(pluginId: string) {
-    await expect(this.pluginEnabledSwitch(pluginId)).toHaveClass(
-      /ant-switch-disabled/,
-    );
+    await expect(this.pluginEnabledSwitch(pluginId)).toBeDisabled();
   }
 
   async openEnableAuthorization(pluginId: string) {
@@ -1141,15 +1141,7 @@ export class PluginPage {
 
   private async pluginActionButton(pluginId: string, name: RegExp) {
     const row = await this.ensurePluginRowVisible(pluginId);
-
-    const rowID = await row.getAttribute("rowid");
-    expect(rowID, `未找到插件行 rowid: ${pluginId}`).toBeTruthy();
-    return this.page
-      .locator(
-        `.vxe-table--fixed-right-wrapper .vxe-body--row[rowid=\"${rowID}\"]`,
-      )
-      .getByRole("button", { name })
-      .first();
+    return row.getByRole("button", { name }).first();
   }
 
   async expectSidebarMenuVisible(menuName: SidebarMenuName) {
@@ -1237,7 +1229,8 @@ export class PluginPage {
   ) {
     const headerTitles = (
       await this.page
-        .locator(".vxe-table--header .vxe-cell--title")
+        .getByTestId("plugin-table")
+        .locator(".semi-table-row-head")
         .allTextContents()
     )
       .map((title) => title.trim())
@@ -1277,7 +1270,8 @@ export class PluginPage {
   async expectTableColumnAfter(targetTitle: string, previousTitle: string) {
     const headerTitles = (
       await this.page
-        .locator(".vxe-table--header .vxe-cell--title")
+        .getByTestId("plugin-table")
+        .locator(".semi-table-row-head")
         .allTextContents()
     )
       .map((title) => title.trim())
@@ -1302,7 +1296,8 @@ export class PluginPage {
   async expectTableColumnOrder(expectedTitles: string[]) {
     const headerTitles = (
       await this.page
-        .locator(".vxe-table--header .vxe-cell--title")
+        .getByTestId("plugin-table")
+        .locator(".semi-table-row-head")
         .allTextContents()
     )
       .map((title) => title.trim())
@@ -1331,7 +1326,8 @@ export class PluginPage {
   async expectTableColumnBodyAligned(title: string, expectedAlign: string) {
     const headerTitles = (
       await this.page
-        .locator(".vxe-table--header .vxe-cell--title")
+        .getByTestId("plugin-table")
+        .locator(".semi-table-row-head")
         .allTextContents()
     )
       .map((headerTitle) => headerTitle.trim())
@@ -1341,9 +1337,10 @@ export class PluginPage {
     expect(columnIndex, `未找到列表列: ${title}`).toBeGreaterThanOrEqual(0);
 
     const bodyCell = this.page
-      .locator(".vxe-table--main-wrapper .vxe-body--row")
+      .getByTestId("plugin-table")
+      .locator(".semi-table-tbody > .semi-table-row")
       .first()
-      .locator(".vxe-body--column")
+      .locator(".semi-table-row-cell")
       .nth(columnIndex);
     await expect(bodyCell, `未找到列表单元格: ${title}`).toBeVisible();
     await expect
@@ -1406,7 +1403,7 @@ export class PluginPage {
       .poll(
         async () =>
           await version.evaluate((element) => {
-            const cell = element.closest(".vxe-body--column");
+            const cell = element.closest(".semi-table-row-cell");
             if (!cell) {
               return false;
             }
@@ -1435,7 +1432,7 @@ export class PluginPage {
 
   async expectTenantProvisioningDisabled(pluginId: string) {
     await expect(this.pluginTenantProvisioningSwitch(pluginId)).toHaveClass(
-      /ant-switch-disabled/,
+      /semi-switch-disabled/,
     );
   }
 
@@ -1448,25 +1445,14 @@ export class PluginPage {
     await expect(this.page.getByTestId(descriptionTestId)).toHaveCount(1);
     await expect(descriptionCell).toHaveAttribute("title", descriptionText);
     await descriptionCell.hover();
-    await expect(this.vxeTooltip()).toHaveCount(0);
-    await expect(this.antTooltip()).toHaveCount(0);
-    const [vxeTooltipAppeared, antTooltipAppeared] = await Promise.all([
-      this.vxeTooltip()
+    await expect(this.semiTooltip()).toHaveCount(0);
+    const semiTooltipAppeared = await this.semiTooltip()
         .waitFor({ state: "visible", timeout: 5000 })
         .then(() => true)
-        .catch(() => false),
-      this.antTooltip()
-        .waitFor({ state: "visible", timeout: 5000 })
-        .then(() => true)
-        .catch(() => false),
-    ]);
+        .catch(() => false);
     expect(
-      vxeTooltipAppeared,
-      "描述列悬浮后不应回退到 VXE 浮层提示",
-    ).toBeFalsy();
-    expect(
-      antTooltipAppeared,
-      "描述列悬浮后不应额外弹出 Ant Design Tooltip",
+      semiTooltipAppeared,
+      "描述列悬浮后不应额外弹出 Semi Tooltip",
     ).toBeFalsy();
     const delayedTitleCount = await this.page
       .locator("[title]")

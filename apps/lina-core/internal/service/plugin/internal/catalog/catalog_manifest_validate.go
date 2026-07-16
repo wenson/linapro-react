@@ -18,6 +18,7 @@ import (
 	pluginv1 "lina-core/api/plugin/v1"
 	"lina-core/internal/service/plugin/internal/plugintypes"
 	"lina-core/internal/service/plugin/internal/resourcefs"
+	"lina-core/pkg/plugin/pluginhost"
 )
 
 // defaultPublicAssetIndex is the fallback directory index file for one
@@ -142,12 +143,6 @@ func (s *serviceImpl) ValidateManifest(manifest *Manifest, filePath string) erro
 		if err := resourcefs.ValidateSQLPathsFromFS(embeddedFiles, s.ListUninstallSQLPaths(manifest), true); err != nil {
 			return gerror.Wrapf(err, "plugin manifest uninstall SQL constraint is invalid: %s", fileLabel)
 		}
-		if err := resourcefs.ValidateVuePathsFromFS(embeddedFiles, s.ListFrontendPagePaths(manifest), "frontend/pages/"); err != nil {
-			return gerror.Wrapf(err, "plugin manifest frontend page constraint is invalid: %s", fileLabel)
-		}
-		if err := resourcefs.ValidateVuePathsFromFS(embeddedFiles, s.ListFrontendSlotPaths(manifest), "frontend/slots/"); err != nil {
-			return gerror.Wrapf(err, "plugin manifest frontend slot constraint is invalid: %s", fileLabel)
-		}
 		return nil
 	}
 	if err := resourcefs.ValidateSQLPaths(rootDir, s.ListInstallSQLPaths(manifest), false); err != nil {
@@ -155,12 +150,6 @@ func (s *serviceImpl) ValidateManifest(manifest *Manifest, filePath string) erro
 	}
 	if err := resourcefs.ValidateSQLPaths(rootDir, s.ListUninstallSQLPaths(manifest), true); err != nil {
 		return gerror.Wrapf(err, "plugin manifest uninstall SQL constraint is invalid: %s", fileLabel)
-	}
-	if err := resourcefs.ValidateVuePaths(rootDir, s.ListFrontendPagePaths(manifest), "frontend/pages/"); err != nil {
-		return gerror.Wrapf(err, "plugin manifest frontend page constraint is invalid: %s", fileLabel)
-	}
-	if err := resourcefs.ValidateVuePaths(rootDir, s.ListFrontendSlotPaths(manifest), "frontend/slots/"); err != nil {
-		return gerror.Wrapf(err, "plugin manifest frontend slot constraint is invalid: %s", fileLabel)
 	}
 	return nil
 }
@@ -548,6 +537,9 @@ func ValidateManifestMenus(manifest *Manifest) error {
 		if _, err := buildMenuQueryParam(spec); err != nil {
 			return gerror.Wrapf(err, "plugin menu query is invalid: %s", spec.Key)
 		}
+		if err := validateDynamicHostedMenuContract(manifest, spec); err != nil {
+			return gerror.Wrapf(err, "plugin dynamic menu contract is invalid: %s", spec.Key)
+		}
 	}
 
 	for _, spec := range manifest.Menus {
@@ -563,6 +555,67 @@ func ValidateManifestMenus(manifest *Manifest) error {
 	}
 
 	return nil
+}
+
+// validateDynamicHostedMenuContract rejects legacy host-DOM mounting and
+// requires dynamic hosted pages to use one isolated HTML access mode.
+func validateDynamicHostedMenuContract(manifest *Manifest, spec *MenuSpec) error {
+	if manifest == nil || spec == nil || plugintypes.NormalizeType(manifest.Type) != pluginv1.PluginTypeDynamic {
+		return nil
+	}
+
+	serializedQuery, err := buildMenuQueryParam(spec)
+	if err != nil {
+		return err
+	}
+	query := make(map[string]interface{})
+	if strings.TrimSpace(serializedQuery) != "" {
+		if err = json.Unmarshal([]byte(serializedQuery), &query); err != nil {
+			return err
+		}
+	}
+
+	componentPath := strings.Trim(strings.TrimSpace(spec.Component), "/")
+	accessMode := dynamicMenuQueryString(query, pluginhost.DynamicAccessModeQueryKey)
+	assetURL := dynamicMenuQueryString(query, pluginhost.DynamicPluginAssetURLQueryKey)
+	_, hasLegacyAsset := query["embeddedSrc"]
+	usesDynamicComponent := componentPath == pluginhost.DynamicPageComponentPath
+	usesHostedQuery := accessMode != "" || assetURL != "" || hasLegacyAsset
+	if !usesDynamicComponent {
+		if usesHostedQuery {
+			return gerror.Newf("dynamic hosted query requires component %s", pluginhost.DynamicPageComponentPath)
+		}
+		return nil
+	}
+	if hasLegacyAsset || accessMode == "embedded-mount" {
+		return gerror.New("legacy embedded-mount and embeddedSrc are not supported")
+	}
+	if accessMode != pluginhost.DynamicAccessModeIframe && accessMode != pluginhost.DynamicAccessModeNewWindow {
+		return gerror.New("pluginAccessMode only supports iframe or new-window")
+	}
+	if assetURL == "" {
+		return gerror.New("pluginAssetUrl is required")
+	}
+	if strings.HasPrefix(spec.Path, pluginhost.HostedAssetURLPrefix) || strings.Contains(spec.Path, "://") || strings.HasPrefix(spec.Path, "//") {
+		return gerror.New("dynamic hosted menu path must be an internal workbench route")
+	}
+	if spec.IsFrame != nil && *spec.IsFrame != 0 {
+		return gerror.New("dynamic hosted menu access is controlled by pluginAccessMode, not is_frame")
+	}
+	return nil
+}
+
+// dynamicMenuQueryString returns one trimmed string-valued menu query entry.
+func dynamicMenuQueryString(query map[string]interface{}, key string) string {
+	value, ok := query[key]
+	if !ok || value == nil {
+		return ""
+	}
+	text, ok := value.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(text)
 }
 
 // normalizeMenuFlag validates and returns a plugin menu integer flag (0 or 1).

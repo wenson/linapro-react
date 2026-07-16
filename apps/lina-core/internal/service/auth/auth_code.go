@@ -10,8 +10,9 @@ import (
 
 var (
 	// CodeAuthInvalidCredentials reports invalid login credentials.
-	CodeAuthInvalidCredentials = bizerr.MustDefine(
+	CodeAuthInvalidCredentials = bizerr.MustDefineWithKey(
 		"AUTH_INVALID_CREDENTIALS",
+		"error.auth.login.invalidCredentials",
 		"Invalid username or password",
 		gcode.CodeNotAuthorized,
 	)

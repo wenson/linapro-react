@@ -6,13 +6,11 @@ export class ProfilePage {
   constructor(private page: Page) {}
 
   get profilePanel(): Locator {
-    return this.page.locator('.ant-card').first();
+    return this.page.getByTestId('profile-page').locator('.semi-card').first();
   }
 
   get nicknameInput(): Locator {
-    return this.page
-      .getByPlaceholder(/请输入昵称|Please enter a nickname/i)
-      .first();
+    return this.page.getByLabel(/昵称|Display name/i).first();
   }
 
   get passwordTab(): Locator {
@@ -24,21 +22,15 @@ export class ProfilePage {
   }
 
   get oldPasswordInput(): Locator {
-    return this.passwordForm
-      .getByPlaceholder(/请输入当前密码|请输入旧密码|current password|old password/i)
-      .first();
+    return this.passwordForm.getByLabel(/当前密码|Current password/i).first();
   }
 
   get newPasswordInput(): Locator {
-    return this.passwordForm
-      .getByPlaceholder(/请输入新密码|new password/i)
-      .first();
+    return this.passwordForm.getByLabel(/新密码|New password/i).first();
   }
 
   get confirmPasswordInput(): Locator {
-    return this.passwordForm
-      .getByPlaceholder(/请再次输入新密码|请确认新密码|confirm password/i)
-      .first();
+    return this.passwordForm.getByLabel(/确认密码|Confirm password/i).first();
   }
 
   get submitPasswordButton(): Locator {

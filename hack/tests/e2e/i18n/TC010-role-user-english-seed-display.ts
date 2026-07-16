@@ -51,10 +51,12 @@ test.describe('TC-6 Built-in role English display regression', () => {
     await adminPage.goto('/system/role');
     await waitForTableReady(adminPage);
     const adminRoleRow = adminPage
-      .locator('.vxe-body--row:visible', { hasText: 'admin' })
+      .getByTestId('role-table')
+      .locator('.semi-table-tbody > .semi-table-row', { hasText: 'admin' })
       .first();
     const userRoleRow = adminPage
-      .locator('.vxe-body--row:visible', { hasText: 'user' })
+      .getByTestId('role-table')
+      .locator('.semi-table-tbody > .semi-table-row', { hasText: 'user' })
       .first();
 
     await expect(adminRoleRow).toContainText('Administrator');

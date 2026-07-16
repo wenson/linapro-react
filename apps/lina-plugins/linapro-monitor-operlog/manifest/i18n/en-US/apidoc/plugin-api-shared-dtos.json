@@ -1,0 +1,19 @@
+{
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.actingUserId.dc": "Actual acting user ID",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.costTime.dc": "Elapsed time in milliseconds",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.errorMsg.dc": "Error message",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.id.dc": "Log ID",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.isImpersonation.dc": "Whether this operation used tenant impersonation",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.method.dc": "Method name",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.onBehalfOfTenantId.dc": "Target tenant ID represented by the operation",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operIp.dc": "Operation IP address",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operName.dc": "Operator",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operSummary.dc": "Operation summary",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operTime.dc": "Operation time as a Unix millisecond timestamp",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operType.dc": "Operation type: create, update, delete, export, import, or other",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.operUrl.dc": "Request URL",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.requestMethod.dc": "Request method",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.status.dc": "Operation status: 0=success, 1=failure",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.tenantId.dc": "Owning tenant ID",
+  "plugins.linapro_monitor_operlog.api.operlog.v1.OperLogListItem.fields.title.dc": "Module title"
+}

@@ -30,7 +30,7 @@ test.describe('TC-2 版本信息页面', () => {
     await adminPage.goto('/about/system-info');
     await adminPage.waitForLoadState('networkidle');
 
-    const content = adminPage.locator('[id="__vben_main_content"]');
+    const content = adminPage.getByTestId('system-info-page');
 
     // 关于项目区块 - 第一行：项目名称 + 项目介绍
     await expect(content.getByText('关于项目')).toBeVisible();
@@ -57,7 +57,7 @@ test.describe('TC-2 版本信息页面', () => {
     // 前端组件区块（从 API 加载）
     await expect(content.getByText('前端组件')).toBeVisible();
     await expect(
-      content.getByText('Vue', { exact: true }).first(),
+      content.getByText('React', { exact: true }).first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -72,7 +72,7 @@ test.describe('TC-2 版本信息页面', () => {
     await adminPage.goto('/about/system-info');
     await adminPage.waitForLoadState('networkidle');
 
-    const content = adminPage.locator('[id="__vben_main_content"]');
+    const content = adminPage.getByTestId('system-info-page');
     const systemInfoPayload = await (await systemInfoResponsePromise).json();
     const backendComponents =
       systemInfoPayload?.data?.backendComponents ??
@@ -106,14 +106,14 @@ test.describe('TC-2 版本信息页面', () => {
     await adminPage.goto('/about/system-info');
     await adminPage.waitForLoadState('networkidle');
 
-    const content = adminPage.locator('[id="__vben_main_content"]');
+    const content = adminPage.getByTestId('system-info-page');
 
     // 页面顶部不应有"版本信息"标题栏（Page 组件的 title）
     const pageHeader = content.locator('.page-header, header').first();
     await expect(pageHeader).not.toBeVisible();
 
     // 第一个 card-box 应直接是"关于项目"
-    const firstCard = content.locator('.card-box').first();
+    const firstCard = content.getByTestId('system-info-about');
     await expect(firstCard.getByText('关于项目')).toBeVisible();
   });
 
@@ -128,8 +128,8 @@ test.describe('TC-2 版本信息页面', () => {
     await adminPage.goto('/about/system-info');
     await adminPage.waitForLoadState('networkidle');
 
-    const content = adminPage.locator('[id="__vben_main_content"]');
-    const aboutCard = content.locator('.card-box').first();
+    const content = adminPage.getByTestId('system-info-page');
+    const aboutCard = content.getByTestId('system-info-about');
     const systemInfoPayload = await (await systemInfoResponsePromise).json();
     const framework =
       systemInfoPayload?.data?.framework ??

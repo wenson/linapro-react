@@ -176,14 +176,17 @@ func TestDynamicPluginInstallAndUninstallManageMenusFromManifest(t *testing.T) {
 		"v0.3.0",
 		[]*catalog.MenuSpec{
 			{
-				Key:       menuKey,
-				Name:      "Runtime Menu Metadata Plugin",
-				Path:      "/x-assets/plugin-dev-dynamic-menu-metadata/v0.3.0/index.html",
-				Perms:     "plugin-dev-dynamic-menu-metadata:view",
-				Icon:      "ant-design:deployment-unit-outlined",
-				Type:      catalog.MenuTypePage.String(),
-				Sort:      -1,
-				Query:     map[string]interface{}{"pluginAccessMode": "embedded-mount"},
+				Key:   menuKey,
+				Name:  "Runtime Menu Metadata Plugin",
+				Path:  "/extension/plugin-dev-dynamic-menu-metadata",
+				Perms: "plugin-dev-dynamic-menu-metadata:view",
+				Icon:  "ant-design:deployment-unit-outlined",
+				Type:  catalog.MenuTypePage.String(),
+				Sort:  -1,
+				Query: map[string]interface{}{
+					"pluginAccessMode": "iframe",
+					"pluginAssetUrl":   "/x-assets/plugin-dev-dynamic-menu-metadata/v0.3.0/index.html",
+				},
 				Component: "system/plugin/dynamic-page",
 			},
 		},
@@ -266,12 +269,16 @@ func TestSyncPluginMenusAndPermissionsNoopSkipsWritesAndTransactions(t *testing.
 			{
 				Key:       menuKey,
 				Name:      "Menu Noop Startup Plugin",
-				Path:      "/x-assets/plugin-menu-noop-startup/v0.1.0/index.html",
+				Path:      "/extension/plugin-menu-noop-startup",
 				Perms:     "plugin-menu-noop-startup:view",
 				Icon:      "ant-design:deployment-unit-outlined",
 				Type:      catalog.MenuTypePage.String(),
 				Sort:      -1,
 				Component: "system/plugin/dynamic-page",
+				Query: map[string]interface{}{
+					"pluginAccessMode": "iframe",
+					"pluginAssetUrl":   "/x-assets/plugin-menu-noop-startup/v0.1.0/index.html",
+				},
 			},
 		},
 		Routes: []*protocol.RouteContract{
@@ -484,12 +491,16 @@ func TestDynamicPluginRoutePermissionMenusAttachToPluginMenu(t *testing.T) {
 		{
 			Key:       menuKey,
 			Name:      "Runtime Route Permission Parent Plugin",
-			Path:      "/x-assets/plugin-dev-dynamic-route-permission-parent/v0.3.0/index.html",
+			Path:      "/extension/plugin-dev-dynamic-route-permission-parent",
 			Perms:     "plugin-dev-dynamic-route-permission-parent:view",
 			Icon:      "ant-design:deployment-unit-outlined",
 			Type:      catalog.MenuTypePage.String(),
 			Sort:      -1,
 			Component: "system/plugin/dynamic-page",
+			Query: map[string]interface{}{
+				"pluginAccessMode": "iframe",
+				"pluginAssetUrl":   "/x-assets/plugin-dev-dynamic-route-permission-parent/v0.3.0/index.html",
+			},
 		},
 	}
 	artifactPath := testutil.CreateTestRuntimeStorageArtifactWithMenus(
@@ -578,12 +589,16 @@ func TestDynamicPluginRoutePermissionMenusAttachWhenPluginMenuUsesHostParent(t *
 			Key:       menuKey,
 			Name:      "Runtime Route Permission External Parent Plugin",
 			ParentKey: menusvc.Extension,
-			Path:      "/x-assets/plugin-dev-route-ext-parent/v0.3.0/index.html",
+			Path:      "/extension/plugin-dev-route-ext-parent",
 			Perms:     "plugin-dev-route-ext-parent:view",
 			Icon:      "ant-design:deployment-unit-outlined",
 			Type:      catalog.MenuTypePage.String(),
 			Sort:      -1,
 			Component: "system/plugin/dynamic-page",
+			Query: map[string]interface{}{
+				"pluginAccessMode": "iframe",
+				"pluginAssetUrl":   "/x-assets/plugin-dev-route-ext-parent/v0.3.0/index.html",
+			},
 		},
 	}
 	artifactPath := testutil.CreateTestRuntimeStorageArtifactWithMenus(
@@ -980,13 +995,16 @@ func defaultRuntimeRoutePermissionMenus(pluginID string, pluginName string, vers
 		{
 			Key:       menuKey,
 			Name:      pluginName,
-			Path:      "/x-assets/" + pluginID + "/" + version + "/index.html",
+			Path:      "/extension/" + pluginID,
 			Perms:     pluginID + ":view",
 			Icon:      "ant-design:deployment-unit-outlined",
 			Type:      catalog.MenuTypePage.String(),
 			Sort:      -1,
 			Component: "system/plugin/dynamic-page",
-			Query:     map[string]interface{}{"pluginAccessMode": "embedded-mount"},
+			Query: map[string]interface{}{
+				"pluginAccessMode": "iframe",
+				"pluginAssetUrl":   "/x-assets/" + pluginID + "/" + version + "/index.html",
+			},
 		},
 	}
 }

@@ -540,6 +540,10 @@ type: dynamic
 scope_nature: tenant_aware
 supports_multi_tenant: false
 default_install_mode: global
+public_assets:
+  - source: frontend/pages
+    mount: /
+    index: placeholder.html
 menus:
   - key: plugin:${successPluginID}:low-priority-host
     parent_key: extension
@@ -550,6 +554,9 @@ menus:
     icon: lucide:plug
     type: M
     sort: -1
+    query:
+      pluginAccessMode: iframe
+      pluginAssetUrl: /x-assets/${successPluginID}/v0.1.0/placeholder.html
 hostServices:
   - service: cache
     methods:
@@ -748,6 +755,10 @@ type: dynamic
 scope_nature: tenant_aware
 supports_multi_tenant: false
 default_install_mode: global
+public_assets:
+  - source: frontend/pages
+    mount: /
+    index: placeholder.html
 menus:
   - key: plugin:${deniedPluginID}:low-priority-denied
     parent_key: extension
@@ -758,6 +769,9 @@ menus:
     icon: lucide:shield-alert
     type: M
     sort: -1
+    query:
+      pluginAccessMode: iframe
+      pluginAssetUrl: /x-assets/${deniedPluginID}/v0.1.0/placeholder.html
 hostServices:
   - service: cache
     methods:

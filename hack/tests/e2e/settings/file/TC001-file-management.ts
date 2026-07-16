@@ -1,385 +1,446 @@
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import type { APIRequestContext } from '@playwright/test';
+
 import { test, expect } from '../../../fixtures/auth';
 import { FilePage } from '../../../pages/FilePage';
 import {
+  createAdminApiContext,
+  expectSuccess,
+} from '../../../support/api/job';
+import {
+  setSwitchChecked,
   waitForBusyIndicatorsToClear,
+  waitForConfirmOverlay,
   waitForDropdown,
   waitForRouteReady,
-  waitForUploadReady,
 } from '../../../support/ui';
 
-test.describe('TC001 文件管理', () => {
-  // Create a temporary test file
-  const testFileName = `test_upload_${Date.now()}.txt`;
-  const testFilePath = path.join('/tmp', testFileName);
+type UploadResult = {
+  id: number;
+  original: string;
+};
 
-  test.beforeAll(() => {
-    fs.writeFileSync(testFilePath, 'This is a test file for E2E upload testing.');
-  });
+type FileListItem = {
+  id: number;
+  original: string;
+};
 
-  test.afterAll(() => {
-    if (fs.existsSync(testFilePath)) {
-      fs.unlinkSync(testFilePath);
+type FileFixture = {
+  id: number;
+  name: string;
+  path: string;
+};
+
+type FixtureOptions = {
+  content?: Buffer | string;
+  extension?: string;
+  marker?: string;
+  scene?: string;
+};
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(currentDir, '../../../../..');
+let fixtureSequence = 0;
+
+const onePixelPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+);
+
+function pad(value: number, length = 2) {
+  return String(value).padStart(length, '0');
+}
+
+function createTempFile(options: FixtureOptions = {}) {
+  const now = new Date();
+  const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+  const extension = (options.extension ?? 'txt').replace(/^\./, '');
+  fixtureSequence += 1;
+  const marker = options.marker ?? 'e2e_file';
+  const name = `${time}-${marker}-${fixtureSequence}.${extension}`;
+  const directory = path.join(projectRoot, 'temp', date);
+  const filePath = path.join(directory, name);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(filePath, options.content ?? `LinaPro E2E fixture ${name}`);
+  return { name, path: filePath };
+}
+
+function removeTempFile(filePath: string) {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}
+
+async function uploadFile(
+  api: APIRequestContext,
+  local: { name: string; path: string },
+  scene = 'other',
+) {
+  const result = await expectSuccess<UploadResult>(
+    await api.post('file/upload', {
+      multipart: {
+        scene,
+        file: fs.createReadStream(local.path),
+      },
+    }),
+  );
+  expect(result.original).toBe(local.name);
+  return { ...local, id: result.id };
+}
+
+async function findFile(api: APIRequestContext, original: string) {
+  const result = await expectSuccess<{ list: FileListItem[]; total: number }>(
+    await api.get(
+      `file?pageNum=1&pageSize=100&original=${encodeURIComponent(original)}`,
+    ),
+  );
+  return result.list.find((item) => item.original === original);
+}
+
+async function withUploadedFiles<T>(
+  options: FixtureOptions[],
+  run: (fixtures: FileFixture[], api: APIRequestContext) => Promise<T>,
+) {
+  const api = await createAdminApiContext();
+  const locals: Array<{ name: string; path: string }> = [];
+  const fixtures: FileFixture[] = [];
+  try {
+    for (const option of options) {
+      const local = createTempFile(option);
+      locals.push(local);
+      fixtures.push(await uploadFile(api, local, option.scene));
     }
-  });
+    return await run(fixtures, api);
+  } finally {
+    for (const fixture of fixtures) {
+      await api.delete(`file/${fixture.id}`).catch(() => {});
+    }
+    await api.dispose();
+    locals.forEach((local) => removeTempFile(local.path));
+  }
+}
 
+async function withUploadedFile<T>(
+  options: FixtureOptions,
+  run: (fixture: FileFixture, api: APIRequestContext) => Promise<T>,
+) {
+  return withUploadedFiles([options], ([fixture], api) => run(fixture, api));
+}
+
+test.describe('TC001 文件管理', () => {
   test('TC001a: 文件管理页面可正常访问', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
-    // Verify page title and table are visible
-    await expect(adminPage.getByText('文件列表')).toBeVisible();
-    await expect(adminPage.locator('.vxe-table')).toBeVisible();
+    await expect(adminPage.getByTestId('file-page')).toBeVisible();
+    await expect(adminPage.getByRole('heading', { name: '文件管理' })).toBeVisible();
+    await expect(adminPage.getByText('文件列表', { exact: true })).toBeVisible();
+    await expect(filePage.table).toBeVisible();
   });
 
-  test('TC001b: 文件上传按钮打开上传弹窗', async ({ authenticatedPage: adminPage }) => {
+  test('TC001b: 文件上传按钮打开 Semi 上传弹窗', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
-    await filePage.openFileUploadModal();
-
-    const modal = adminPage.locator('[role="dialog"]');
-    await expect(modal.getByText('文件上传')).toBeVisible();
-    // Should have drag upload area
-    await expect(modal.locator('.ant-upload-drag')).toBeVisible();
+    const modal = await filePage.openFileUploadModal();
+    await expect(modal.getByText('文件上传', { exact: true })).toBeVisible();
+    await expect(modal.getByTestId('managed-upload')).toBeVisible();
+    await expect(modal.locator('input.semi-upload-hidden-input')).toHaveCount(1);
   });
 
-  test('TC001c: 图片上传按钮打开上传弹窗', async ({ authenticatedPage: adminPage }) => {
+  test('TC001c: 图片上传按钮打开仅限图片的 Semi 上传弹窗', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
-    await filePage.openImageUploadModal();
-
-    const modal = adminPage.locator('[role="dialog"]');
-    await expect(modal.getByText('图片上传')).toBeVisible();
+    const modal = await filePage.openImageUploadModal();
+    await expect(modal.getByText('图片上传', { exact: true })).toBeVisible();
+    await expect(modal.getByTestId('managed-upload')).toBeVisible();
+    await expect(modal.locator('input.semi-upload-hidden-input')).toHaveAttribute('accept', 'image/*');
   });
 
-  test('TC001d: 上传文件后文件列表中可见', async ({ authenticatedPage: adminPage }) => {
+  test('TC001d: 通过页面上传文件后列表可见且显示成功反馈', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
-    await filePage.goto();
+    const local = createTempFile({ marker: 'e2e_ui_upload' });
+    const api = await createAdminApiContext();
+    let uploadedID = 0;
 
-    // Use file chooser for upload
-    await filePage.openFileUploadModal();
+    try {
+      await filePage.goto();
+      await filePage.openFileUploadModal();
+      await filePage.uploadFile(local.path);
+      await expect(
+        adminPage.locator('.semi-toast-content-text:visible').filter({ hasText: /文件上传成功/ }).last(),
+      ).toBeVisible({ timeout: 15000 });
 
-    const modal = adminPage.locator('[role="dialog"]');
-    const fileChooserPromise = adminPage.waitForEvent('filechooser');
-    await modal.locator('.ant-upload-drag').click();
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(testFilePath);
-    await waitForUploadReady(modal);
+      const uploaded = await findFile(api, local.name);
+      expect(uploaded, 'UI upload must create an API-visible file record').toBeTruthy();
+      uploadedID = uploaded!.id;
 
-    // Wait for upload success
-    await expect(
-      adminPage.getByText(/上传成功/),
-    ).toBeVisible({ timeout: 10000 });
-
-    // 上传成功后弹窗可能自动关闭；若未关闭再手动收起。
-    const closedAutomatically = await modal
-      .waitFor({ state: 'hidden', timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!closedAutomatically) {
-      const closeButton = modal.locator('.ant-modal-close').first();
-      if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await closeButton.click();
+      await filePage.closeUploadDialog();
+      await filePage.searchByOriginal(local.name);
+      await expect(filePage.rowByOriginal(local.name)).toBeVisible();
+      await expect(adminPage.getByTestId(`file-original-${uploadedID}`)).toHaveText(local.name);
+    } finally {
+      if (uploadedID > 0) {
+        await api.delete(`file/${uploadedID}`).catch(() => {});
       }
-      await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
-    }
-    await filePage.goto();
-
-    // Verify file appears in the list
-    const hasFile = await filePage.hasFile(testFileName);
-    expect(hasFile).toBeTruthy();
-  });
-
-  test('TC001e: 搜索条件筛选文件', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
-
-    // Search by file type (suffix) - now a Select dropdown
-    const suffixLabel = adminPage.locator('label').filter({ hasText: '文件类型' });
-    const suffixSelect = suffixLabel.locator('..').locator('.ant-select').first();
-    await suffixSelect.click();
-
-    // Wait for dropdown and select 'png' which should exist
-    const dropdown = await waitForDropdown(adminPage);
-    const pngOption = dropdown.getByText('png', { exact: true });
-    const hasPng = await pngOption.count();
-    if (hasPng > 0) {
-      await pngOption.first().evaluate((element) => {
-        for (const eventType of ['mousedown', 'mouseup', 'click']) {
-          element.dispatchEvent(
-            new MouseEvent(eventType, {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-            }),
-          );
-        }
-      });
-      await adminPage.getByRole('button', { name: /搜\s*索/ }).first().click();
-      await waitForRouteReady(adminPage);
-
-      // All results should have png suffix
-      const rowCount = await filePage.getRowCount();
-      expect(rowCount).toBeGreaterThan(0);
-    } else {
-      // Close dropdown if no png option
-      await adminPage.keyboard.press('Escape');
+      await api.dispose();
+      removeTempFile(local.path);
     }
   });
 
-  test('TC001p: 文件类型下拉框显示正确的后缀格式', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001e: 文件类型筛选只返回匹配后缀的文件', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile(
+      { content: onePixelPng, extension: 'png', marker: 'e2e_suffix_filter' },
+      async (fixture) => {
+        const filePage = new FilePage(adminPage);
+        await filePage.goto();
+        await filePage.selectSearchOption(/文件类型|File type/i, 'png');
+        await filePage.submitSearch();
 
-    // Open file type dropdown
-    const suffixLabel = adminPage.locator('label').filter({ hasText: '文件类型' });
-    const suffixSelect = suffixLabel.locator('..').locator('.ant-select').first();
-    await suffixSelect.click();
-
-    const dropdown = adminPage.locator('.ant-select-dropdown').last();
-    await expect(dropdown).toBeVisible({ timeout: 5000 });
-
-    // Get all option texts
-    const options = dropdown.locator('.ant-select-item-option-content');
-    const optionCount = await options.count();
-    expect(optionCount).toBeGreaterThan(0);
-
-    // Each option should be a plain extension without dot (e.g. "png", not ".png")
-    for (let i = 0; i < optionCount; i++) {
-      const text = await options.nth(i).innerText();
-      expect(text).toMatch(/^\w+$/);
-      expect(text).not.toMatch(/^\./);
-    }
-
-    await adminPage.keyboard.press('Escape');
+        const suffixes = await filePage.table
+          .locator('[data-testid^="file-suffix-"]')
+          .allTextContents();
+        expect(suffixes.length).toBeGreaterThan(0);
+        expect(suffixes.every((suffix) => suffix.trim() === 'png')).toBeTruthy();
+        await expect(adminPage.getByTestId(`file-suffix-${fixture.id}`)).toHaveText('png');
+      },
+    );
   });
 
-  test('TC001g: 文件预览列展示预览或下载链接', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001p: 文件类型下拉项使用不带点号的纯后缀', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ extension: 'txt', marker: 'e2e_suffix_options' }, async () => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
 
-    const rowCount = await filePage.getRowCount();
-    if (rowCount > 0) {
-      // Each row's preview column should show one of:
-      // - Image preview (for images)
-      // - "PDF 预览" link (for PDFs)
-      // - Plain URL text (for other file types, truncated with tooltip)
-      const rows = adminPage.locator('.vxe-body--row');
-      const count = await rows.count();
-      for (let i = 0; i < Math.min(count, 5); i++) {
-        const urlCell = rows.nth(i).locator('td').nth(4);
-        const cellText = await urlCell.innerText();
-        // Should be either an image preview, "PDF 预览", or a URL text
-        const isImagePreview = (await urlCell.locator('.ant-image').count()) > 0;
-        const isPdfPreview = cellText.includes('PDF 预览');
-        const isUrlText = cellText.includes('http');
-        expect(isImagePreview || isPdfPreview || isUrlText).toBeTruthy();
+      await filePage.searchForm.getByLabel(/文件类型|File type/i).first().click();
+      const dropdown = await waitForDropdown(adminPage);
+      const options = dropdown.locator('.semi-select-option');
+      const texts = (await options.allTextContents()).map((text) => text.trim());
+      expect(texts.length).toBeGreaterThan(0);
+      for (const text of texts) {
+        expect(text).toMatch(/^[a-zA-Z0-9_+-]+$/);
+        expect(text).not.toMatch(/^\./);
       }
-    }
+    });
   });
 
-  test('TC001h: 下载按钮点击不报错', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001g: 图片、PDF 和普通文件使用各自的预览方式', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFiles(
+      [
+        { content: onePixelPng, extension: 'png', marker: 'e2e_preview_image' },
+        { content: '%PDF-1.4\n%%EOF\n', extension: 'pdf', marker: 'e2e_preview_pdf' },
+        { extension: 'txt', marker: 'e2e_preview_url' },
+      ],
+      async ([image, pdf, textFile]) => {
+        const filePage = new FilePage(adminPage);
+        await filePage.goto();
 
-    const rowCount = await filePage.getRowCount();
-    if (rowCount > 0) {
-      // Listen for console errors
-      const consoleErrors: string[] = [];
-      adminPage.on('console', (msg) => {
-        if (msg.type() === 'error') {
-          consoleErrors.push(msg.text());
-        }
-      });
+        await filePage.searchByOriginal(image.name);
+        await expect(adminPage.getByTestId(`file-image-preview-${image.id}`)).toBeVisible();
 
-      // Intercept the download request to verify it succeeds
-      const downloadPromise = adminPage.waitForResponse(
-        (resp) => resp.url().includes('/file/download/') && resp.status() === 200,
+        await filePage.resetSearch();
+        await filePage.searchByOriginal(pdf.name);
+        await expect(adminPage.getByTestId(`file-pdf-preview-${pdf.id}`)).toHaveText('PDF 预览');
+
+        await filePage.resetSearch();
+        await filePage.searchByOriginal(textFile.name);
+        await expect(adminPage.getByTestId(`file-url-${textFile.id}`)).toBeVisible();
+      },
+    );
+  });
+
+  test('TC001h: 下载按钮请求当前测试文件且接口成功', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ marker: 'e2e_download' }, async (fixture) => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
+      await filePage.searchByOriginal(fixture.name);
+
+      const responsePromise = adminPage.waitForResponse(
+        (response) =>
+          response.url().includes(`/file/download/${fixture.id}`) &&
+          response.status() === 200,
         { timeout: 15000 },
       );
-
-      // Click download button on first row
-      const firstRow = adminPage.locator('.vxe-body--row').first();
-      await firstRow.getByRole('button', { name: /下\s*载/ }).click();
-
-      // Wait for download response
-      const response = await downloadPromise;
-      expect(response.status()).toBe(200);
-
-      // No download-related console errors
-      const downloadErrors = consoleErrors.filter((e) => e.includes('Download failed'));
-      expect(downloadErrors).toHaveLength(0);
-    }
+      await adminPage.getByTestId(`file-download-${fixture.id}`).click();
+      expect((await responsePromise).status()).toBe(200);
+    });
   });
 
-  test('TC001i: 上传者列展示账号名称而非昵称', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001i: 上传者列展示账号 admin 而不是昵称', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ marker: 'e2e_uploader' }, async (fixture) => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
+      await filePage.searchByOriginal(fixture.name);
 
-    const rowCount = await filePage.getRowCount();
-    if (rowCount > 0) {
-      // The uploader column (index 8: checkbox=0, original=1, suffix=2, scene=3, url=4, size=5, createdAt=6, createdByName=7)
-      const uploaderCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(7);
-      const uploaderText = await uploaderCell.innerText();
-      // Should be a username like 'admin', not a nickname like '管理员'
-      expect(uploaderText.trim()).toBe('admin');
-    }
+      await expect(adminPage.getByTestId(`file-uploader-${fixture.id}`)).toHaveText('admin');
+    });
   });
 
-  test('TC001j: 文件大小列支持排序', async ({ authenticatedPage: adminPage }) => {
+  test('TC001j: 文件大小列排序会发送 size 排序参数', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
-
-    // The size column header should be sortable - click it
-    const sizeHeader = adminPage.locator('.vxe-header--column').filter({ hasText: '文件大小' }).first();
-
-    // Listen for API request with sort params
-    const sortRequestPromise = adminPage.waitForRequest(
-      (req) => req.url().includes('/file?') && req.url().includes('orderBy=size'),
+    const requestPromise = adminPage.waitForRequest(
+      (request) => {
+        const url = new URL(request.url());
+        return url.pathname.endsWith('/file') && url.searchParams.get('orderBy') === 'size';
+      },
       { timeout: 10000 },
     );
-
-    await sizeHeader.click();
-
-    // Verify API request was sent with sort parameters
-    const request = await sortRequestPromise;
-    expect(request.url()).toContain('orderBy=size');
+    await filePage.table
+      .locator('.semi-table-row-head-title[title="文件大小"]')
+      .locator('..')
+      .click();
+    expect(new URL((await requestPromise).url()).searchParams.get('orderBy')).toBe('size');
   });
 
-  test('TC001m: 上传时间列支持排序', async ({ authenticatedPage: adminPage }) => {
+  test('TC001m: 上传时间列排序会发送 createdAt 排序参数', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
-
-    // The createdAt column header should be sortable - click it
-    const createdAtHeader = adminPage.locator('.vxe-header--column').filter({ hasText: '上传时间' }).first();
-
-    // Listen for API request with sort params
-    const sortRequestPromise = adminPage.waitForRequest(
-      (req) => req.url().includes('/file?') && req.url().includes('orderBy=createdAt'),
+    const requestPromise = adminPage.waitForRequest(
+      (request) => {
+        const url = new URL(request.url());
+        return url.pathname.endsWith('/file') && url.searchParams.get('orderBy') === 'createdAt';
+      },
       { timeout: 10000 },
     );
-
-    await createdAtHeader.click();
-
-    // Verify API request was sent with sort parameters
-    const request = await sortRequestPromise;
-    expect(request.url()).toContain('orderBy=createdAt');
+    await filePage.table
+      .locator('.semi-table-row-head-title[title="上传时间"]')
+      .locator('..')
+      .click();
+    expect(new URL((await requestPromise).url()).searchParams.get('orderBy')).toBe('createdAt');
   });
 
-  test('TC001k: 详情按钮打开文件详情对话框', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001k: 详情按钮展示当前文件的完整本地化字段', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ marker: 'e2e_detail' }, async (fixture) => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
+      await filePage.searchByOriginal(fixture.name);
 
-    const rowCount = await filePage.getRowCount();
-    if (rowCount > 0) {
-      // Click detail button on first row
-      const firstRow = adminPage.locator('.vxe-body--row').first();
-      await firstRow.getByRole('button', { name: /详\s*情/ }).click();
-
-      // Verify detail modal opens
-      const modal = adminPage.locator('[role="dialog"]');
-      await expect(modal.getByText('文件详情')).toBeVisible({ timeout: 5000 });
-
-      // Should show file info in Descriptions
-      await expect(modal.getByText('原始文件名')).toBeVisible();
-      await expect(modal.getByText('存储文件名')).toBeVisible();
-      await expect(modal.getByText('文件大小')).toBeVisible();
-      await expect(modal.getByText('上传者')).toBeVisible();
-      await expect(modal.getByText('上传时间')).toBeVisible();
-      await expect(modal.getByText('使用场景')).toBeVisible();
-    }
+      const modal = await filePage.openDetail(fixture.id);
+      await expect(modal.getByText('详情', { exact: true })).toBeVisible();
+      for (const label of ['原始文件名', '存储文件名', '文件大小', '上传者', '上传时间', '使用场景']) {
+        await expect(modal.getByText(label, { exact: true })).toBeVisible();
+      }
+      await expect(modal.getByText(fixture.name, { exact: true })).toBeVisible();
+      await expect(modal.getByText('admin', { exact: true })).toBeVisible();
+    });
   });
 
-  test('TC001l: 使用场景筛选条件可见', async ({ authenticatedPage: adminPage }) => {
+  test('TC001l: 使用场景筛选条件始终可见', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
-
-    // The search form should have a "使用场景" label
-    const sceneLabel = adminPage.locator('form label').filter({ hasText: '使用场景' });
-    await expect(sceneLabel.first()).toBeVisible();
+    await expect(filePage.searchForm.getByLabel(/使用场景|Scene/i)).toBeVisible();
   });
 
-  test('TC001o: 使用场景筛选下拉框包含预定义选项', async ({ authenticatedPage: adminPage }) => {
+  test('TC001o: 使用场景下拉框包含全部预定义选项', async ({ authenticatedPage: adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
-
-    // Find the scene select by looking for the Ant Design select with aria-label or by form item
-    // VbenForm uses form items, so we look for the select near the "使用场景" text
-    const sceneLabel = adminPage.locator('label').filter({ hasText: '使用场景' });
-
-    // Check if the scene field exists (it might not if API failed)
-    const labelCount = await sceneLabel.count();
-    if (labelCount === 0) {
-      // Skip test if the scene field is not available
-      console.log('Scene select field not found, skipping test');
-      return;
-    }
-
-    // The select is usually the next sibling or nearby element after the label
-    const sceneFormItem = sceneLabel.locator('..').locator('.ant-select').first();
-    await sceneFormItem.click();
-
-    // Wait for dropdown to open and check for predefined options
+    await filePage.searchForm.getByLabel(/使用场景|Scene/i).click();
     const dropdown = await waitForDropdown(adminPage);
     await waitForBusyIndicatorsToClear(dropdown);
 
-    // Should have predefined scene options
-    await expect(dropdown.getByText('用户头像')).toBeVisible();
-    await expect(dropdown.getByText('通知公告图片')).toBeVisible();
-    await expect(dropdown.getByText('通知公告附件')).toBeVisible();
-    await expect(dropdown.getByText('其他')).toBeVisible();
-
-    // Close dropdown by clicking elsewhere
-    await adminPage.keyboard.press('Escape');
+    for (const option of ['用户头像', '通知公告图片', '通知公告附件', '其他']) {
+      await expect(
+        dropdown.locator('.semi-select-option').filter({ hasText: new RegExp(`^\\s*${option}\\s*$`) }),
+      ).toBeVisible();
+    }
   });
 
-  test('TC001f: 删除文件', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001f: 删除只删除当前测试创建的文件并显示成功反馈', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ marker: 'e2e_delete' }, async (fixture, api) => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
+      await filePage.searchByOriginal(fixture.name);
 
-    // Get initial row count
-    const initialCount = await filePage.getRowCount();
-
-    if (initialCount > 0) {
-      // Listen for successful delete response
-      const deleteResponsePromise = adminPage.waitForResponse(
-        (resp) => resp.url().includes('/file/') && resp.request().method() === 'DELETE' && resp.status() === 200,
-        { timeout: 10000 },
+      const responsePromise = adminPage.waitForResponse(
+        (response) =>
+          response.url().endsWith(`/file/${fixture.id}`) &&
+          response.request().method() === 'DELETE' &&
+          response.status() === 200,
       );
-
-      // Click delete on first row
-      const firstRow = adminPage.locator('.vxe-body--row').first();
-      await firstRow.getByRole('button', { name: /删\s*除/ }).click();
-
-      // Confirm delete (button text is "确 定")
-      await adminPage
-        .getByRole('button', { name: /确\s*定/ })
-        .click();
-
-      // Verify delete API succeeded
-      const deleteResponse = await deleteResponsePromise;
-      expect(deleteResponse.status()).toBe(200);
-    }
+      await filePage.deleteFile(fixture.name);
+      expect((await responsePromise).status()).toBe(200);
+      await expect(
+        adminPage.locator('.semi-toast-content-text:visible').filter({ hasText: /删除成功/ }).last(),
+      ).toBeVisible();
+      await expect(filePage.rowByOriginal(fixture.name)).toHaveCount(0);
+      expect(await findFile(api, fixture.name)).toBeUndefined();
+    });
   });
 
-  test('TC001n: 文件列表默认开启预览模式', async ({ authenticatedPage: adminPage }) => {
-    const filePage = new FilePage(adminPage);
-    await filePage.goto();
+  test('TC001n: 预览开关默认开启并可切换 URL 与图片预览', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile(
+      { content: onePixelPng, extension: 'png', marker: 'e2e_preview_switch' },
+      async (fixture) => {
+        const filePage = new FilePage(adminPage);
+        await filePage.goto();
+        await filePage.searchByOriginal(fixture.name);
 
-    // The preview switch should be ON by default
-    const previewSwitch = adminPage.locator('.ant-switch-checked');
-    await expect(previewSwitch).toBeVisible();
+        await expect(filePage.previewSwitch).toHaveAttribute('aria-checked', 'true');
+        await expect(adminPage.getByTestId(`file-image-preview-${fixture.id}`)).toBeVisible();
 
-    // If there are image files, they should show as image preview instead of URL text
-    const rowCount = await filePage.getRowCount();
-    if (rowCount > 0) {
-      // Check if any row has an image preview (ant-image element)
-      const hasImagePreview = await adminPage.locator('.ant-image').count();
-      // At least check the preview mode is active
-      expect(hasImagePreview).toBeGreaterThanOrEqual(0);
-    }
+        await setSwitchChecked(filePage.previewSwitch, false);
+        await expect(adminPage.getByTestId(`file-url-${fixture.id}`)).toBeVisible();
+
+        await setSwitchChecked(filePage.previewSwitch, true);
+        await expect(adminPage.getByTestId(`file-image-preview-${fixture.id}`)).toBeVisible();
+      },
+    );
+  });
+
+  test('TC001q: 批量删除确认后只删除选中的测试文件', async ({ authenticatedPage: adminPage }) => {
+    const marker = `e2e_batch_${Date.now()}`;
+    await withUploadedFiles(
+      [{ marker }, { marker }],
+      async (fixtures) => {
+        const filePage = new FilePage(adminPage);
+        await filePage.goto();
+        await filePage.searchByOriginal(marker);
+        for (const fixture of fixtures) {
+          await expect(filePage.rowByOriginal(fixture.name)).toBeVisible();
+          await filePage.selectFile(fixture.id);
+        }
+
+        const responsePromise = adminPage.waitForResponse((response) => {
+          const ids = response.url().split('/file/').at(-1)?.split(',') ?? [];
+          return (
+            response.request().method() === 'DELETE' &&
+            response.status() === 200 &&
+            fixtures.every((fixture) => ids.includes(String(fixture.id)))
+          );
+        });
+        await adminPage
+          .locator('[data-testid="file-page"] .iam-toolbar')
+          .getByRole('button', { name: /^删\s*除$/ })
+          .click();
+        const overlay = await waitForConfirmOverlay(adminPage);
+        await expect(overlay).toContainText('2');
+        await overlay.getByRole('button', { name: /确\s*认|确\s*定|OK|Confirm/i }).click();
+        expect((await responsePromise).status()).toBe(200);
+        await waitForRouteReady(adminPage);
+        for (const fixture of fixtures) {
+          await expect(filePage.rowByOriginal(fixture.name)).toHaveCount(0);
+        }
+      },
+    );
+  });
+
+  test('TC001r: 重置会清空搜索条件并重新加载列表', async ({ authenticatedPage: adminPage }) => {
+    await withUploadedFile({ marker: 'e2e_reset' }, async (fixture) => {
+      const filePage = new FilePage(adminPage);
+      await filePage.goto();
+      await filePage.searchByOriginal(fixture.name);
+      const input = filePage.searchForm.getByLabel(/原始文件名|Original file name/i);
+      await expect(input).toHaveValue(fixture.name);
+      await expect(filePage.rowByOriginal(fixture.name)).toBeVisible();
+
+      await filePage.resetSearch();
+      await expect(input).toHaveValue('');
+    });
   });
 });

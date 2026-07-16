@@ -32,7 +32,6 @@ jobs:
     name: Test verification suite
     uses: ./.github/workflows/reusable-test-verification-suite.yml
     with:
-      include-openspec-completion: false
       include-windows-command-smoke: true
       include-backend-unit-tests: true
       include-go-lint: true

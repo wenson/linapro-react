@@ -94,12 +94,12 @@ func Services(root string, backendPort int, frontendPort int) []Config {
 		},
 		{
 			Name:        "Frontend",
-			DisplayName: "Lina Vben",
+			DisplayName: "Lina Web",
 			URL:         fmt.Sprintf("http://127.0.0.1:%d/", frontendPort),
 			Port:        frontendPort,
-			PIDPath:     filepath.Join(pidDir, "lina-vben.pid"),
-			LogPath:     filepath.Join(tempDir, "lina-vben.log"),
-			WorkDir:     filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"),
+			PIDPath:     filepath.Join(pidDir, "lina-web.pid"),
+			LogPath:     filepath.Join(tempDir, "lina-web.log"),
+			WorkDir:     filepath.Join(root, "apps", "lina-web"),
 			StartArgs:   []string{"--mode", "development", "--host", "127.0.0.1", "--port", strconv.Itoa(frontendPort), "--strictPort"},
 		},
 	}
@@ -362,7 +362,7 @@ func matchesFrontendService(service Config, info process.Info) bool {
 	if hasExplicitDifferentPort(info.Args, service.Port) {
 		return false
 	}
-	return pathWithin(service.WorkDir, info.CWD) || strings.Contains(command, "apps/lina-vben")
+	return pathWithin(service.WorkDir, info.CWD) || strings.Contains(command, "apps/lina-web")
 }
 
 func hasExplicitDifferentPort(args []string, expected int) bool {

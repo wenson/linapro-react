@@ -24,11 +24,11 @@
 
 `LinaPro`是一个`面向可持续交付的AI原生全栈框架`，把`AI`作为核心生产力：`AI`主导分析、设计与实现，团队把握方向与关键决策。
 
-`LinaPro`将后端服务、前端工作台、可插拔插件体系与规范驱动的`AI`研发工作流融为一体，构成一套完整的全栈交付框架。框架内置开箱即用的默认管理工作台，覆盖了绝大多数业务系统所需的权限管理、系统配置、任务调度等基础能力，让新项目无需从零搭建即可直接投入业务开发。
+`LinaPro`将后端服务、前端工作台、可插拔插件体系与证据驱动的`AI`研发工作流融为一体，构成一套完整的全栈交付框架。框架内置开箱即用的默认管理工作台，覆盖了绝大多数业务系统所需的权限管理、系统配置、任务调度等基础能力，让新项目无需从零搭建即可直接投入业务开发。
 
-- **前端**：`Vben5 + Vue 3 + Ant Design Vue + TypeScript`
+- **前端**：`React 19 + Semi Design 2 + TypeScript + Vite 7`
 - **后端**：`GoFrame + PostgreSQL + JWT + 源码/WASM插件运行时`
-- **研发流程**：`SDD + OpenSpec`
+- **研发流程**：`设计 + 冻结 Tasklist + 阶段证据 + 审查`
 
 # 默认账号
 
@@ -53,10 +53,10 @@ apps/                -> MonoRepo项目目录
       config/        -> 后端配置文件
       sql/           -> DDL + Seed DML（版本SQL文件）
         mock-data/   -> Mock演示/测试数据（不随生产部署）
-  lina-vben/         -> 默认管理工作台（Vben5前端pnpm monorepo）
-    apps/web-antd/   -> 默认管理工作台应用（Ant Design Vue）
-    packages/        -> 共享库（@core、effects、stores、utils等）
-  lina-plugins/      -> 官方源码插件仓库submodule挂载入口
+  lina-web/          -> 唯一默认管理工作台（React + Semi Design）
+    src/              -> 宿主运行时、路由、功能、插件UI加载器和语言源文件
+    public/           -> favicon、品牌资源、默认头像和Stoplight资源
+  lina-plugins/      -> 由本仓库直接跟踪的产品源码插件
     <plugin-id>/     -> 源码插件目录（统一结构）
       backend/       -> 插件后端入口与实现
         api/         -> 插件API DTO与路由接口定义
@@ -69,7 +69,7 @@ apps/                -> MonoRepo项目目录
             entity/   -> 数据库实体（自动生成）
         hack/        -> 插件codegen与开发配置，如hack/config.yaml
         plugin.go    -> 插件后端注册入口
-      frontend/      -> 插件前端页面与资源
+      frontend/      -> 源码插件React页面或动态插件公开资源
       manifest/      -> 插件安装、卸载与交付资源
       hack/          -> 插件级研发与测试资源
         tests/
@@ -83,8 +83,7 @@ hack/                -> 项目脚本及测试用例文件
     e2e/             -> 宿主TC测试用例；源码插件自有E2E放在插件目录
     fixtures/        -> 测试fixtures（auth、config）
     pages/           -> 宿主/共享页面对象模型
-openspec/            -> OpenSpec相关文档
-  changes/           -> OpenSpec变更记录
+docs/                -> 架构、冻结Tasklist、阶段记录和审查报告
 ```
 
 # 常用命令
@@ -125,10 +124,12 @@ make ctrl               # 修改API定义后生成控制器骨架
 ## 前端
 
 ```bash
-cd apps/lina-vben
-pnpm install                   # 安装依赖
-pnpm -F @lina/web-antd dev     # 开发模式
-pnpm run build                 # 构建
+pnpm --dir apps/lina-web install    # 安装依赖
+pnpm --dir apps/lina-web dev        # 开发模式
+pnpm --dir apps/lina-web typecheck  # 类型检查
+pnpm --dir apps/lina-web test:unit  # 单元测试
+pnpm --dir apps/lina-web lint       # Lint
+pnpm --dir apps/lina-web build      # 构建
 ```
 
 ## E2E 测试
@@ -150,15 +151,15 @@ pnpm report            # 查看HTML报告
 
 测试文件命名规范为`TC{NNNN}*.ts`，例如`TC0001-login.ts`。宿主测试放在`hack/tests/e2e/`对应模块目录下；源码插件自有测试放在`apps/lina-plugins/<plugin-id>/hack/tests/e2e/`，插件专属页面对象和helper放在同插件的`hack/tests/pages/`、`hack/tests/support/`。
 
-# 官方插件工作区
+# 产品插件工作区
 
-- 官方源码插件仓库独立维护在`https://github.com/linaproai/official-plugins.git`。
-- 主仓库通过`apps/lina-plugins` `submodule`挂载官方插件仓库。
-- `host-only`命令可在未初始化`submodule`时运行。
+- 产品源码插件由本仓库直接跟踪在`apps/lina-plugins`下。
+- `https://github.com/linaproai/official-plugins.git`仅作为上游参考和可选导入来源，不是产品交付仓库。
+- 没有插件清单时仍可运行`host-only`命令。
 - `make dev`、`make build`、`make image`和`make image.build`在未显式传入`plugins`时会自动检测`apps/lina-plugins/*/plugin.yaml`；存在插件清单则启用插件完整模式，否则为宿主模式。需要强制宿主模式时传入`plugins=0`。
 - 插件完整模式会基于宿主专用的根目录`go.work`自动生成或刷新已忽略的`temp/go.work.plugins`，并通过`GOWORK`解析源码插件`Go`模块；根目录`go.work`始终保持`host-only`。
-- 插件专属测试和插件`E2E`需要先执行`git submodule update --init --recursive`。
-- 本地`submodule`管理`remote`使用`git@github.com:linaproai/official-plugins.git`。
+- 插件专属测试和插件`E2E`直接使用已检出的产品工作区运行。
+- `apps/lina-plugins`不得包含嵌套 Git 元数据，也不得重新转换为`submodule`。
 
 # 快速开始
 
@@ -179,33 +180,30 @@ pnpm report            # 查看HTML报告
 git clone https://github.com/<your-username>/linapro.git
 cd linapro
 
-# 2. 需要插件完整模式时初始化官方插件工作区
-git submodule update --init --recursive
-
-# 3. 初始化数据库（DDL + Seed数据）
+# 2. 初始化数据库（DDL + Seed数据）
 make db.init
 
-# 4. 启动全栈服务（前端: 5666，后端: 9120）
+# 3. 启动全栈服务（前端: 5666，后端: 9120）
 make dev
 ```
 
 # 开发流程
 
-`LinaPro`使用`OpenSpec`规范驱动开发流程。所有非平凡贡献都应遵循以下五阶段闭环：
+`lina-tapcanvas`使用设计文档、冻结 Tasklist、阶段执行记录、自动化验证和审查。所有非平凡贡献都遵循以下可追踪闭环：
 
 ```text
-探索 -> 提案 -> 实现 -> 审查 -> 归档
+澄清 -> 设计 -> 冻结 Tasklist -> 实现 -> 验证 -> 审查
 ```
 
-| 阶段 | 命令 | 产物 |
+| 阶段 | 动作 | 产物 |
 |------|------|------|
-| **探索** | `/opsx:explore` | 对问题与方案空间形成共识 |
-| **提案** | `/opsx:propose <feature-name>` | 生成包含`proposal.md`、`design.md`、`specs/`和`tasks.md`的`openspec/changes/<feature>/` |
-| **实现** | `/opsx:apply` | 与`tasks.md`对齐的代码、测试和文档 |
-| **审查** | `/lina-review` | 代码质量与规范合规性自动审查 |
-| **归档** | `/opsx:archive` | 变更移动到`openspec/changes/archive/` |
+| **澄清** | 确认意图、范围和约束 | 已确认的问题与边界 |
+| **设计** | 编写或更新对应架构文档 | 契约、owner、取舍和风险 |
+| **冻结 Tasklist** | 记录有序任务与验收门禁 | 版本化权威 Tasklist |
+| **实现** | 按阶段执行 | 代码、测试、文档和阶段执行记录 |
+| **验证与审查** | 对当前工作区执行检查和审查 | 命令、退出码、问题和交付说明 |
 
-简单且独立的缺陷修复可以跳过探索和提案，直接进入实现，但所有变更在合并前都必须通过审查。
+简单且独立的修复可以使用聚焦执行记录而不新增设计，但所有变更在合并前仍必须完成匹配的验证和审查。
 
 # 变更开发
 
@@ -232,21 +230,21 @@ make dao
 - 所有`error`返回值都必须显式处理。
 - 枚举必须定义为具名`Go`类型与常量，业务逻辑中不要使用裸字符串字面量。
 
-## 前端（`lina-vben`）
+## 前端（`lina-web`）
 
 ```bash
-cd apps/lina-vben
-pnpm install
-pnpm -F @lina/web-antd dev
+pnpm --dir apps/lina-web install
+pnpm --dir apps/lina-web dev
 ```
 
 关键规则：
 
-- 表单使用`useVbenForm`，弹窗使用`useVbenModal`，抽屉使用`useVbenDrawer`。
-- 表格页面使用`useVbenVxeGrid`与`Page`，操作按钮使用`ghost-button`和`Popconfirm`。
-- 图标使用来自`@vben/icons`的`IconifyIcon`，图标名使用`Iconify`格式，例如`ant-design:inbox-outlined`。
+- 组件使用`@douyinfe/semi-ui`，图标使用`@douyinfe/semi-icons`；不得新增 Ant Design React，也不得创建只转发 Semi 属性的包装组件。
+- 直接使用 Semi 的`Form`、`Modal`、`SideSheet`、`Table`和`Popconfirm`。保留键盘访问、可见标签、加载态、空状态和错误恢复。
+- 宿主语言通过`react-i18next`解析，并把`en-US`或`zh-CN`映射到对应 Semi locale。深色模式通过文档根节点的`theme-mode="dark"`启用。
+- API 统一通过宿主`ApiClient`访问。页面不得重新实现认证、语言、租户、刷新和错误包络逻辑。
 - 路径别名`#/*`指向`./src/*`。
-- 开发新页面前，先查看参考项目中的`UI`和交互模式。
+- 新增交互或视觉 token 前，先复用现有 React 功能页和`src/styles/tokens.css`。
 
 ## 插件开发
 
@@ -265,7 +263,9 @@ pnpm -F @lina/web-antd dev
       dao/            -> 需要数据库访问时生成的DAO
       model/          -> 生成模型
     hack/config.yaml  -> codegen配置
-  frontend/pages/     -> 插件前端页面
+  frontend/
+    plugin-ui.ts      -> 源码插件React注册入口
+    pages/            -> 插件自有React页面与相对模块
   manifest/
     sql/              -> 安装SQL
     sql/uninstall/    -> 卸载SQL
@@ -273,6 +273,10 @@ pnpm -F @lina/web-antd dev
 ```
 
 插件业务逻辑放在`backend/internal/service/`。只有实现宿主稳定扩展接缝的`provider`或`adapter`才放在`backend/provider/`。
+
+源码插件 UI 只由`apps/lina-web`发现。`frontend/plugin-ui.ts`只能导入稳定的`@linapro/plugin-ui`表面和插件自身相对模块，不得导入宿主私有`src/`路径。权限、模块禁用隐藏和租户切换仍由宿主控制，插件通过公开的插件 UI context 消费这些状态。
+
+动态插件 UI 是在 sandbox iframe 或新窗口中打开的隔离托管文档，不得获得宿主 Token。当前插件受保护 API 通过宿主受限`postMessage`桥接访问；禁止外部 URL、跨插件资源路径、`allow-same-origin`和嵌入式 JavaScript 模块挂载。
 
 # 提交规范
 
@@ -310,7 +314,7 @@ docs(contributing): add plugin workspace commands
    git checkout -b feat/my-feature
    ```
 
-2. 非平凡变更遵循`OpenSpec`流程。在`Pull Request`描述中附上或引用相关`openspec/changes/<feature>/`产物。
+2. 非平凡变更遵循产品开发流程。在`Pull Request`描述中附上或引用相关设计、冻结 Tasklist 和阶段执行记录。
 
 3. 请求审查前确认所有检查通过：
 
@@ -318,7 +322,7 @@ docs(contributing): add plugin workspace commands
    make test
    ```
 
-4. 向`main`发起`Pull Request`，包含清晰标题、变更内容与原因、相关`Issue`或`OpenSpec`变更文档链接，以及`UI`变更的截图或录屏。
+4. 向`main`发起`Pull Request`，包含清晰标题、变更内容与原因、相关`Issue`和执行证据链接，以及`UI`变更的截图或录屏。
 
 5. 合并前至少需要一名维护者批准。
 
@@ -352,12 +356,13 @@ make release.tag.check tag=v0.2.0
 - `DAO`、`DO`和`Entity`文件由`make dao`生成，禁止手动修改。
 - 控制器文件由`make ctrl`生成骨架，只填写业务逻辑，不要修改生成骨架。
 
-## TypeScript / Vue 3
+## TypeScript / React 19
 
 - 遵循项目的`ESLint`和`Prettier`配置。
 - 保持组件文件聚焦：一个文件一个组件。
 - 使用`TypeScript`严格模式，避免使用`any`。
-- `API`调用放在`src/api/`中，并使用项目的`requestClient`。
+- 宿主`API`调用放在`src/api/`或功能本地 API 模块中，并使用项目`ApiClient`。
+- React effect 只用于同步外部系统；可在渲染期计算或事件处理器中重置的状态不得通过 effect 派生。
 - `i18n`键遵循`module.subkey`约定；禁止硬编码用户可见文本。
 
 # 测试
@@ -389,7 +394,7 @@ pnpm report            # 查看HTML报告
 `LinaPro`支持多语言。每个贡献都必须评估`i18n`影响：
 
 - 新增用户可见文本必须在所有支持语言文件中提供对应条目。
-- 前端运行时翻译位于`apps/lina-vben/`语言包。
+- 宿主前端源翻译位于`apps/lina-web/src/locales/<locale>/`；运行时覆盖通过宿主 i18n API 加载。
 - 宿主`API`文档翻译位于`apps/lina-core/manifest/i18n/<locale>/apidoc/`。
 - 插件翻译自包含于`apps/lina-plugins/<plugin-id>/manifest/i18n/`。
 - 禁止在`Go`或`TypeScript`源码中硬编码用户可见文本，必须使用`i18n`键。

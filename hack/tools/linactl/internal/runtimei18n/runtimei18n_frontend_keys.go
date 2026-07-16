@@ -1,10 +1,9 @@
-// This file validates frontend static $t key references against the effective
+// This file validates frontend static t() key references against the effective
 // host and plugin runtime i18n catalogs.
 
 package runtimei18n
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,16 +14,16 @@ import (
 	"strings"
 )
 
-var frontendStaticI18NCallPattern = regexp.MustCompile(`\$t\(\s*(?:"([^"\n]+)"|'([^'\n]+)')`)
+var frontendStaticI18NCallPattern = regexp.MustCompile(`\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?t\(\s*(?:"([^"\n]+)"|'([^'\n]+)')`)
 
-// frontendI18NKeyReference stores one static frontend $t key usage.
+// frontendI18NKeyReference stores one static frontend t() key usage.
 type frontendI18NKeyReference struct {
 	Path string
 	Line int
 	Key  string
 }
 
-// validateFrontendI18NKeyReferences validates static frontend $t calls against
+// validateFrontendI18NKeyReferences validates static frontend t() calls against
 // app, host runtime, and plugin runtime catalogs.
 func validateFrontendI18NKeyReferences(repoRoot string) ([]string, error) {
 	baseCatalogs, err := buildFrontendBaseI18NCatalogs(repoRoot)
@@ -35,7 +34,7 @@ func validateFrontendI18NKeyReferences(repoRoot string) ([]string, error) {
 	var (
 		pluginRoot     = filepath.Join(repoRoot, "apps", "lina-plugins")
 		errors         = make([]string, 0)
-		hostSourceRoot = filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src")
+		hostSourceRoot = filepath.Join(repoRoot, "apps", "lina-web", "src")
 	)
 	hostFiles, err := iterFrontendKeySourceFiles(repoRoot, hostSourceRoot)
 	if err != nil {
@@ -99,16 +98,8 @@ func validateFrontendI18NKeyReferences(repoRoot string) ([]string, error) {
 // plugin pages.
 func buildFrontendBaseI18NCatalogs(repoRoot string) (map[string]map[string]string, error) {
 	catalogs := make(map[string]map[string]string)
-	namespacedRoots := []string{
-		filepath.Join(repoRoot, "apps", "lina-vben", "packages", "locales", "src", "langs"),
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "locales", "langs"),
-	}
-	for _, root := range namespacedRoots {
-		rootCatalogs, err := readNamespacedFrontendI18NCatalogRoot(root)
-		if err != nil {
-			return nil, err
-		}
-		mergeFrontendI18NCatalogs(catalogs, rootCatalogs)
+	if err := mergeRuntimeI18NCatalogRoot(catalogs, filepath.Join(repoRoot, "apps", "lina-web", "src", "locales")); err != nil {
+		return nil, err
 	}
 	if err := mergeRuntimeI18NCatalogRoot(catalogs, filepath.Join(repoRoot, "apps", "lina-core", "manifest", "i18n")); err != nil {
 		return nil, err
@@ -199,76 +190,6 @@ func leadingSpaceCount(line string) int {
 	return len(line)
 }
 
-// readNamespacedFrontendI18NCatalogRoot reads locale JSON files whose filename
-// is used as the top-level frontend message namespace.
-func readNamespacedFrontendI18NCatalogRoot(root string) (map[string]map[string]string, error) {
-	catalogs := make(map[string]map[string]string)
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return catalogs, nil
-		}
-		return nil, fmt.Errorf("read frontend i18n root %s: %w", root, err)
-	}
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		localeDir := filepath.Join(root, entry.Name())
-		messages, readErr := readNamespacedFrontendLocaleDirectory(localeDir)
-		if readErr != nil {
-			return nil, readErr
-		}
-		if len(messages) > 0 {
-			catalogs[entry.Name()] = messages
-		}
-	}
-	return catalogs, nil
-}
-
-// readNamespacedFrontendLocaleDirectory reads one frontend locale directory.
-func readNamespacedFrontendLocaleDirectory(localeDir string) (map[string]string, error) {
-	messages := make(map[string]string)
-	walkErr := filepath.WalkDir(localeDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
-			return nil
-		}
-		relPath, relErr := filepath.Rel(localeDir, path)
-		if relErr != nil {
-			return relErr
-		}
-		namespace := filepath.ToSlash(strings.TrimSuffix(relPath, filepath.Ext(relPath)))
-		fileMessages, readErr := readNamespacedFrontendLocaleFile(path, namespace)
-		if readErr != nil {
-			return readErr
-		}
-		for key, value := range fileMessages {
-			messages[key] = value
-		}
-		return nil
-	})
-	if walkErr != nil {
-		return nil, fmt.Errorf("read frontend locale dir %s: %w", localeDir, walkErr)
-	}
-	return messages, nil
-}
-
-// readNamespacedFrontendLocaleFile flattens one JSON file under its namespace.
-func readNamespacedFrontendLocaleFile(path string, namespace string) (map[string]string, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read frontend locale JSON %s: %w", path, err)
-	}
-	var payload interface{}
-	if err = json.Unmarshal(content, &payload); err != nil {
-		return nil, fmt.Errorf("invalid frontend locale JSON %s: %w", path, err)
-	}
-	return flattenRuntimeJSON(payload, namespace), nil
-}
-
 // mergeRuntimeI18NCatalogRoot merges direct host or plugin runtime i18n JSON
 // files into existing frontend catalogs.
 func mergeRuntimeI18NCatalogRoot(catalogs map[string]map[string]string, i18nDir string) error {
@@ -299,7 +220,7 @@ func mergeRuntimeI18NCatalogRoot(catalogs map[string]map[string]string, i18nDir 
 }
 
 // iterFrontendKeySourceFiles returns frontend source files that can contain
-// static $t key references.
+// static t() key references.
 func iterFrontendKeySourceFiles(repoRoot string, sourceRoot string) ([]string, error) {
 	files := make([]string, 0)
 	if _, err := os.Stat(sourceRoot); err != nil {
@@ -343,14 +264,14 @@ func iterFrontendKeySourceFiles(repoRoot string, sourceRoot string) ([]string, e
 // static $t key references.
 func isFrontendI18NKeySourceSuffix(path string) bool {
 	switch filepath.Ext(path) {
-	case ".js", ".ts", ".tsx", ".vue":
+	case ".ts", ".tsx":
 		return true
 	default:
 		return false
 	}
 }
 
-// validateFrontendI18NSourceFiles validates all static $t references in files.
+// validateFrontendI18NSourceFiles validates all static t() references in files.
 func validateFrontendI18NSourceFiles(repoRoot string, scope string, catalogs map[string]map[string]string, files []string) ([]string, error) {
 	errors := make([]string, 0)
 	for _, path := range files {
@@ -382,7 +303,7 @@ func validateFrontendI18NSourceFiles(repoRoot string, scope string, catalogs map
 	return errors, nil
 }
 
-// extractFrontendI18NKeyReferences extracts static $t("key") and $t('key')
+// extractFrontendI18NKeyReferences extracts static t("key") and host.t('key')
 // references from one frontend source file.
 func extractFrontendI18NKeyReferences(path string) ([]frontendI18NKeyReference, error) {
 	content, err := os.ReadFile(path)
@@ -450,16 +371,13 @@ func emitFrontendKeyCoverage(out io.Writer, errors []string) error {
 	return nil
 }
 
-// validateModuleLevelFrontendI18NCalls detects $t() calls at module top level
-// in frontend source files. Module-level $t() calls resolve at import time,
+// validateModuleLevelFrontendI18NCalls detects t() calls at module top level
+// in frontend source files. Module-level t() calls resolve at import time,
 // before plugin i18n resources may be loaded, causing untranslated keys at
 // runtime.
 //
-// Detection rules:
-//   - .vue files: warns when $t() appears in <script>/<script setup> block at
-//     brace depth <= 0 (top-level statements outside any function/object/class).
-//   - .ts/.js files: warns when $t() appears at brace depth 0 (module top level).
-//   - <template> blocks, function bodies, and object literals are not flagged.
+// TypeScript and TSX calls are warned only at brace depth zero; function,
+// object, and JSX expression bodies are not flagged.
 func validateModuleLevelFrontendI18NCalls(repoRoot string) ([]string, error) {
 	baseCatalogs, err := buildFrontendBaseI18NCatalogs(repoRoot)
 	if err != nil {
@@ -469,7 +387,7 @@ func validateModuleLevelFrontendI18NCalls(repoRoot string) ([]string, error) {
 	pluginRoot := filepath.Join(repoRoot, "apps", "lina-plugins")
 	warnings := make([]string, 0)
 
-	hostSourceRoot := filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src")
+	hostSourceRoot := filepath.Join(repoRoot, "apps", "lina-web", "src")
 	hostFiles, err := iterFrontendKeySourceFiles(repoRoot, hostSourceRoot)
 	if err != nil {
 		return nil, err
@@ -528,7 +446,7 @@ func validateModuleLevelFrontendI18NCalls(repoRoot string) ([]string, error) {
 	return warnings, nil
 }
 
-// extractModuleLevelCalls scans frontend source files for $t() calls at module
+// extractModuleLevelCalls scans frontend source files for t() calls at module
 // top level and returns warning strings for each occurrence.
 func extractModuleLevelCalls(repoRoot string, scope string, catalogs map[string]map[string]string, files []string) ([]string, error) {
 	warnings := make([]string, 0)
@@ -544,30 +462,9 @@ func extractModuleLevelCalls(repoRoot string, scope string, catalogs map[string]
 		}
 		displayPath = filepath.ToSlash(displayPath)
 
-		var (
-			isVue         = isVueScriptFile(path)
-			inScriptBlock = !isVue // non-Vue files are always "in script"
-			braceDepth    = 0
-		)
+		braceDepth := 0
 
 		for index, line := range strings.Split(string(content), "\n") {
-			trimmed := strings.TrimSpace(line)
-
-			if isVue {
-				if strings.HasPrefix(trimmed, "<script") {
-					inScriptBlock = true
-					continue
-				}
-				if strings.HasPrefix(trimmed, "</script>") {
-					inScriptBlock = false
-					continue
-				}
-			}
-
-			if !inScriptBlock {
-				continue
-			}
-
 			for _, ch := range line {
 				switch ch {
 				case '{':
@@ -594,7 +491,7 @@ func extractModuleLevelCalls(repoRoot string, scope string, catalogs map[string]
 					continue
 				}
 				warnings = append(warnings, fmt.Sprintf(
-					"%s: module-level $t() may resolve before plugin i18n loads: %s:%d: %s",
+					"%s: module-level t() may resolve before plugin i18n loads: %s:%d: %s",
 					scope,
 					displayPath,
 					index+1,
@@ -606,17 +503,12 @@ func extractModuleLevelCalls(repoRoot string, scope string, catalogs map[string]
 	return warnings, nil
 }
 
-// isVueScriptFile reports whether the file is a Vue single-file component.
-func isVueScriptFile(path string) bool {
-	return filepath.Ext(path) == ".vue"
-}
-
-// emitModuleLevelWarnings writes module-level $t() call warnings.
+// emitModuleLevelWarnings writes module-level t() call warnings.
 func emitModuleLevelWarnings(out io.Writer, warnings []string) error {
 	if len(warnings) == 0 {
-		return writeLine(out, "No module-level $t() calls detected.")
+		return writeLine(out, "No module-level t() calls detected.")
 	}
-	if err := writeLine(out, fmt.Sprintf("Module-level $t() calls found (%d warning(s)):", len(warnings))); err != nil {
+	if err := writeLine(out, fmt.Sprintf("Module-level t() calls found (%d warning(s)):", len(warnings))); err != nil {
 		return err
 	}
 	for _, item := range warnings {

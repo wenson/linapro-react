@@ -1,0 +1,134 @@
+import { test, expect } from '@host-tests/fixtures/auth';
+import { ensureSourcePluginEnabled } from '@host-tests/fixtures/plugin';
+import { waitForRouteReady } from '@host-tests/support/ui';
+
+test.describe('TC001 服务监控页面展示', () => {
+  test.beforeEach(async ({ adminPage }) => {
+    await ensureSourcePluginEnabled(adminPage, 'linapro-monitor-server');
+  });
+
+  test.beforeEach(async ({ adminPage }) => {
+    const responsePromise = adminPage.waitForResponse(
+      (res) =>
+        res.url().includes('/x/linapro-monitor-server/api/v1/monitor/server') &&
+        res.request().method() === 'GET' &&
+        res.status() === 200,
+      { timeout: 15000 },
+    );
+    await adminPage.goto('/monitor/server');
+    await responsePromise;
+    await waitForRouteReady(adminPage);
+  });
+
+  test('TC001a: 服务信息在节点展开内容中展示', async ({ adminPage }) => {
+    // Service info section should be visible inside expanded node
+    await expect(adminPage.getByText('服务信息').first()).toBeVisible();
+
+    // Should show Go version. The rendered value can be either the raw
+    // runtime.Version string or a normalized display string depending on the
+    // build/runtime metadata available in CI.
+    await expect(adminPage.getByText('Go 版本').first()).toBeVisible();
+
+    // Should show GoFrame version
+    await expect(adminPage.getByText('GoFrame 版本').first()).toBeVisible();
+
+    // Should show localized Goroutines label
+    await expect(adminPage.getByText('协程数').first()).toBeVisible();
+
+    // Should show process CPU and memory usage
+    await expect(adminPage.getByText('服务 CPU').first()).toBeVisible();
+    await expect(adminPage.getByText('服务内存').first()).toBeVisible();
+
+    // Should show service start time
+    await expect(adminPage.getByText('服务启动时间').first()).toBeVisible();
+
+    // Should show service uptime
+    await expect(adminPage.getByText('服务运行时长').first()).toBeVisible();
+  });
+
+  test('TC001b: 服务器信息区块展示带提示图标', async ({ adminPage }) => {
+    // Server info section should be visible
+    await expect(adminPage.getByText('服务器信息').first()).toBeVisible();
+
+    // Should show hostname in expanded node
+    await expect(adminPage.getByText('主机名').first()).toBeVisible();
+
+    // Should show OS info
+    await expect(adminPage.getByText('操作系统').first()).toBeVisible();
+  });
+
+  test('TC001c: CPU和内存指标显示', async ({ adminPage }) => {
+    // CPU section should be visible inside expanded node
+    await expect(adminPage.getByText('系统 CPU').first()).toBeVisible();
+    await expect(adminPage.getByText(/核心数|CPU 核心|CPU Cores|Cores/i).first()).toBeVisible();
+
+    // Memory section should be visible
+    await expect(adminPage.getByText('系统内存').first()).toBeVisible();
+    await expect(adminPage.getByText(/总内存|可用内存|内存使用率|Total Memory|Available Memory|Memory Usage/i).first()).toBeVisible();
+
+    // Runtime interpolation must render measured values instead of leaking
+    // the translation placeholder into the visible monitor cards.
+    await expect(adminPage.getByText(/\{\{?value\}?\}/)).toHaveCount(0);
+    await expect(adminPage.getByText(/\d+(?:\.\d+)?\s*核/).first()).toBeVisible();
+  });
+
+  test('TC001d: 磁盘使用表格显示', async ({ adminPage }) => {
+    await expect(adminPage.getByText('磁盘使用情况').first()).toBeVisible();
+    await expect(adminPage.getByText('/').first()).toBeVisible();
+  });
+
+  test('TC001e: 网络流量信息显示', async ({ adminPage }) => {
+    await expect(adminPage.getByText('网络流量').first()).toBeVisible();
+    await expect(adminPage.getByText('总发送').first()).toBeVisible();
+    await expect(adminPage.getByText('总接收').first()).toBeVisible();
+    await expect(adminPage.getByText('发送速率').first()).toBeVisible();
+    await expect(adminPage.getByText('接收速率').first()).toBeVisible();
+  });
+
+  test('TC001f: 节点展开收起功能', async ({ adminPage }) => {
+    // Nodes should be expanded by default - system CPU should be visible
+    await expect(adminPage.getByText('系统 CPU').first()).toBeVisible();
+
+    // Click node header to collapse
+    const nodeHeader = adminPage.getByTestId(/^server-monitor-node-toggle-/).first();
+    const nodeTestId = await nodeHeader.getAttribute('data-testid');
+    const nodeName = nodeTestId?.replace('server-monitor-node-toggle-', '');
+    expect(nodeName).toBeTruthy();
+    const firstNodeContent = adminPage.getByTestId(`server-monitor-node-content-${nodeName}`);
+    await expect(nodeHeader).toHaveAttribute('aria-expanded', 'true');
+    await expect(firstNodeContent).toBeVisible();
+    await nodeHeader.click();
+    await expect(firstNodeContent).toBeHidden();
+    await expect(nodeHeader).toHaveAttribute('aria-expanded', 'false');
+
+    // Click again to expand
+    await nodeHeader.click();
+    await expect(firstNodeContent).toBeVisible();
+    await expect(nodeHeader).toHaveAttribute('aria-expanded', 'true');
+
+    // CPU should be visible again after expand
+    await expect(adminPage.getByText('系统 CPU').first()).toBeVisible();
+  });
+
+  test('TC001g: 数据库信息区块展示', async ({ adminPage }) => {
+    // Database info section should be visible
+    await expect(adminPage.getByText('数据库信息').first()).toBeVisible();
+
+    // Should show database version
+    await expect(adminPage.getByText('数据库版本').first()).toBeVisible();
+
+    // Should show max connections
+    await expect(adminPage.getByText('最大连接数').first()).toBeVisible();
+
+    // Should show current open connections
+    await expect(adminPage.getByText('当前打开连接').first()).toBeVisible();
+
+    // Should show in-use / idle
+    await expect(adminPage.getByText(/使用中\s*\/\s*空闲/).first()).toBeVisible();
+  });
+
+  test('TC001h: 采集时间在节点信息中展示', async ({ adminPage }) => {
+    // collectAt should be inside node expanded content, not in service info
+    await expect(adminPage.getByText(/数据更新时间|采集时间/).first()).toBeVisible();
+  });
+});

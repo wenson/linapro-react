@@ -1,0 +1,33 @@
+{
+  "error": {
+    "tapcanvas": {
+      "chapter": {
+        "context": { "required": "使用 TapCanvas 章节前，请先进入一个 LinaPro 租户" },
+        "create": { "failed": "创建 TapCanvas 章节失败" },
+        "delete": { "failed": "删除 TapCanvas 章节失败" },
+        "forbidden": "你无权执行此 TapCanvas 章节操作",
+        "invalid": {
+          "input": "TapCanvas 章节输入无效",
+          "status": "TapCanvas 章节状态无效"
+        },
+        "not": { "found": "TapCanvas 章节不存在" },
+        "query": { "failed": "查询 TapCanvas 章节失败" },
+        "reorder": {
+          "failed": "调整 TapCanvas 章节顺序失败",
+          "mismatch": "章节顺序必须完整且不重复地包含项目中的全部可见章节"
+        },
+        "update": { "failed": "更新 TapCanvas 章节失败" }
+      },
+      "project": {
+        "context": { "required": "使用 TapCanvas 项目前，请先进入一个 LinaPro 租户" },
+        "create": { "failed": "创建 TapCanvas 项目失败" },
+        "delete": { "failed": "删除 TapCanvas 项目失败" },
+        "forbidden": "你无权执行此 TapCanvas 项目操作",
+        "invalid": { "input": "TapCanvas 项目输入无效" },
+        "not": { "found": "TapCanvas 项目不存在" },
+        "query": { "failed": "查询 TapCanvas 项目失败" },
+        "update": { "failed": "更新 TapCanvas 项目失败" }
+      }
+    }
+  }
+}

@@ -2,7 +2,6 @@ import type { Locator, Page } from "@playwright/test";
 
 import { test, expect } from "../../../fixtures/auth";
 import { RolePage } from "../../../pages/RolePage";
-import { waitForConfirmOverlay } from "../../../support/ui";
 
 test.describe("TC-4 角色权限抽屉关闭交互", () => {
   test("TC-4a: 修改权限后取消关闭会提示并可确认关闭", async ({
@@ -98,7 +97,7 @@ test.describe("TC-4 角色权限抽屉关闭交互", () => {
       localStorage.removeItem("menu_select_fullscreen_read");
     });
 
-    const drawer = await rolePage.openEditDrawer("admin", {
+    const drawer = await rolePage.openEditDrawer("user", {
       keepTourOpen: true,
     });
     await expectPermissionGuideOpen(adminPage);
@@ -111,10 +110,8 @@ test.describe("TC-4 角色权限抽屉关闭交互", () => {
 });
 
 async function expectPermissionGuideOpen(page: Page) {
-  await expect(page.locator(".ant-tour:visible")).toBeVisible({
-    timeout: 5000,
-  });
-  await expect(page.locator(".ant-tour-mask:visible svg")).toHaveCount(0);
+  await expect(page.getByTestId("menu-permission-guide")).toBeVisible({ timeout: 5000 });
+  await expect(page.locator(".semi-modal-mask:visible")).toHaveCount(0);
 }
 
 async function checkPermissionAndClose(
@@ -122,16 +119,17 @@ async function checkPermissionAndClose(
   drawer: Locator,
   closeAction: () => Promise<void>,
 ) {
-  const permissionCheckbox = drawer
-    .locator(".ant-checkbox-wrapper", {
-      hasText: /查询|Search|新增|Add|编辑|Edit/,
-    })
+  const permissionOption = drawer
+    .getByTestId("menu-permission-tree")
+    .locator(".semi-tree-option")
+    .filter({ hasText: /查询|Search|新增|Add|编辑|Edit/ })
     .first();
-  await permissionCheckbox.waitFor({ state: "visible", timeout: 10000 });
-  await permissionCheckbox.click();
+  await permissionOption.waitFor({ state: "visible", timeout: 10000 });
+  await permissionOption.locator(".semi-checkbox").click();
 
   await closeAction();
-  const confirmOverlay = await waitForConfirmOverlay(page);
+  const confirmOverlay = page.locator('.semi-modal-content[role="dialog"]:visible').last();
+  await confirmOverlay.waitFor({ state: "visible", timeout: 5000 });
   await expect(confirmOverlay).toContainText(/未保存的修改|unsaved changes/i);
   await confirmOverlay
     .getByRole("button", { name: /确\s*认|OK|Confirm/i })

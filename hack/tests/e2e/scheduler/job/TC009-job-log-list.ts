@@ -101,25 +101,22 @@ test.describe("TC-9 执行日志查询与删除", () => {
     await expect(await jobLogPage.detailContains("manual")).toBe(true);
     await expect(await jobLogPage.detailContains(/success|成功/i)).toBe(true);
 
-    await expect(adminPage.getByTestId("job-log-clear")).toHaveCount(0);
-    await expect(adminPage.locator(".vxe-checkbox--icon")).toHaveCount(0);
+    await expect(adminPage.getByTestId("job-log-delete")).toBeVisible();
 
     const deleteDialog = await jobLogPage.openDeleteDialog();
     await expect(deleteDialog).toContainText("删除执行日志");
     await expect(deleteDialog).toContainText("请选择执行日志删除方式");
     await expect(deleteDialog).toContainText("删除所有执行日志");
-    await expect(deleteDialog.locator(".ant-picker-range")).toBeVisible();
+    await expect(deleteDialog.getByTestId("job-log-delete-range")).toBeVisible();
 
-    await deleteDialog
-      .getByRole("button", { name: /确\s*(认|定)/ })
-      .click();
+    await deleteDialog.getByTestId("job-log-delete-confirm").click();
     await expect(
       adminPage.getByText("请选择完整的执行日志日期范围"),
     ).toBeVisible();
 
     await deleteDialog.getByText("删除所有执行日志").click();
     await expect(
-      deleteDialog.locator(".ant-picker-range input").first(),
+      deleteDialog.getByTestId("job-log-delete-range").locator("input").first(),
     ).toBeDisabled();
 
     let cleanRequestUrl = "";

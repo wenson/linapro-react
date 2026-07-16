@@ -38,7 +38,7 @@ test.describe("TC-6 Search collapse visibility", () => {
     const layout = new LayoutAuditPage(adminPage);
 
     await layout.goto("/system/plugin", {
-      tableSelector: ".vxe-table",
+      tableSelector: ".semi-table",
     });
 
     await expect(layout.searchFormLabel("插件标识")).toBeVisible();

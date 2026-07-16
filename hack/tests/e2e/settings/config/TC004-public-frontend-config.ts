@@ -1,5 +1,8 @@
 import type { APIRequestContext, Page, Route } from "@playwright/test";
 
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+
 import { test, expect } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import { ConfigPage } from "../../../pages/ConfigPage";
@@ -85,12 +88,43 @@ function normalizeFontFamily(value: string): string {
     .toLowerCase();
 }
 
+async function captureEvidence(page: Page, name: string) {
+  const now = new Date();
+  const day = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+  })
+    .format(now)
+    .replaceAll("-", "");
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "Asia/Shanghai",
+  })
+    .format(now)
+    .replaceAll(":", "");
+  const dir = path.resolve(process.cwd(), "..", "..", "temp", day);
+  await mkdir(dir, { recursive: true });
+  await page.screenshot({
+    fullPage: true,
+    path: path.join(dir, `${time}-${name}.png`),
+  });
+}
+
 async function captureLoadingTitleFontOnRefresh(
   page: Page,
   loginPage: LoginPage,
 ): Promise<string> {
-  const mainScriptPattern = "**/src/main.ts*";
+  const mainScriptPattern = "**/src/main.tsx";
   let releaseMainScript: (() => void) | null = null;
+  let markMainScriptIntercepted: (() => void) | null = null;
+  const mainScriptIntercepted = new Promise<void>((resolve) => {
+    markMainScriptIntercepted = resolve;
+  });
 
   const releaseInterceptedMainScript = () => {
     const release = releaseMainScript;
@@ -99,6 +133,7 @@ async function captureLoadingTitleFontOnRefresh(
   };
 
   const routeHandler = async (route: Route) => {
+    markMainScriptIntercepted?.();
     await new Promise<void>((resolve) => {
       releaseMainScript = resolve;
     });
@@ -108,23 +143,20 @@ async function captureLoadingTitleFontOnRefresh(
   await page.route(mainScriptPattern, routeHandler);
 
   try {
-    const reloadPromise = page.reload({ waitUntil: "domcontentloaded" });
+    await page.reload({ waitUntil: "commit" });
 
     await expect(loginPage.loadingTitle).toBeVisible();
-    await expect
-      .poll(() => Boolean(releaseMainScript), {
-        message: "刷新后应拦截主入口脚本，确保能观测启动 Loading 文本样式",
-      })
-      .toBe(true);
+    await mainScriptIntercepted;
 
     const loadingFontFamily = await loginPage.getLoadingTitleFontFamily();
 
     releaseInterceptedMainScript();
-    await reloadPromise;
+    await page.waitForLoadState("domcontentloaded");
 
     return loadingFontFamily;
   } finally {
     releaseInterceptedMainScript();
+    await page.waitForLoadState("domcontentloaded").catch(() => null);
     await page.unroute(mainScriptPattern, routeHandler);
   }
 }
@@ -134,37 +166,9 @@ async function persistUserThemePreference(
   mode: "auto" | "dark" | "light",
 ) {
   await page.evaluate((themeMode) => {
-    const preferencesKey = Object.keys(localStorage).find((key) =>
-      key.endsWith("-preferences"),
-    );
-    if (!preferencesKey) {
-      throw new Error("preferences cache key was not initialized");
-    }
-
-    const rawPreference = JSON.parse(
-      localStorage.getItem(preferencesKey) || "{}",
-    );
-    const preference = rawPreference.value || {};
-    const keyPrefix = preferencesKey.slice(0, -"-preferences".length);
-
-    preference.theme = {
-      ...(preference.theme || {}),
-      mode: themeMode,
-    };
     localStorage.setItem(
-      preferencesKey,
-      JSON.stringify({
-        ...rawPreference,
-        value: preference,
-      }),
-    );
-    localStorage.setItem(
-      `${keyPrefix}-preferences-theme`,
+      "linapro:web:preferences-theme",
       JSON.stringify({ value: themeMode }),
-    );
-    localStorage.setItem(
-      `${keyPrefix}-preferences-theme-user`,
-      JSON.stringify({ value: true }),
     );
   }, mode);
 }
@@ -263,9 +267,29 @@ test.describe("TC004 公开前端配置系统参数", () => {
         .toBe(true);
       await expect
         .poll(async () =>
-          page.evaluate(() => document.documentElement.dataset.theme || ""),
+          page.evaluate(() => document.body.getAttribute("theme-mode") || ""),
         )
-        .toBe("default");
+        .toBe("dark");
+      await expect
+        .poll(async () =>
+          page.evaluate(() => {
+            const loginSurface = document.querySelector(".login-page");
+            const loginPanel = document.querySelector(".login-panel");
+            return {
+              loginBackground: loginSurface
+                ? getComputedStyle(loginSurface).backgroundColor
+                : "",
+              panelBackground: loginPanel
+                ? getComputedStyle(loginPanel).backgroundColor
+                : "",
+            };
+          }),
+        )
+        .toEqual({
+          loginBackground: "rgb(35, 36, 41)",
+          panelBackground: "rgb(22, 22, 26)",
+        });
+      await captureEvidence(page, "config-public-dark-login");
 
       await loginPage.loginAndWaitForRedirect(
         config.adminUser,
@@ -437,16 +461,9 @@ test.describe("TC004 公开前端配置系统参数", () => {
     await expect
       .poll(async () =>
         page.evaluate(() => {
-          const preferencesKey = Object.keys(localStorage).find((key) =>
-            key.endsWith("-preferences"),
-          );
-          if (!preferencesKey) {
-            return "";
-          }
-          return (
-            JSON.parse(localStorage.getItem(preferencesKey) || "{}")?.value
-              ?.theme?.mode || ""
-          );
+          return JSON.parse(
+            localStorage.getItem("linapro:web:preferences-theme") || "{}",
+          )?.value || "";
         }),
       )
       .toBe("dark");

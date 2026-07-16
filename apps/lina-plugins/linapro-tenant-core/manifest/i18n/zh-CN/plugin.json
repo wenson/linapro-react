@@ -1,0 +1,61 @@
+{
+  "plugin.linapro-tenant-core.name": "多租户",
+  "plugin.linapro-tenant-core.description": "提供租户管理、成员关系、内置解析策略与生命周期治理能力。",
+  "plugin.linapro-tenant-core.uninstall_blocked.tenants_exist": "仍存在租户。请先删除租户，再卸载多租户插件。",
+  "plugin.linapro-tenant-core.disable_blocked.tenants_exist": "仍存在租户。请先删除租户，再禁用多租户插件。",
+  "plugin.linapro-tenant-core.tenant_delete_blocked.resources_exist": "该租户仍存在受保护资源。",
+  "plugin": {
+    "linapro-tenant-core": {
+      "empty": {
+        "plugins": "暂无可由租户管理的插件",
+        "selectTenant": "请先选择租户，再管理租户插件"
+      },
+      "fields": {
+        "code": "租户编码",
+        "name": "租户名称"
+      },
+      "impersonation": {
+        "banner": "正在以平台管理员身份代租户 {{tenant}} 操作",
+        "exit": "退出代操作"
+      },
+      "messages": {
+        "codeRule": "租户编码只能使用 2-32 位小写字母、数字或连字符",
+        "deleteSelectedConfirm": "确认删除选中的 {{count}} 个租户？",
+        "deleteTenantConfirm": "确认删除租户 {{name}}？",
+        "nameRequired": "请输入租户名称",
+        "saveFailed": "保存租户失败",
+        "statusUpdated": "租户状态已更新"
+      },
+      "plugin": {
+        "fields": {
+          "description": "描述",
+          "id": "插件 ID",
+          "name": "插件名称"
+        },
+        "installMode": "安装模式",
+        "installModes": {
+          "global": "全局",
+          "tenant_scoped": "租户级"
+        },
+        "tableTitle": "租户插件"
+      },
+      "status": {
+        "active": "正常",
+        "deleted": "已删除",
+        "suspended": "暂停",
+        "unknown": "未知"
+      },
+      "tenant": {
+        "actions": {
+          "create": "新增租户",
+          "edit": "编辑租户",
+          "impersonate": "代操作"
+        },
+        "tooltips": {
+          "impersonate": "以平台身份进入该租户视角"
+        },
+        "tableTitle": "租户列表"
+      }
+    }
+  }
+}

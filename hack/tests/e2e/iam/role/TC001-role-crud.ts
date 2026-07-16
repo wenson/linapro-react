@@ -126,7 +126,7 @@ test.describe("TC001 角色管理 CRUD", () => {
     await rolePage.goto();
 
     // 验证表格可见
-    const table = adminPage.locator(".vxe-table");
+    const table = rolePage.table;
     await expect(table).toBeVisible({ timeout: 10000 });
 
     // 验证工具栏按钮可见
@@ -145,10 +145,10 @@ test.describe("TC001 角色管理 CRUD", () => {
 
     // 验证表单字段存在
     await expect(
-      drawer.locator('input[placeholder="请输入角色名称"]'),
+      drawer.getByRole("textbox", { name: /角色名称|Role name/i }),
     ).toBeVisible({ timeout: 5000 });
     await expect(
-      drawer.locator('input[placeholder="如: admin, user等"]'),
+      drawer.getByRole("textbox", { name: /权限字符|Permission key/i }),
     ).toBeVisible({ timeout: 5000 });
 
     // Drawer will be closed by the test cleanup
@@ -189,7 +189,7 @@ test.describe("TC001 角色管理 CRUD", () => {
       await rolePage.goto();
       await rolePage.searchRole(role.name);
       await expect(
-        adminPage.locator(".vxe-body--row", { hasText: role.name }).first(),
+        rolePage.roleRowByName(role.name),
       ).toBeVisible();
 
       // 编辑角色
@@ -217,11 +217,11 @@ test.describe("TC001 角色管理 CRUD", () => {
       await rolePage.goto();
       await rolePage.searchRole(role.name);
       await expect(
-        adminPage.locator(".vxe-body--row", { hasText: role.name }).first(),
+        rolePage.roleRowByName(role.name),
       ).toBeVisible();
 
       // 获取当前状态
-      const switchEl = adminPage.locator(".vxe-body--row .ant-switch").first();
+      const switchEl = rolePage.roleRowByName(role.name).getByRole("switch");
       const initialState = await switchEl.getAttribute("aria-checked");
 
       // 切换状态
@@ -247,7 +247,7 @@ test.describe("TC001 角色管理 CRUD", () => {
       await rolePage.goto();
       await rolePage.searchRole(role.name);
       await expect(
-        adminPage.locator(".vxe-body--row", { hasText: role.name }).first(),
+        rolePage.roleRowByName(role.name),
       ).toBeVisible();
 
       // 编辑角色并分配菜单
@@ -269,7 +269,7 @@ test.describe("TC001 角色管理 CRUD", () => {
       await rolePage.goto();
       await rolePage.searchRole(role.name);
       await expect(
-        adminPage.locator(".vxe-body--row", { hasText: role.name }).first(),
+        rolePage.roleRowByName(role.name),
       ).toBeVisible();
 
       // 删除角色
@@ -300,9 +300,13 @@ test.describe("TC001 角色管理 CRUD", () => {
     await rolePage.resetSearch();
 
     // 验证重置后能看到更多角色
-    const rowsBefore = await adminPage.locator(".vxe-body--row").count();
+    const rowsBefore = await rolePage.table
+      .locator(".semi-table-tbody > .semi-table-row")
+      .count();
     await rolePage.searchRole("管理员");
-    const rowsAfter = await adminPage.locator(".vxe-body--row").count();
+    const rowsAfter = await rolePage.table
+      .locator(".semi-table-tbody > .semi-table-row")
+      .count();
     expect(rowsBefore).toBeGreaterThanOrEqual(rowsAfter);
   });
 
@@ -324,5 +328,41 @@ test.describe("TC001 角色管理 CRUD", () => {
     // 验证复选框被禁用
     const isCheckboxDisabled = await rolePage.isCheckboxDisabled("超级管理员");
     expect(isCheckboxDisabled).toBeTruthy();
+  });
+
+  test("TC001j: 长权限字符不会覆盖数据权限列", async ({ authenticatedPage: adminPage }) => {
+    const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const role: RoleIdentity = {
+      code: `rk_visual_${"x".repeat(12)}_${suffix.slice(0, 8)}`.slice(0, 30),
+      name: `r_visual_${suffix}`,
+    };
+    const created = await createRoleFixture(adminApi, role);
+    const rolePage = new RolePage(adminPage);
+
+    try {
+      await rolePage.goto();
+      await rolePage.searchRole(role.name);
+      const keyText = adminPage.getByTestId(`role-key-${created.id}`);
+      await expect(keyText).toBeVisible();
+
+      const bounds = await keyText.evaluate((element) => {
+        const cell = element.closest("td");
+        const content = element.getBoundingClientRect();
+        const container = cell?.getBoundingClientRect();
+        return container ? {
+          contentLeft: content.left,
+          contentRight: content.right,
+          containerLeft: container.left,
+          containerRight: container.right,
+        } : null;
+      });
+
+      expect(bounds).not.toBeNull();
+      expect(bounds!.contentLeft).toBeGreaterThanOrEqual(bounds!.containerLeft);
+      expect(bounds!.contentRight).toBeLessThanOrEqual(bounds!.containerRight);
+      await expect(keyText).toHaveCSS("text-overflow", "ellipsis");
+    } finally {
+      await cleanupRolesByName(adminApi, role.name);
+    }
   });
 });

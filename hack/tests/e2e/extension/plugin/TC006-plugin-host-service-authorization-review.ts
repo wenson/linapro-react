@@ -114,6 +114,11 @@ async function uploadDynamicPlugin(
     },
   });
   assertOk(response, "上传动态插件失败");
+  const payload = await response.json();
+  expect(
+    payload?.code,
+    `上传动态插件业务响应失败: ${payload?.message ?? "unknown error"}`,
+  ).toBe(0);
 }
 
 function repoRoot() {
@@ -179,6 +184,15 @@ function appendCustomSection(buffer: number[], name: string, payload: Buffer) {
 function writeAuthorizationReviewArtifact() {
   mkdirSync(tempDir(), { recursive: true });
   const bytes: number[] = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+  const frontendAssets = [
+    {
+      contentBase64: Buffer.from(
+        `<html><body><h1>${pluginName}</h1></body></html>`,
+      ).toString("base64"),
+      contentType: "text/html",
+      path: "frontend/pages/index.html",
+    },
+  ];
 
   appendCustomSection(
     bytes,
@@ -192,8 +206,12 @@ function writeAuthorizationReviewArtifact() {
             key: pluginMenuKey,
             parent_key: "extension",
             name: "授权评审示例",
-            path: "host-service-authorization-review",
+            path: `/extension/${pluginID}`,
             component: "system/plugin/dynamic-page",
+            query: {
+              pluginAccessMode: "iframe",
+              pluginAssetUrl: `/x-assets/${pluginID}/${pluginVersion}/index.html`,
+            },
             perms: routePermission,
             icon: "lucide:shield-check",
             type: "M",
@@ -202,6 +220,7 @@ function writeAuthorizationReviewArtifact() {
           },
         ],
         name: "Host Service Authorization Review Plugin",
+        public_assets: [{ mount: "/", source: "frontend/pages" }],
         type: "dynamic",
         scopeNature: "tenant_aware",
         supportsMultiTenant: false,
@@ -216,11 +235,16 @@ function writeAuthorizationReviewArtifact() {
     Buffer.from(
       JSON.stringify({
         abiVersion: "v1",
-        frontendAssetCount: 0,
+        frontendAssetCount: frontendAssets.length,
         runtimeKind: "wasm",
         sqlAssetCount: 0,
       }),
     ),
+  );
+  appendCustomSection(
+    bytes,
+    "lina.plugin.frontend.assets",
+    Buffer.from(JSON.stringify(frontendAssets)),
   );
   appendCustomSection(
     bytes,
@@ -589,14 +613,15 @@ test.describe("TC-2 插件安装/启用时审查 hostServices 授权", () => {
       .getByTestId("plugin-host-service-summary-label-storage-storage-effective")
       .evaluate((node) => getComputedStyle(node).backgroundColor);
     expect(authEffectiveScopeBackground).toBe(effectiveScopeBackground);
-    expect(authSummaryScopeBackground).toBe(summaryScopeBackground);
+    expect(authSummaryScopeBackground).not.toBe(authEffectiveScopeBackground);
     expect(summaryScopeBackground).not.toBe(effectiveScopeBackground);
+    expect(authSummaryScopeBackground).not.toBe(summaryScopeBackground);
     const summaryTop = await detailModal
       .getByTestId("plugin-host-service-summary-label-storage-storage-effective")
       .evaluate((node) => node.getBoundingClientRect().top);
     const firstStorageItemTop = await detailModal
-      .locator('.ant-tag', { hasText: storagePath })
-      .first()
+      .getByText(storagePath, { exact: true })
+      .last()
       .evaluate((node) => node.getBoundingClientRect().top);
     expect(Math.abs(summaryTop - firstStorageItemTop)).toBeLessThan(24);
 

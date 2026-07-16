@@ -26,7 +26,7 @@ test.describe('TC003 参数设置内置运行时参数', () => {
 
       const hasConfig = await configPage.hasConfig(runtimeParam.key);
       expect(hasConfig).toBeTruthy();
-      await expect(adminPage.locator('.vxe-body--row').first()).toContainText(
+      await expect(adminPage.locator('.semi-table-tbody > .semi-table-row').first()).toContainText(
         runtimeParam.name,
       );
     });

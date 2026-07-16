@@ -43,14 +43,14 @@ test.describe('TC001 系统接口页面', () => {
   }) => {
     await adminPage.goto('/about/api-docs');
     // Verify the iframe is visible
-    const iframe = adminPage.locator('iframe.api-docs-iframe');
+    const iframe = adminPage.locator('iframe.api-docs-frame');
     await expect(iframe).toBeVisible({ timeout: 10_000 });
     await expect(iframe).toHaveAttribute(
       'src',
       new RegExp(`${escapeRegExp(workspacePath('/stoplight/apidocs.html'))}\\?`),
     );
     // Wait for Stoplight Elements to render inside the iframe
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     const apiElement = frame.locator('elements-api');
     await expect(apiElement).toBeAttached({ timeout: 15_000 });
     // Verify Overview is visible in sidebar
@@ -65,7 +65,7 @@ test.describe('TC001 系统接口页面', () => {
 
   test('TC001b: 系统接口页面不污染主页面样式', async ({ adminPage }) => {
     await adminPage.goto('/about/api-docs');
-    const iframe = adminPage.locator('iframe.api-docs-iframe');
+    const iframe = adminPage.locator('iframe.api-docs-frame');
     await expect(iframe).toBeVisible({ timeout: 10_000 });
     // Main page should not have any Stoplight stylesheets injected
     const stoplightLinks = await adminPage
@@ -86,7 +86,7 @@ test.describe('TC001 系统接口页面', () => {
     const apiDocument = await apiResponse.json();
 
     await adminPage.goto('/about/api-docs');
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     // Wait for content to load
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // Verify the right panel shows API title and description
@@ -99,7 +99,7 @@ test.describe('TC001 系统接口页面', () => {
 
   test('TC001d: 隐藏 powered by Stoplight 标识', async ({ adminPage }) => {
     await adminPage.goto('/about/api-docs');
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // "powered by Stoplight" link should be hidden
     const poweredBy = frame.locator('a', { hasText: 'Stoplight' });
@@ -112,7 +112,7 @@ test.describe('TC001 系统接口页面', () => {
   }) => {
     await mainLayout.switchLanguage('简体中文');
     await adminPage.goto('/about/api-docs');
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // Click on a module to expand it
     const moduleItem = frame.locator('[title="身份认证"]');
@@ -140,7 +140,7 @@ test.describe('TC001 系统接口页面', () => {
   }) => {
     await mainLayout.switchLanguage('简体中文');
     await adminPage.goto('/about/api-docs');
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // Expand module and click endpoint
     await frame.locator('[title="用户管理"]').click();
@@ -158,7 +158,7 @@ test.describe('TC001 系统接口页面', () => {
 
   test('TC001g: SCHEMAS 区域默认折叠且可展开', async ({ adminPage }) => {
     await adminPage.goto('/about/api-docs');
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // SCHEMAS header should be visible
     const schemasHeader = frame.locator('.schemas-section-header');
@@ -183,7 +183,7 @@ test.describe('TC001 系统接口页面', () => {
     await mainLayout.switchLanguage('English');
     await adminPage.goto('/about/api-docs');
 
-    const iframe = adminPage.locator('iframe.api-docs-iframe');
+    const iframe = adminPage.locator('iframe.api-docs-frame');
     await expect(iframe).toBeVisible({ timeout: 10_000 });
     await expect(iframe).toHaveAttribute('src', /lang=en-US/);
 
@@ -196,7 +196,7 @@ test.describe('TC001 系统接口页面', () => {
     expect(apiDocument).toContain('"Get user list"');
     expect(apiDocument).toContain('"Page number"');
 
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     await frame.locator('[title="User Management"]').click();
     await expect(
@@ -237,11 +237,11 @@ test.describe('TC001 系统接口页面', () => {
     });
 
     await adminPage.goto('/about/api-docs');
-    const iframe = adminPage.locator('iframe.api-docs-iframe');
+    const iframe = adminPage.locator('iframe.api-docs-frame');
     await expect(iframe).toBeVisible({ timeout: 10_000 });
     await expect(iframe).toHaveAttribute('src', /lang=zh-CN/);
 
-    const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     await frame.locator('[title="身份认证"]').click();
     await expect(frame.locator('[title="用户登录"]').first()).toBeVisible({
@@ -268,7 +268,7 @@ test.describe('TC001 系统接口页面', () => {
     const apiDocsHtml = readFileSync(
       resolve(
         currentDir,
-        '../../../../apps/lina-vben/apps/web-antd/public/stoplight/apidocs.html',
+        '../../../../apps/lina-web/public/stoplight/apidocs.html',
       ),
       'utf8',
     );
@@ -319,7 +319,7 @@ test.describe('TC001 系统接口页面', () => {
         }),
       ]);
 
-      const frame = adminPage.frameLocator('iframe.api-docs-iframe');
+      const frame = adminPage.frameLocator('iframe.api-docs-frame');
       const loading = frame.locator('#api-docs-loading');
       await expect(frame.locator('body')).toBeAttached({ timeout: 5_000 });
       await expect(loading).toBeVisible({ timeout: 10_000 });

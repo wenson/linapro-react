@@ -22,12 +22,14 @@ const (
 	HostedAssetURLPrefix = "/" + HostedAssetPathSegment + "/"
 	// DynamicPageComponentPath is the workbench component used by dynamic plugin pages.
 	DynamicPageComponentPath = "system/plugin/dynamic-page"
-	// DynamicEmbeddedSourceQueryKey is the menu query key carrying an embedded asset URL.
-	DynamicEmbeddedSourceQueryKey = "embeddedSrc"
 	// DynamicAccessModeQueryKey is the menu query key controlling dynamic plugin page access mode.
 	DynamicAccessModeQueryKey = "pluginAccessMode"
-	// DynamicAccessModeEmbeddedMount is the access mode for ESM-mounted dynamic plugin pages.
-	DynamicAccessModeEmbeddedMount = "embedded-mount"
+	// DynamicPluginAssetURLQueryKey is the menu query key carrying the governed hosted HTML URL.
+	DynamicPluginAssetURLQueryKey = "pluginAssetUrl"
+	// DynamicAccessModeIframe isolates a dynamic plugin page in a sandboxed iframe.
+	DynamicAccessModeIframe = "iframe"
+	// DynamicAccessModeNewWindow opens a dynamic plugin hosted page in a new browser tab.
+	DynamicAccessModeNewWindow = "new-window"
 )
 
 // Declarations defines the grouped declaration-time contract published to

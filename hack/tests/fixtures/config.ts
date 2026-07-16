@@ -55,7 +55,7 @@ export const config = {
 export function workspacePath(path = '/') {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   if (normalizedPath === '/') {
-    return workspaceBasePath;
+    return workspaceBasePath === '/' ? '/' : `${workspaceBasePath}/`;
   }
   if (workspaceBasePath === '/') {
     return normalizedPath;

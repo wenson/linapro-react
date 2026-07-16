@@ -1,0 +1,1 @@
+export function parseJsonPreview(value: string): { error?: string; formatted: string } { if (!value.trim()) return { formatted: "" }; try { return { formatted: JSON.stringify(JSON.parse(value), null, 2) }; } catch (error) { return { error: error instanceof Error ? error.message : "Invalid JSON", formatted: value }; } }

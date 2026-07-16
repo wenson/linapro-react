@@ -1,0 +1,29 @@
+{
+  "dict": {
+    "tapcanvas_chapter_status": {
+      "approved": {
+        "label": "已批准"
+      },
+      "archived": {
+        "label": "已归档"
+      },
+      "draft": {
+        "label": "草稿"
+      },
+      "locked": {
+        "label": "已锁定"
+      },
+      "name": "TapCanvas 章节状态",
+      "planning": {
+        "label": "策划中"
+      },
+      "producing": {
+        "label": "制作中"
+      },
+      "remark": "TapCanvas 章节工作流状态选项",
+      "review": {
+        "label": "审核中"
+      }
+    }
+  }
+}

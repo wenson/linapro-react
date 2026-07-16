@@ -103,7 +103,8 @@ export class JobGroupPage {
 
   async hasGroup(text: string) {
     return this.page
-      .locator('.vxe-body--row', { hasText: text })
+      .getByTestId('job-group-table')
+      .locator('.semi-table-tbody > .semi-table-row', { hasText: text })
       .first()
       .isVisible({ timeout: 3000 })
       .catch(() => false);

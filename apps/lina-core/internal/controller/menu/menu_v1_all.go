@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"unicode"
@@ -16,7 +18,7 @@ import (
 	"lina-core/pkg/plugin/pluginhost"
 )
 
-// GetAll returns all menus for the current user in Vben route format
+// GetAll returns the workbench route tree for the current user.
 func (c *ControllerV1) GetAll(ctx context.Context, req *v1.GetAllReq) (res *v1.GetAllRes, err error) {
 	// Get user ID from business context (set by auth middleware)
 	bizCtx := c.bizCtxSvc.Get(ctx)
@@ -59,7 +61,7 @@ func (c *ControllerV1) GetAll(ctx context.Context, req *v1.GetAllReq) (res *v1.G
 		}
 	}
 
-	// Convert to Vben route format
+	// Convert persisted menus to the workbench route contract.
 	routes := convertToRouteItems(menuTree)
 
 	return &v1.GetAllRes{List: routes}, nil
@@ -154,7 +156,7 @@ func cloneMenuItem(item *entity.SysMenu) *menusvc.MenuItem {
 	}
 }
 
-// convertToRouteItems converts menu items to Vben route format
+// convertToRouteItems converts menu items to the workbench route contract.
 func convertToRouteItems(items []*menusvc.MenuItem) []*v1.MenuRouteItem {
 	result := make([]*v1.MenuRouteItem, 0, len(items))
 	for _, item := range items {
@@ -188,20 +190,20 @@ func convertToRouteItems(items []*menusvc.MenuItem) []*v1.MenuRouteItem {
 			route.Meta.Query = menuQuery
 		}
 
-		// Runtime hosted assets and generic external links must be converted into
-		// router-level iframe/new-window semantics before normal view resolution.
-		if menuLinkTarget := normalizeMenuLinkTarget(item.Path); item.Type == menutype.Menu.String() && menuLinkTarget != "" {
+		isDynamicHosted, dynamicHostedValid := validateDynamicHostedRouteQuery(item, menuQuery)
+		if isDynamicHosted && !dynamicHostedValid {
+			continue
+		}
+
+		// Dynamic hosted pages keep one internal workbench route and let the React
+		// HostedPage consume the governed mode and HTML URL from route metadata.
+		if item.Type == menutype.Menu.String() && isDynamicHosted {
+			route.Component = generateComponentPath(item.Component)
+			route.Meta.PluginID = pluginIDFromMenuKey(item.MenuKey)
+		} else if menuLinkTarget := normalizeMenuLinkTarget(item.Path); item.Type == menutype.Menu.String() && menuLinkTarget != "" {
 			route.Name = buildMenuLinkRouteName(item)
 			route.Path = buildMenuLinkRoutePath(item)
-			if isRuntimeEmbeddedMountMenu(item, menuQuery) {
-				// Embedded mount keeps the host runtime shell component while the
-				// actual asset URL is forwarded through route query parameters.
-				route.Component = generateComponentPath(item.Component)
-				route.Meta.Query = mergeMenuQueryParams(menuQuery, map[string]string{
-					pluginhost.DynamicEmbeddedSourceQueryKey: menuLinkTarget,
-					pluginhost.DynamicAccessModeQueryKey:     pluginhost.DynamicAccessModeEmbeddedMount,
-				})
-			} else if item.IsFrame == 1 {
+			if item.IsFrame == 1 {
 				route.Component = "BasicLayout"
 				route.Meta.Link = menuLinkTarget
 				route.Meta.OpenInNewWindow = true
@@ -270,9 +272,9 @@ func generateRoutePath(item *menusvc.MenuItem) string {
 	if item.Path == "" {
 		return ""
 	}
-	// Child routes normally use relative paths so Vue Router appends them to the
-	// parent path. When the menu explicitly stores an absolute path, keep it so
-	// grouped directory menus can preserve existing stable URLs.
+	// Child routes normally use relative paths so the workbench router appends
+	// them to the parent path. Preserve explicit absolute paths so grouped
+	// directory menus retain their stable URLs.
 	if item.ParentId != 0 {
 		if item.Path[0] == '/' {
 			return item.Path
@@ -286,12 +288,13 @@ func generateRoutePath(item *menusvc.MenuItem) string {
 	return item.Path
 }
 
-// generateComponentPath generates component path for Vben
+// generateComponentPath normalizes legacy component identifiers for the
+// workbench route adapter.
 func generateComponentPath(component string) string {
 	if component == "" {
 		return ""
 	}
-	// Vben expects component path like #/views/xxx/index.vue
+	// Preserve already-normalized component identifiers.
 	if component[0] == '#' {
 		return component
 	}
@@ -368,39 +371,64 @@ func parseMenuQueryParams(queryParam string) map[string]string {
 	return query
 }
 
-// mergeMenuQueryParams overlays non-empty query parameters onto an existing map
-// and returns nil when the merged result is empty.
-func mergeMenuQueryParams(base map[string]string, overrides map[string]string) map[string]string {
-	if len(base) == 0 && len(overrides) == 0 {
-		return nil
+// validateDynamicHostedRouteQuery reports whether one menu declares an
+// isolated dynamic hosted page and whether its projection is safe to expose.
+func validateDynamicHostedRouteQuery(item *menusvc.MenuItem, menuQuery map[string]string) (bool, bool) {
+	if item == nil {
+		return false, false
 	}
-
-	merged := make(map[string]string, len(base)+len(overrides))
-	for key, value := range base {
-		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
-			continue
-		}
-		merged[key] = value
+	accessMode := strings.TrimSpace(menuQuery[pluginhost.DynamicAccessModeQueryKey])
+	assetURL := strings.TrimSpace(menuQuery[pluginhost.DynamicPluginAssetURLQueryKey])
+	_, hasLegacyAsset := menuQuery["embeddedSrc"]
+	isHosted := accessMode != "" || assetURL != "" || hasLegacyAsset
+	if !isHosted {
+		return false, true
 	}
-	for key, value := range overrides {
-		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
-			continue
-		}
-		merged[key] = value
+	if hasLegacyAsset || accessMode == "embedded-mount" {
+		return true, false
 	}
-	if len(merged) == 0 {
-		return nil
+	if normalizeMenuComponentPath(item.Component) != pluginhost.DynamicPageComponentPath {
+		return true, false
 	}
-	return merged
+	if accessMode != pluginhost.DynamicAccessModeIframe && accessMode != pluginhost.DynamicAccessModeNewWindow {
+		return true, false
+	}
+	if normalizeMenuLinkTarget(item.Path) != "" || item.IsFrame != 0 {
+		return true, false
+	}
+	return true, validDynamicPluginAssetURL(item.MenuKey, assetURL)
 }
 
-// isRuntimeEmbeddedMountMenu reports whether the menu entry points at the
-// hosted runtime page component using embedded-mount semantics.
-func isRuntimeEmbeddedMountMenu(item *menusvc.MenuItem, menuQuery map[string]string) bool {
-	if normalizeMenuComponentPath(item.Component) != pluginhost.DynamicPageComponentPath {
+// validDynamicPluginAssetURL validates a current-plugin /x-assets HTML URL
+// without trusting persisted menu metadata to have passed install-time checks.
+func validDynamicPluginAssetURL(menuKey string, assetURL string) bool {
+	pluginID := pluginIDFromMenuKey(menuKey)
+	if pluginID == "" || strings.ContainsAny(assetURL, "?#\\") {
 		return false
 	}
-	return strings.TrimSpace(menuQuery[pluginhost.DynamicAccessModeQueryKey]) == pluginhost.DynamicAccessModeEmbeddedMount
+	decodedURL, err := url.PathUnescape(assetURL)
+	if err != nil || decodedURL != assetURL {
+		return false
+	}
+	expectedPrefix := pluginhost.HostedAssetURLPrefix + pluginID + "/"
+	if !strings.HasPrefix(assetURL, expectedPrefix) || path.Clean(assetURL) != assetURL {
+		return false
+	}
+	relativePath := strings.TrimPrefix(assetURL, expectedPrefix)
+	segments := strings.Split(relativePath, "/")
+	if len(segments) < 2 || strings.TrimSpace(segments[0]) == "" {
+		return false
+	}
+	return strings.EqualFold(path.Ext(assetURL), ".html")
+}
+
+// pluginIDFromMenuKey extracts the owner from plugin:<id>:<menu> keys.
+func pluginIDFromMenuKey(menuKey string) string {
+	parts := strings.SplitN(strings.TrimSpace(menuKey), ":", 3)
+	if len(parts) != 3 || parts[0] != "plugin" {
+		return ""
+	}
+	return strings.TrimSpace(parts[1])
 }
 
 // normalizeMenuComponentPath normalizes one stored component path into the

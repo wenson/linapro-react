@@ -34,9 +34,7 @@ export class MainLayout {
   }
 
   get sidebar() {
-    return this.page
-      .locator('[class*="sidebar"], [class*="menu"], nav')
-      .first();
+    return this.page.locator('.workbench-sider').first();
   }
 
   get languageToggleTrigger() {
@@ -48,7 +46,7 @@ export class MainLayout {
   }
 
   get brandLogoMark() {
-    return this.page.locator(".vben-logo__mark:visible").first();
+    return this.page.locator(".workbench-brand-mark:visible").first();
   }
 
   sidebarMenuItem(label: SidebarMenuLabel) {
@@ -59,27 +57,22 @@ export class MainLayout {
   }
 
   private sidebarSubmenuTitle(label: SidebarMenuLabel) {
-    return this.sidebar
-      .locator(".ant-menu-submenu-title, .vben-sub-menu-content")
-      .filter({ hasText: label })
-      .first();
+    return this.sidebar.getByText(label).first();
   }
 
   async expandSidebarGroup(label: SidebarMenuLabel) {
+    await this.page.evaluate(() => window.scrollTo(0, 0));
     const title = this.sidebarSubmenuTitle(label);
     await expect(title).toBeVisible();
-    const submenu = title
-      .locator(
-        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' ant-menu-submenu ') or contains(concat(' ', normalize-space(@class), ' '), ' vben-sub-menu ')][1]",
-      )
-      .first();
-    const className = (await submenu.getAttribute("class").catch(() => "")) ?? "";
-    if (
-      !className.includes("ant-menu-submenu-open") &&
-      !className.includes("is-opened")
-    ) {
-      await title.click();
+    const expandable = title.locator("xpath=ancestor-or-self::*[@aria-expanded][1]");
+    if ((await expandable.count()) > 0) {
+      const ariaExpanded = await expandable.getAttribute("aria-expanded");
+      if (ariaExpanded !== "true") {
+        await expandable.click();
+      }
+      return;
     }
+    await title.click();
   }
 
   async expectSidebarMenuVisible(label: SidebarMenuLabel) {
@@ -237,7 +230,8 @@ export class MainLayout {
         naturalHeight: img.naturalHeight,
         naturalWidth: img.naturalWidth,
         parentText:
-          (img.closest("a") ?? img.parentElement)?.textContent?.trim() ?? "",
+          (img.closest(".workbench-brand") ?? img.closest("a") ?? img.parentElement)
+            ?.textContent?.trim() ?? "",
         src: img.getAttribute("src") ?? "",
         width: img.clientWidth,
       };
@@ -248,8 +242,8 @@ export class MainLayout {
     await expect(this.brandLogoMark).toBeVisible();
 
     return this.brandLogoMark.evaluate((mark) => {
-      const root = mark.closest(".vben-logo");
-      const link = mark.closest("a");
+      const root = mark.closest(".workbench-brand");
+      const link = root;
       const image = mark.querySelector("img") as HTMLElement;
       const beforeStyle = window.getComputedStyle(mark, "::before");
       const imageStyle = image ? window.getComputedStyle(image) : null;
@@ -263,7 +257,7 @@ export class MainLayout {
         imageClientHeight: image?.clientHeight ?? 0,
         imageClientWidth: image?.clientWidth ?? 0,
         imageFilter: imageStyle?.filter ?? "",
-        isDarkRoot: root?.classList.contains("dark") ?? false,
+        isDarkRoot: document.documentElement.classList.contains("dark"),
         linkHeight: linkRect?.height ?? 0,
         linkOverflow: link ? window.getComputedStyle(link).overflow : "",
         markHeight: markRect.height,
@@ -313,19 +307,8 @@ export class MainLayout {
   }
 
   async logout() {
-    // Use keyboard shortcut Alt+Q to trigger the logout modal
-    // This avoids the complex DOM interaction with the user dropdown
-    await this.page.keyboard.press("Alt+KeyQ");
-
-    // Wait for the confirmation modal to appear
-    // The modal asks "是否退出登录？" with 确认/取消 buttons
-    const confirmBtn = this.page.getByRole("button", {
-      name: /确\s*认|confirm/i,
-    });
-    await confirmBtn.waitFor({ state: "visible", timeout: 1500 });
-    await confirmBtn.click();
-
-    // Wait for redirect to login page
+    await this.openUserDropdown();
+    await this.page.getByTestId("layout-user-dropdown-logout").click();
     await this.page.waitForURL(/auth\/login/, { timeout: 10000 });
   }
 }

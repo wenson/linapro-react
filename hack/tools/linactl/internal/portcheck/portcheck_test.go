@@ -15,10 +15,10 @@ import (
 	"testing"
 )
 
-// writeRepoFixture 在临时根目录下写入后端 config.yaml 和前端 vite.config.mts
+// writeRepoFixture 在临时根目录下写入后端 config.yaml 和前端 vite.config.ts
 // 两个测试夹具。任意一个传空字符串则不创建该文件，便于覆盖 "缺失文件" 用例。
 // writeRepoFixture writes the backend config.yaml and the frontend
-// vite.config.mts fixtures under a temporary repository root. Passing an empty
+// vite.config.ts fixtures under a temporary repository root. Passing an empty
 // string for either file skips creation, enabling negative tests for missing
 // inputs.
 func writeRepoFixture(t *testing.T, backendYAML string, viteConfig string) string {
@@ -46,6 +46,16 @@ func writeRepoFixture(t *testing.T, backendYAML string, viteConfig string) strin
 	}
 
 	return root
+}
+
+// TestFrontendViteConfigPathUsesReactWorkbench guards the one-shot switch from
+// the retired Vben workspace to the React workbench Vite configuration.
+func TestFrontendViteConfigPathUsesReactWorkbench(t *testing.T) {
+	t.Parallel()
+
+	if frontendViteConfigRelPath != "apps/lina-web/vite.config.ts" {
+		t.Fatalf("unexpected frontend Vite config path: %s", frontendViteConfigRelPath)
+	}
 }
 
 // TestVerifyAcceptsAlignedPorts 验证三处端口一致时 Verify 返回 nil。
@@ -109,7 +119,7 @@ func TestVerifyReportsFrontendMismatch(t *testing.T) {
 		t.Fatal("expected mismatched frontend proxy port to fail verification")
 	}
 	message := err.Error()
-	if !strings.Contains(message, "vite.config.mts proxy target") {
+	if !strings.Contains(message, "vite.config.ts proxy target") {
 		t.Fatalf("expected error to mention vite proxy source, got: %s", message)
 	}
 	if !strings.Contains(message, ":8080") {
@@ -167,7 +177,7 @@ func TestVerifyFailsWhenBackendConfigMissing(t *testing.T) {
 // TestVerifyAcceptsMissingFrontendProxyBlock 验证前端 vite 配置中没有 proxy
 // target 块时不视为错误（用户可能裁剪了 dev proxy），只校验后端来源。
 // TestVerifyAcceptsMissingFrontendProxyBlock confirms an empty proxy block in
-// vite.config.mts is not treated as a verification failure, since an operator
+// vite.config.ts is not treated as a verification failure, since an operator
 // may legitimately strip the dev proxy section while still using linactl dev.
 func TestVerifyAcceptsMissingFrontendProxyBlock(t *testing.T) {
 	var (

@@ -41,7 +41,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
   async function uploadImportFile(filePath: string, adminPage: Page, modal: Locator) {
     const [fileChooser] = await Promise.all([
       adminPage.waitForEvent('filechooser', { timeout: 5000 }),
-      modal.locator('.ant-upload-drag').click(),
+      modal.locator('.semi-upload-drag-area').click(),
     ]);
     await fileChooser.setFiles(filePath);
     await waitForUploadReady(modal);
@@ -52,7 +52,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
       (res) => res.url().includes('/config/import') && res.request().method() === 'POST',
       { timeout: 30000 },
     );
-    await modal.getByRole('button', { name: /确\s*认/ }).click();
+    await modal.getByRole('button', { name: /开始导入|Start import/i }).click();
     const importResponse = await importResponsePromise;
     await expect(modal).not.toBeVisible({ timeout: 5000 });
     const responseJson = await importResponse.json();
@@ -69,6 +69,13 @@ test.describe('TC002 参数设置导入完整流程', () => {
     }
   });
 
+  function importDialog(adminPage: Page) {
+    return adminPage
+      .locator('.semi-modal-content[role="dialog"]:visible')
+      .filter({ has: adminPage.getByTestId('settings-import-dialog') })
+      .last();
+  }
+
   test.afterAll(() => {
     // Cleanup temp files
     if (fs.existsSync(tempDir)) {
@@ -82,7 +89,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
 
     // Open import modal
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog');
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Download template
@@ -120,7 +127,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
     await configPage.goto();
 
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify all UI elements
@@ -149,7 +156,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
 
     // Open import modal
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Upload file using file chooser
@@ -198,12 +205,12 @@ test.describe('TC002 参数设置导入完整流程', () => {
     // Open import modal
     await configPage.clickReset();
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify overwrite switch is OFF
-    const switchEl = modal.locator('.ant-switch');
-    expect(await switchEl.isChecked()).toBe(false);
+    const switchEl = modal.getByRole('switch');
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Upload file using file chooser
     await uploadImportFile(importFilePath, adminPage, modal);
@@ -248,13 +255,13 @@ test.describe('TC002 参数设置导入完整流程', () => {
     // Open import modal
     await configPage.clickReset();
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Enable overwrite mode
-    const switchEl = modal.locator('.ant-switch');
+    const switchEl = modal.getByRole('switch');
     await setSwitchChecked(switchEl, true);
-    expect(await switchEl.isChecked()).toBe(true);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'true');
 
     await uploadImportFile(importFilePath, adminPage, modal);
     const { responseBody } = await submitImport(adminPage, modal);
@@ -282,24 +289,23 @@ test.describe('TC002 参数设置导入完整流程', () => {
     await configPage.goto();
 
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Find the switch
-    const switchEl = modal.locator('.ant-switch');
+    const switchEl = modal.getByRole('switch');
     await expect(switchEl).toBeVisible();
 
     // Initial state should be OFF
-    const initialState = await switchEl.isChecked();
-    expect(initialState).toBe(false);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Toggle ON
     await setSwitchChecked(switchEl, true);
-    expect(await switchEl.isChecked()).toBe(true);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'true');
 
     // Toggle back OFF
     await setSwitchChecked(switchEl, false);
-    expect(await switchEl.isChecked()).toBe(false);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Close modal
     await adminPage.keyboard.press('Escape');
@@ -310,11 +316,11 @@ test.describe('TC002 参数设置导入完整流程', () => {
     await configPage.goto();
 
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify confirm button exists
-    const confirmBtn = modal.getByRole('button', { name: /确\s*认/ });
+    const confirmBtn = modal.getByRole('button', { name: /开始导入|Start import/i });
     await expect(confirmBtn).toBeVisible();
 
     // Close modal
@@ -339,7 +345,7 @@ test.describe('TC002 参数设置导入完整流程', () => {
 
     // Open import modal
     await configPage.clickImport();
-    const modal = adminPage.getByRole('dialog').filter({ hasText: '参数设置导入' });
+    const modal = importDialog(adminPage);
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Upload file using file chooser

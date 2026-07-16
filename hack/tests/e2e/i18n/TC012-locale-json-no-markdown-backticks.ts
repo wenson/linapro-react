@@ -14,8 +14,7 @@ const currentDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(currentDir, "../../../..");
 const directLocaleRoots = [
   "apps/lina-core/manifest/i18n",
-  "apps/lina-vben/apps/web-antd/src/locales/langs",
-  "apps/lina-vben/packages/locales/src/langs",
+  "apps/lina-web/src/locales",
 ];
 const pluginWorkspaceRoot = "apps/lina-plugins";
 

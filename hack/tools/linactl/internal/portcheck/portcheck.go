@@ -7,7 +7,7 @@
 // portcheck 子组件用于在 linactl 启动开发服务之前，校验三处端口配置一致：
 //  1. 命令侧传入的 backend_port（默认来自 Makefile 的 BACKEND_PORT）
 //  2. 后端配置 apps/lina-core/manifest/config/config.yaml 中的 server.address
-//  3. 前端 apps/lina-vben/apps/web-antd/vite.config.mts 中所有 proxy target
+//  3. 前端 apps/lina-web/vite.config.ts 中所有 proxy target
 //
 // 任一处不一致都会返回带有具体来源、期望值与实际值的错误，避免 dev 服务以错配
 // 端口启动后再以"探活超时"或"接口 404"等间接形式暴露问题。
@@ -31,7 +31,7 @@ const backendConfigRelPath = "apps/lina-core/manifest/config/config.yaml"
 
 // 前端 vite 配置文件相对仓库根的路径。
 // Frontend vite config path relative to the repository root.
-const frontendViteConfigRelPath = "apps/lina-vben/apps/web-antd/vite.config.mts"
+const frontendViteConfigRelPath = "apps/lina-web/vite.config.ts"
 
 // 命令传入端口在错误消息中显示的来源标识。
 // Source label used in error messages for the linactl-supplied port value.
@@ -157,24 +157,24 @@ func parsePortFromAddress(address string) (int, error) {
 }
 
 // viteProxyTargetPattern matches `target: 'http(s)?://host:<port>'` literals
-// inside vite.config.mts proxy entries. The host portion is intentionally
+// inside vite.config.ts proxy entries. The host portion is intentionally
 // permissive (alphanumerics, dots, hyphens, brackets for IPv6) so future host
 // changes (such as switching from "localhost" to "127.0.0.1") do not require
 // updating this regex.
 //
-// viteProxyTargetPattern 匹配 vite.config.mts 中 proxy 项的 target 字段，
+// viteProxyTargetPattern 匹配 vite.config.ts 中 proxy 项的 target 字段，
 // 形如 `target: 'http://localhost:9120'`。host 段刻意写得宽松，未来切换
 // localhost/127.0.0.1 不需要修改正则。
 var viteProxyTargetPattern = regexp.MustCompile(
 	`target:\s*['"]https?://[A-Za-z0-9\.\-\[\]]+:(\d+)['"]`,
 )
 
-// readFrontendProxyPorts scans vite.config.mts for every proxy target and
+// readFrontendProxyPorts scans vite.config.ts for every proxy target and
 // returns one PortFinding per occurrence. Returning each occurrence (instead
 // of a deduplicated set) lets Verify report a precise location when only a
 // subset of targets drifts out of sync.
 //
-// readFrontendProxyPorts 扫描 vite.config.mts 中所有 proxy target 字面量，
+// readFrontendProxyPorts 扫描 vite.config.ts 中所有 proxy target 字面量，
 // 每一次出现都返回一条 PortFinding。逐条返回（而非去重）便于在仅部分 target
 // 不一致时给出精确的定位信息。
 func readFrontendProxyPorts(root string) ([]PortFinding, error) {

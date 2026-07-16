@@ -46,8 +46,8 @@ function addError(message) {
 }
 
 function validateFrontendI18nKeys() {
-  const result = spawnSync('pnpm', ['-F', '@lina/web-antd', 'i18n:check'], {
-    cwd: path.resolve(testsDir, '../../apps/lina-vben'),
+  const result = spawnSync('go', ['run', path.resolve(repoRoot, 'hack/tools/linactl'), 'i18n.check'], {
+    cwd: path.resolve(testsDir, '../../apps/lina-web'),
     encoding: 'utf8',
   });
 

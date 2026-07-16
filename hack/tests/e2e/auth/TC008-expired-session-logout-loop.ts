@@ -22,17 +22,10 @@ test.describe('TC008 过期会话登出保护', () => {
     await page.addInitScript(() => {
       localStorage.clear();
       const expiredAccessState = JSON.stringify({
-        accessCodes: ['*'],
         accessToken: 'expired-token-from-previous-session',
-        isLockScreen: false,
         refreshToken: null,
       });
-      for (const envName of ['dev', 'prod']) {
-        localStorage.setItem(
-          `lina-web-antd-5.6.0-${envName}-core-access`,
-          expiredAccessState,
-        );
-      }
+      localStorage.setItem('linapro:web:session:v1', expiredAccessState);
     });
 
     await page.goto(workspacePath('/dashboard/analytics'));
@@ -150,6 +143,17 @@ test.describe('TC008 过期会话登出保护', () => {
         }),
       });
     });
+    await page.route('**/api/v1/plugins/dynamic', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        status: 200,
+        body: JSON.stringify({
+          code: 0,
+          data: { list: [] },
+          message: 'ok',
+        }),
+      });
+    });
     await page.route('**/api/v1/user/message/count', async (route) => {
       await route.fulfill({
         contentType: 'application/json',
@@ -197,17 +201,10 @@ test.describe('TC008 过期会话登出保护', () => {
     await page.addInitScript(() => {
       localStorage.clear();
       const expiredAccessState = JSON.stringify({
-        accessCodes: ['*'],
         accessToken: 'expired-access-token',
-        isLockScreen: false,
         refreshToken: 'stored-refresh-token',
       });
-      for (const envName of ['dev', 'prod']) {
-        localStorage.setItem(
-          `lina-web-antd-5.6.0-${envName}-core-access`,
-          expiredAccessState,
-        );
-      }
+      localStorage.setItem('linapro:web:session:v1', expiredAccessState);
     });
 
     await page.goto(workspacePath('/dashboard/analytics'));
@@ -251,17 +248,10 @@ test.describe('TC008 过期会话登出保护', () => {
     await page.addInitScript(() => {
       localStorage.clear();
       const expiredAccessState = JSON.stringify({
-        accessCodes: ['*'],
         accessToken: 'expired-access-token',
-        isLockScreen: false,
         refreshToken: 'invalid-refresh-token',
       });
-      for (const envName of ['dev', 'prod']) {
-        localStorage.setItem(
-          `lina-web-antd-5.6.0-${envName}-core-access`,
-          expiredAccessState,
-        );
-      }
+      localStorage.setItem('linapro:web:session:v1', expiredAccessState);
     });
 
     await page.goto(workspacePath('/dashboard/analytics'));
@@ -270,15 +260,14 @@ test.describe('TC008 过期会话登出保护', () => {
       .toBeGreaterThanOrEqual(1);
 
     await expect(
-      page
-        .locator('.ant-message-notice')
-        .filter({ hasText: '登录认证过期，请重新登录后继续。' })
-        .last(),
+      page.getByRole('alert').filter({
+        hasText: '登录认证过期，请重新登录后继续。',
+      }),
     ).toBeVisible({ timeout: 5000 });
     await expect(
-      page
-        .locator('.ant-message-notice')
-        .filter({ hasText: '内部服务器错误，请稍后再试。' }),
+      page.getByRole('alert').filter({
+        hasText: '内部服务器错误，请稍后再试。',
+      }),
     ).toHaveCount(0);
     await page.waitForURL(/auth\/login/, { timeout: 15_000 });
   });

@@ -24,11 +24,11 @@ Thank you for your interest in contributing to `LinaPro`. This guide explains th
 
 `LinaPro` is an `AI`-native full-stack framework for sustainable delivery. It treats `AI` as a core productivity engine: `AI` leads analysis, design, and implementation, while the team controls direction and key decisions.
 
-`LinaPro` brings backend services, a frontend workspace, a pluggable plugin system, and a specification-driven `AI` development workflow into one full-stack delivery framework. It includes a ready-to-use default management workspace with common business-system capabilities such as permission management, system configuration, and job scheduling, so new projects can start business development without rebuilding foundational infrastructure.
+`LinaPro` brings backend services, a frontend workspace, a pluggable plugin system, and an evidence-driven `AI` development workflow into one full-stack delivery framework. It includes a ready-to-use default management workspace with common business-system capabilities such as permission management, system configuration, and job scheduling, so new projects can start business development without rebuilding foundational infrastructure.
 
-- **Frontend**: `Vben5 + Vue 3 + Ant Design Vue + TypeScript`
+- **Frontend**: `React 19 + Semi Design 2 + TypeScript + Vite 7`
 - **Backend**: `GoFrame + PostgreSQL + JWT + source/WASM plugin runtime`
-- **Development workflow**: `SDD + OpenSpec`
+- **Development workflow**: `Design + Frozen Tasklist + Stage Evidence + Review`
 
 # Default Account
 
@@ -53,10 +53,10 @@ apps/                -> Monorepo project directory
       config/        -> Backend configuration files
       sql/           -> DDL + seed DML (versioned SQL files)
         mock-data/   -> Mock demo/test data (not deployed to production)
-  lina-vben/         -> Default management workspace (Vben5 frontend pnpm monorepo)
-    apps/web-antd/   -> Default management workspace application (Ant Design Vue)
-    packages/        -> Shared libraries (@core, effects, stores, utils, and more)
-  lina-plugins/      -> Official source plugin repository submodule mount point
+  lina-web/          -> The only default management workspace (React + Semi Design)
+    src/              -> Host runtime, routes, features, plugin UI loader, and locale sources
+    public/           -> Favicon, brand assets, default avatar, and Stoplight assets
+  lina-plugins/      -> Product-owned source plugins tracked by this repository
     <plugin-id>/     -> Source plugin directory (standard structure)
       backend/       -> Plugin backend entry and implementation
         api/         -> Plugin API DTOs and route definitions
@@ -69,7 +69,7 @@ apps/                -> Monorepo project directory
             entity/   -> Database entities (generated)
         hack/        -> Plugin codegen and development config, such as hack/config.yaml
         plugin.go    -> Plugin backend registration entry
-      frontend/      -> Plugin frontend pages and assets
+      frontend/      -> Source-plugin React pages or dynamic-plugin public assets
       manifest/      -> Plugin installation, uninstall, and delivery resources
       hack/          -> Plugin development and test resources
         tests/
@@ -83,8 +83,7 @@ hack/                -> Project scripts and test files
     e2e/             -> Host TC test cases; source plugin E2E belongs in plugin directories
     fixtures/        -> Test fixtures (auth, config)
     pages/           -> Host/shared page object models
-openspec/            -> OpenSpec documents
-  changes/           -> OpenSpec change records
+docs/                -> Architecture, frozen tasklists, stage records, and reviews
 ```
 
 # Common Commands
@@ -125,10 +124,12 @@ make ctrl               # Generate controller scaffolding after API definition c
 ## Frontend
 
 ```bash
-cd apps/lina-vben
-pnpm install                   # Install dependencies
-pnpm -F @lina/web-antd dev     # Start development mode
-pnpm run build                 # Build
+pnpm --dir apps/lina-web install    # Install dependencies
+pnpm --dir apps/lina-web dev        # Start development mode
+pnpm --dir apps/lina-web typecheck  # Type-check
+pnpm --dir apps/lina-web test:unit  # Run unit tests
+pnpm --dir apps/lina-web lint       # Lint
+pnpm --dir apps/lina-web build      # Build
 ```
 
 ## E2E Tests
@@ -150,15 +151,15 @@ pnpm report            # View the HTML report
 
 Test files must use the `TC{NNNN}*.ts` naming format, such as `TC0001-login.ts`. Host tests belong under `hack/tests/e2e/` by module. Source plugin tests belong under `apps/lina-plugins/<plugin-id>/hack/tests/e2e/`, and plugin-owned page objects and helpers belong under the same plugin's `hack/tests/pages/` and `hack/tests/support/` directories.
 
-# Official Plugin Workspace
+# Product Plugin Workspace
 
-- Official source plugins are maintained independently at `https://github.com/linaproai/official-plugins.git`.
-- The main repository mounts the official plugin repository through the `apps/lina-plugins` submodule.
-- Host-only commands can run before the submodule is initialized.
+- Product source plugins are tracked directly under `apps/lina-plugins` by this repository.
+- `https://github.com/linaproai/official-plugins.git` is an upstream reference and optional import source, not the product delivery repository.
+- Host-only commands can run when no plugin manifests are present.
 - `make dev`, `make build`, `make image`, and `make image.build` automatically detect `apps/lina-plugins/*/plugin.yaml` when `plugins` is not explicitly set. If plugin manifests exist, plugin-full mode is enabled; otherwise host-only mode is used. Pass `plugins=0` to force host-only mode.
 - Plugin-full mode generates or refreshes the ignored `temp/go.work.plugins` file from the host-only root `go.work`, then resolves source plugin `Go` modules through `GOWORK`. The root `go.work` always remains host-only.
-- Plugin-owned tests and plugin `E2E` require `git submodule update --init --recursive`.
-- The local submodule remote uses `git@github.com:linaproai/official-plugins.git`.
+- Plugin-owned tests and plugin `E2E` run directly from the checked-out product workspace.
+- `apps/lina-plugins` must not contain nested Git metadata or be reintroduced as a submodule.
 
 # Getting Started
 
@@ -179,33 +180,30 @@ Test files must use the `TC{NNNN}*.ts` naming format, such as `TC0001-login.ts`.
 git clone https://github.com/<your-username>/linapro.git
 cd linapro
 
-# 2. Initialize the official plugins workspace when you need plugin-full mode
-git submodule update --init --recursive
-
-# 3. Initialize the database (DDL + seed data)
+# 2. Initialize the database (DDL + seed data)
 make db.init
 
-# 4. Start the full stack (frontend: 5666, backend: 9120)
+# 3. Start the full stack (frontend: 5666, backend: 9120)
 make dev
 ```
 
 # Development Workflow
 
-`LinaPro` uses the `OpenSpec` specification-driven workflow. Every non-trivial contribution must follow this five-stage cycle:
+`lina-tapcanvas` uses design documents, frozen tasklists, stage execution records, automated verification, and review. Every non-trivial contribution follows this traceable cycle:
 
 ```text
-Explore -> Propose -> Implement -> Review -> Archive
+Clarify -> Design -> Freeze Tasklist -> Implement -> Verify -> Review
 ```
 
-| Stage | Command | Output |
-|-------|---------|--------|
-| **Explore** | `/opsx:explore` | Shared understanding of the problem and solution space |
-| **Propose** | `/opsx:propose <feature-name>` | `openspec/changes/<feature>/` with `proposal.md`, `design.md`, `specs/`, and `tasks.md` |
-| **Implement** | `/opsx:apply` | Code, tests, and documentation aligned to `tasks.md` |
-| **Review** | `/lina-review` | Automated review of code quality and spec compliance |
-| **Archive** | `/opsx:archive` | Change moved to `openspec/changes/archive/` |
+| Stage | Action | Output |
+|-------|--------|--------|
+| **Clarify** | Confirm intent, scope, and constraints | Agreed problem and boundaries |
+| **Design** | Write or update the relevant architecture document | Contracts, ownership, tradeoffs, and risks |
+| **Freeze Tasklist** | Record ordered tasks and acceptance gates | Versioned authoritative tasklist |
+| **Implement** | Work stage by stage | Code, tests, documentation, and stage execution records |
+| **Verify and Review** | Run current-worktree checks and review | Commands, exit codes, findings, and handoff |
 
-For simple, isolated bug fixes, you may skip Explore and Propose and jump directly to Implement, but all changes must pass Review before merging.
+Simple isolated fixes may use a focused execution record instead of a new design, but all changes still require matching verification and review before merging.
 
 # Making Changes
 
@@ -232,21 +230,21 @@ Key rules:
 - All `error` return values must be explicitly handled.
 - Enumerations must be declared as named `Go` types with constants; do not use bare string literals in business logic.
 
-## Frontend (`lina-vben`)
+## Frontend (`lina-web`)
 
 ```bash
-cd apps/lina-vben
-pnpm install
-pnpm -F @lina/web-antd dev
+pnpm --dir apps/lina-web install
+pnpm --dir apps/lina-web dev
 ```
 
 Key rules:
 
-- Use `useVbenForm` for forms, `useVbenModal` for modals, and `useVbenDrawer` for drawers.
-- Use `useVbenVxeGrid` with `Page` for table pages; operation buttons use `ghost-button` and `Popconfirm`.
-- Icons use `IconifyIcon` from `@vben/icons` with `Iconify` format names, such as `ant-design:inbox-outlined`.
+- Use components from `@douyinfe/semi-ui` and icons from `@douyinfe/semi-icons`; do not add Ant Design React or wrapper components that only forward Semi props.
+- Use Semi `Form`, `Modal`, `SideSheet`, `Table`, and `Popconfirm` directly. Preserve keyboard access, visible labels, loading states, empty states, and error recovery.
+- Resolve host locale through `react-i18next` and map `en-US` or `zh-CN` to the matching Semi locale. Dark mode uses `theme-mode="dark"` on the document root.
+- API calls go through the host `ApiClient`. Authentication, locale, tenant, refresh, and error-envelope behavior must not be reimplemented by a page.
 - Path alias `#/*` resolves to `./src/*`.
-- Check the reference project for `UI` and interaction patterns before implementing new pages.
+- Check existing React feature pages and `src/styles/tokens.css` before introducing a new interaction or visual token.
 
 ## Plugin Development
 
@@ -265,7 +263,9 @@ Plugins live under `apps/lina-plugins/<plugin-id>/` and must include:
       dao/            -> Generated DAO when database access is needed
       model/          -> Generated models
     hack/config.yaml  -> Codegen configuration
-  frontend/pages/     -> Plugin frontend pages
+  frontend/
+    plugin-ui.ts      -> Source-plugin React registration entry
+    pages/            -> Plugin-owned React pages and relative modules
   manifest/
     sql/              -> Install SQL
     sql/uninstall/    -> Uninstall SQL
@@ -273,6 +273,10 @@ Plugins live under `apps/lina-plugins/<plugin-id>/` and must include:
 ```
 
 Plugin business logic belongs in `backend/internal/service/`. Only provider or adapter implementations of stable host extension seams belong in `backend/provider/`.
+
+Source-plugin UI is discovered only by `apps/lina-web`. Its `frontend/plugin-ui.ts` entry imports the stable `@linapro/plugin-ui` surface and plugin-relative modules; it must not import host-private `src/` paths. Permissions, disabled-module visibility, and tenant changes remain host-owned and must be consumed through the published plugin UI context.
+
+Dynamic-plugin UI is an isolated hosted document opened in a sandbox iframe or a new window. It must not receive host tokens. Protected current-plugin API calls use the host's restricted `postMessage` bridge; external URLs, cross-plugin asset paths, `allow-same-origin`, and embedded JavaScript module mounts are not allowed.
 
 # Commit Guidelines
 
@@ -310,7 +314,7 @@ Keep the summary line under 72 characters. Add a blank line before any extended 
    git checkout -b feat/my-feature
    ```
 
-2. Follow the `OpenSpec` workflow for non-trivial changes. Attach or reference the relevant `openspec/changes/<feature>/` artifacts in your pull request description.
+2. Follow the product workflow for non-trivial changes. Attach or reference the relevant design, frozen Tasklist, and stage execution records in the pull request description.
 
 3. Ensure all checks pass before requesting review:
 
@@ -318,7 +322,7 @@ Keep the summary line under 72 characters. Add a blank line before any extended 
    make test
    ```
 
-4. Open a pull request against `main` with a clear title, a summary of what changed and why, links to related issues or `OpenSpec` change documents, and screenshots or screen recordings for `UI` changes.
+4. Open a pull request against `main` with a clear title, a summary of what changed and why, links to related issues and execution evidence, and screenshots or screen recordings for `UI` changes.
 
 5. At least one maintainer approval is required before merging.
 
@@ -352,12 +356,13 @@ Ruleset bypass is granted to actors, not to token strings. Add the `GitHub App` 
 - `DAO`, `DO`, and `Entity` files are generated by `make dao`; never edit them manually.
 - Controller files are scaffolded by `make ctrl`; fill in business logic only and do not change the generated skeleton.
 
-## TypeScript / Vue 3
+## TypeScript / React 19
 
 - Follow the project's `ESLint` and `Prettier` configuration.
 - Keep component files focused: one component per file.
 - Use `TypeScript` strict mode and avoid `any`.
-- API calls go in `src/api/` using the project's `requestClient`.
+- Host API calls go in `src/api/` or feature-local API modules and use the project's `ApiClient`.
+- React effects synchronize with external systems only; do not use an effect to derive render state that can be calculated or reset in an event handler.
 - `i18n` keys follow the `module.subkey` convention; never hard-code user-visible strings.
 
 # Testing
@@ -389,7 +394,7 @@ Each test file should cover the complete operation set for its feature, such as 
 `LinaPro` supports multiple languages. Every contribution must evaluate `i18n` impact:
 
 - New user-visible strings must have corresponding entries in all supported language files.
-- Frontend runtime translations live in `apps/lina-vben/` locale packages.
+- Host frontend source translations live in `apps/lina-web/src/locales/<locale>/`; runtime overrides are loaded through the host i18n API.
 - Host `API` documentation translations live in `apps/lina-core/manifest/i18n/<locale>/apidoc/`.
 - Plugin translations are self-contained in `apps/lina-plugins/<plugin-id>/manifest/i18n/`.
 - Never hard-code user-visible text in `Go` or `TypeScript` source. Always use an `i18n` key.

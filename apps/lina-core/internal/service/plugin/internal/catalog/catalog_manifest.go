@@ -298,12 +298,14 @@ func (s *serviceImpl) DiscoverMockSQLPaths(rootDir string) []string {
 	return resourcefs.DiscoverMockSQLPaths(rootDir)
 }
 
-// DiscoverPagePaths discovers plugin page source files by directory convention.
+// DiscoverPagePaths returns no source UI paths because apps/lina-web owns
+// React plugin UI discovery.
 func (s *serviceImpl) DiscoverPagePaths(rootDir string) []string {
-	return resourcefs.DiscoverVuePaths(rootDir, filepath.Join("frontend", "pages"))
+	return []string{}
 }
 
-// DiscoverSlotPaths discovers plugin slot source files by directory convention.
+// DiscoverSlotPaths returns no source UI paths because apps/lina-web owns
+// React plugin UI discovery.
 func (s *serviceImpl) DiscoverSlotPaths(rootDir string) []string {
-	return resourcefs.DiscoverVuePaths(rootDir, filepath.Join("frontend", "slots"))
+	return []string{}
 }

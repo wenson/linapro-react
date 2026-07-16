@@ -49,12 +49,12 @@ test.describe('TC004 字典管理导入完整流程', () => {
     (XLSX as any).writeFile(workbook, filePath);
   }
 
-  async function uploadImportFile(filePath: string, adminPage: Page, modal: Locator) {
-    const [fileChooser] = await Promise.all([
-      adminPage.waitForEvent('filechooser', { timeout: 5000 }),
-      modal.locator('.ant-upload-drag').click(),
-    ]);
-    await fileChooser.setFiles(filePath);
+  async function uploadImportFile(filePath: string, modal: Locator) {
+    await modal
+      .getByTestId('settings-import-upload')
+      .locator('input[type="file"]')
+      .first()
+      .setInputFiles(filePath);
     await waitForUploadReady(modal);
   }
 
@@ -63,7 +63,7 @@ test.describe('TC004 字典管理导入完整流程', () => {
       (res) => res.url().includes('/dict/import') && res.request().method() === 'POST',
       { timeout: 30000 },
     );
-    await modal.getByRole('button', { name: /确\s*认/ }).click();
+    await modal.getByRole('button', { name: /开始导入|Start import/i }).click();
     const importResponse = await importResponsePromise;
     await expect(modal).not.toBeVisible({ timeout: 5000 });
     const responseJson = await importResponse.json();
@@ -174,7 +174,7 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Upload file using file chooser
-    await uploadImportFile(importFilePath, adminPage, modal);
+    await uploadImportFile(importFilePath, modal);
     const { importResponse, responseBody } = await submitImport(adminPage, modal);
     expect(importResponse.status()).toBe(200);
     expect(responseBody.typeSuccess).toBe(1);
@@ -224,11 +224,11 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify overwrite switch is OFF
-    const switchEl = modal.locator('.ant-switch');
-    expect(await switchEl.isChecked()).toBe(false);
+    const switchEl = modal.getByRole('switch');
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Upload file using file chooser
-    await uploadImportFile(importFilePath, adminPage, modal);
+    await uploadImportFile(importFilePath, modal);
     const { responseBody } = await submitImport(adminPage, modal);
 
     // Should have failure (duplicate type)
@@ -277,11 +277,11 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Enable overwrite mode
-    const switchEl = modal.locator('.ant-switch');
+    const switchEl = modal.getByRole('switch');
     await setSwitchChecked(switchEl, true);
-    expect(await switchEl.isChecked()).toBe(true);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'true');
 
-    await uploadImportFile(importFilePath, adminPage, modal);
+    await uploadImportFile(importFilePath, modal);
     const { responseBody } = await submitImport(adminPage, modal);
 
     // Should succeed with overwrite - type updated, data updated
@@ -319,20 +319,19 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Find the switch
-    const switchEl = modal.locator('.ant-switch');
+    const switchEl = modal.getByRole('switch');
     await expect(switchEl).toBeVisible();
 
     // Initial state should be OFF
-    const initialState = await switchEl.isChecked();
-    expect(initialState).toBe(false);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Toggle ON
     await setSwitchChecked(switchEl, true);
-    expect(await switchEl.isChecked()).toBe(true);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'true');
 
     // Toggle back OFF
     await setSwitchChecked(switchEl, false);
-    expect(await switchEl.isChecked()).toBe(false);
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false');
 
     // Close modal
     await adminPage.keyboard.press('Escape');
@@ -347,7 +346,7 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify confirm button exists
-    const confirmBtn = modal.getByRole('button', { name: /确\s*认/ });
+    const confirmBtn = modal.getByRole('button', { name: /开始导入|Start import/i });
     await expect(confirmBtn).toBeVisible();
 
     // Close modal
@@ -386,7 +385,7 @@ test.describe('TC004 字典管理导入完整流程', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Upload file using file chooser
-    await uploadImportFile(importFilePath, adminPage, modal);
+    await uploadImportFile(importFilePath, modal);
     const { responseBody } = await submitImport(adminPage, modal);
 
     // Should have at least one data failure (nonexistent dict type)

@@ -119,6 +119,26 @@ Core-owned provider factory 声明归属`pluginhost.Declarations.Providers()`。
 
 动态插件通过`plugin.yaml`、WASM 自定义 section、`pluginbridge.Declarations.Routes().Group(...)`、`pluginbridge.Declarations.Jobs().Register(...)`以及嵌入的`protocol`契约表达声明期契约，例如路由、任务、生命周期处理器、后端资源、前端资源、SQL、i18n 资源和`hostServices`。
 
+### 动态插件托管前端
+
+动态插件 UI 是隔离托管的 HTML 文档，不得作为模块导入 React 工作台 DOM。菜单使用工作台内部路由，并绑定`public_assets`声明的当前插件、当前版本 HTML 资源：
+
+```yaml
+menus:
+  - key: plugin:acme-demo:main-entry
+    path: /extension/acme-demo
+    component: system/plugin/dynamic-page
+    query:
+      pluginAccessMode: iframe
+      pluginAssetUrl: /x-assets/acme-demo/v0.1.0/standalone.html
+```
+
+`pluginAccessMode`只接受`iframe`或`new-window`。宿主拒绝`embedded-mount`、`embeddedSrc`、JavaScript 入口、外部 URL、跨插件资源、未声明文件和版本不匹配。iframe sandbox 不包含`allow-same-origin`。
+
+需要访问受保护 API 的 iframe 使用 React 工作台拥有的版本化浏览器`postMessage`桥接。guest 只能提交当前插件的相对 API path。宿主校验 iframe window、nonce、插件 ID、generation、request ID、消息大小、并发、超时和取消，再通过普通 API client 调用`/x/<plugin-id>/api/v1/<relative-path>`。Authorization、语言和租户 header 始终留在宿主，不向 iframe 投影。guest 只接收当前插件的运行时文案和权限。语言、租户、权限、generation、禁用或卸载变化会使旧会话失效。该浏览器桥接与动态后端 guest 使用的 Go/WASI `pluginbridge`不是同一协议。
+
+`new-window`适用于不依赖父窗口受保护 API 桥接的独立托管 UI。页面需要认证 CRUD、附件或其他受保护插件路由时，应使用`iframe`。
+
 ### 运行期能力
 
 运行期能力是在插件业务逻辑执行时可用的 service。

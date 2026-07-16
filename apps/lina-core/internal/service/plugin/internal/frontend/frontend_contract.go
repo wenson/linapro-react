@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	pluginv1 "lina-core/api/plugin/v1"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -21,12 +21,8 @@ import (
 	"lina-core/pkg/plugin/pluginhost"
 )
 
-const (
-	// embeddedJSExtension is the allowed ESM entry extension.
-	embeddedJSExtension = ".js"
-	// embeddedMJSExtension is the allowed ESM module entry extension.
-	embeddedMJSExtension = ".mjs"
-)
+// hostedHTMLExtension is the only supported dynamic hosted-page entry extension.
+const hostedHTMLExtension = ".html"
 
 // ValidateRuntimeFrontendMenuBindings verifies that dynamic plugin menus only
 // reference declared public assets that exist in the plugin's in-memory bundle.
@@ -59,7 +55,7 @@ func (s *serviceImpl) listPluginOwnedMenus(ctx context.Context, pluginID string)
 }
 
 // validateHostedMenuBindings enforces that plugin menus only point at declared
-// hosted public assets that exist and satisfy the embedded-mount contract.
+// hosted public HTML assets that exist and satisfy the isolated-page contract.
 func (s *serviceImpl) validateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error {
 	if manifest == nil || manifest.RuntimeArtifact == nil || len(menus) == 0 {
 		return nil
@@ -71,11 +67,22 @@ func (s *serviceImpl) validateHostedMenuBindings(ctx context.Context, manifest *
 			continue
 		}
 
-		relativeAssetPath, usesHostedAsset, err := s.resolveHostedMenuAssetPath(manifest, menu.Path)
+		queryParams, err := parseMenuQueryParams(menu.QueryParam)
+		if err != nil {
+			return wrapMenuValidationError(menu, err)
+		}
+		assetURL, err := hostedMenuAssetURL(menu, queryParams)
+		if err != nil {
+			return wrapMenuValidationError(menu, err)
+		}
+		relativeAssetPath, usesHostedAsset, err := s.resolveHostedMenuAssetPath(manifest, assetURL)
 		if err != nil {
 			return wrapMenuValidationError(menu, err)
 		}
 		if !usesHostedAsset {
+			if strings.TrimSpace(menu.Component) == pluginhost.DynamicPageComponentPath {
+				return wrapMenuValidationError(menu, gerror.New("dynamic hosted page must declare a current-plugin /x-assets/ HTML URL"))
+			}
 			continue
 		}
 
@@ -96,15 +103,33 @@ func (s *serviceImpl) validateHostedMenuBindings(ctx context.Context, manifest *
 			)
 		}
 
-		queryParams, err := parseMenuQueryParams(menu.QueryParam)
-		if err != nil {
-			return wrapMenuValidationError(menu, err)
-		}
 		if err = validateHostedMenuMode(menu, queryParams, relativeAssetPath); err != nil {
 			return wrapMenuValidationError(menu, err)
 		}
 	}
 	return nil
+}
+
+// hostedMenuAssetURL selects the governed asset source for one menu. Dynamic
+// shell routes use pluginAssetUrl; generic hosted links continue to use path.
+func hostedMenuAssetURL(menu *entity.SysMenu, queryParams map[string]string) (string, error) {
+	if menu == nil {
+		return "", nil
+	}
+	if _, ok := queryParams["embeddedSrc"]; ok {
+		return "", gerror.New("legacy embeddedSrc is not supported")
+	}
+	accessMode := strings.TrimSpace(queryParams[pluginhost.DynamicAccessModeQueryKey])
+	if accessMode == "embedded-mount" {
+		return "", gerror.New("legacy embedded-mount is not supported")
+	}
+	if strings.TrimSpace(menu.Component) != pluginhost.DynamicPageComponentPath {
+		if accessMode != "" || strings.TrimSpace(queryParams[pluginhost.DynamicPluginAssetURLQueryKey]) != "" {
+			return "", gerror.Newf("dynamic hosted query requires component %s", pluginhost.DynamicPageComponentPath)
+		}
+		return menu.Path, nil
+	}
+	return strings.TrimSpace(queryParams[pluginhost.DynamicPluginAssetURLQueryKey]), nil
 }
 
 // resolveHostedMenuAssetPath extracts the public URL-relative asset path when
@@ -178,40 +203,32 @@ func parseMenuQueryParams(rawQuery string) (map[string]string, error) {
 	return queryParams, nil
 }
 
-// validateHostedMenuMode enforces the extra constraints required by embedded
-// mount menus that load runtime ESM entry assets inside the host shell.
+// validateHostedMenuMode enforces isolated iframe/new-window HTML entries and
+// rejects all former host-DOM mounting inputs.
 func validateHostedMenuMode(
 	menu *entity.SysMenu,
 	queryParams map[string]string,
 	relativeAssetPath string,
 ) error {
 	var (
-		componentPath       = strings.TrimSpace(menu.Component)
-		accessMode          = strings.TrimSpace(queryParams[pluginhost.DynamicAccessModeQueryKey])
-		isEmbeddedComponent = componentPath == pluginhost.DynamicPageComponentPath
+		componentPath      = strings.TrimSpace(menu.Component)
+		accessMode         = strings.TrimSpace(queryParams[pluginhost.DynamicAccessModeQueryKey])
+		isDynamicComponent = componentPath == pluginhost.DynamicPageComponentPath
 	)
 
-	if accessMode == pluginhost.DynamicAccessModeEmbeddedMount {
-		if !isEmbeddedComponent {
-			return gerror.Newf("host embedded mount menus must use component %s", pluginhost.DynamicPageComponentPath)
+	if isDynamicComponent {
+		if accessMode != pluginhost.DynamicAccessModeIframe && accessMode != pluginhost.DynamicAccessModeNewWindow {
+			return gerror.New("pluginAccessMode only supports iframe or new-window")
+		}
+		if strings.TrimSpace(queryParams[pluginhost.DynamicPluginAssetURLQueryKey]) == "" {
+			return gerror.New("pluginAssetUrl is required")
 		}
 		if menu.IsFrame != 0 {
-			return gerror.New("host embedded mount menus cannot be declared as external links")
+			return gerror.New("dynamic hosted menus cannot combine pluginAccessMode with is_frame")
 		}
-		extension := strings.ToLower(filepath.Ext(relativeAssetPath))
-		if extension != embeddedJSExtension && extension != embeddedMJSExtension {
-			return gerror.New("host embedded mount entry must point to a .js or .mjs ESM asset")
-		}
-		return nil
 	}
-
-	if isEmbeddedComponent {
-		return gerror.Newf(
-			"hosted asset menus using component %s must declare query_param.%s=%s",
-			pluginhost.DynamicPageComponentPath,
-			pluginhost.DynamicAccessModeQueryKey,
-			pluginhost.DynamicAccessModeEmbeddedMount,
-		)
+	if strings.ToLower(path.Ext(relativeAssetPath)) != hostedHTMLExtension {
+		return gerror.New("hosted frontend entry must point to a .html asset")
 	}
 	return nil
 }

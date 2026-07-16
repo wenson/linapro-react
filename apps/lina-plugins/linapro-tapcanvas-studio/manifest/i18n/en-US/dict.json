@@ -1,0 +1,29 @@
+{
+  "dict": {
+    "tapcanvas_chapter_status": {
+      "approved": {
+        "label": "Approved"
+      },
+      "archived": {
+        "label": "Archived"
+      },
+      "draft": {
+        "label": "Draft"
+      },
+      "locked": {
+        "label": "Locked"
+      },
+      "name": "TapCanvas Chapter Status",
+      "planning": {
+        "label": "Planning"
+      },
+      "producing": {
+        "label": "Producing"
+      },
+      "remark": "TapCanvas chapter workflow status options",
+      "review": {
+        "label": "Review"
+      }
+    }
+  }
+}
