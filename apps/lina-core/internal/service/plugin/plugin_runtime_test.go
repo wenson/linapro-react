@@ -815,13 +815,16 @@ func runtimeRoutePermissionMenus(pluginID string, pluginName string, version str
 		{
 			Key:       "plugin:" + pluginID + ":main-entry",
 			Name:      pluginName,
-			Path:      "/x-assets/" + pluginID + "/" + version + "/mount.js",
+			Path:      "/extension/" + pluginID,
 			Perms:     pluginID + ":view",
 			Icon:      "ant-design:deployment-unit-outlined",
 			Type:      catalog.MenuTypePage.String(),
 			Sort:      -1,
 			Component: "system/plugin/dynamic-page",
-			Query:     map[string]interface{}{"pluginAccessMode": "embedded-mount"},
+			Query: map[string]interface{}{
+				"pluginAccessMode": "iframe",
+				"pluginAssetUrl":   "/x-assets/" + pluginID + "/" + version + "/index.html",
+			},
 		},
 	}
 }

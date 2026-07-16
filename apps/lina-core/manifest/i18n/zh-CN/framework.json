@@ -48,26 +48,23 @@
         }
       },
       "frontend": {
-        "ant-design-vue": {
+        "react": {
+          "description": "管理工作台 UI 运行时"
+        },
+        "semi-design": {
           "description": "UI组件库"
         },
-        "pinia": {
+        "zustand": {
           "description": "状态管理"
         },
-        "tailwindcss": {
-          "description": "原子化CSS框架"
+        "tanstack-query": {
+          "description": "服务端状态和请求缓存"
         },
         "typescript": {
           "description": "类型安全的JavaScript"
         },
-        "vben-5": {
-          "description": "默认管理工作台前端框架"
-        },
         "vite": {
           "description": "前端构建工具"
-        },
-        "vue": {
-          "description": "渐进式JavaScript框架"
         }
       }
     }

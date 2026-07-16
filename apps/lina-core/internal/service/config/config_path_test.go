@@ -61,7 +61,7 @@ func newTestRepoRoot(t *testing.T) string {
 	repoRoot := t.TempDir()
 	for _, dir := range []string{
 		filepath.Join(repoRoot, "apps", "lina-core"),
-		filepath.Join(repoRoot, "apps", "lina-vben"),
+		filepath.Join(repoRoot, "apps", "lina-web"),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("create test repo dir %s: %v", dir, err)

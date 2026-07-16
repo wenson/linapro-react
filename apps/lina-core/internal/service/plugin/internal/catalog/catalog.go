@@ -68,16 +68,17 @@ type sqlAssetCatalog interface {
 	DiscoverMockSQLPaths(rootDir string) []string
 }
 
-// frontendAssetCatalog covers plugin frontend asset path listings (pages and
-// slots) plus the corresponding low-level directory-scan helpers.
+// frontendAssetCatalog preserves release-metadata compatibility without
+// discovering source-plugin UI files. React UI discovery belongs exclusively
+// to apps/lina-web.
 type frontendAssetCatalog interface {
-	// ListFrontendPagePaths returns the frontend page source paths for a source plugin manifest.
+	// ListFrontendPagePaths returns no source UI paths; the web build owns discovery.
 	ListFrontendPagePaths(manifest *Manifest) []string
-	// ListFrontendSlotPaths returns the frontend slot source paths for a source plugin manifest.
+	// ListFrontendSlotPaths returns no source UI paths; the web build owns discovery.
 	ListFrontendSlotPaths(manifest *Manifest) []string
-	// DiscoverPagePaths discovers plugin page source files by directory convention.
+	// DiscoverPagePaths returns no source UI paths; retained for compatibility.
 	DiscoverPagePaths(rootDir string) []string
-	// DiscoverSlotPaths discovers plugin slot source files by directory convention.
+	// DiscoverSlotPaths returns no source UI paths; retained for compatibility.
 	DiscoverSlotPaths(rootDir string) []string
 }
 

@@ -1,5 +1,5 @@
 // This file covers home-path resolution so login redirects prefer stable host
-// pages before runtime-mounted plugin asset entries.
+// pages before isolated dynamic plugin workbench entries.
 
 package user
 
@@ -40,7 +40,7 @@ func TestResolveHomePathPrefersStableHostRoutes(t *testing.T) {
 		},
 		{
 			Name: "动态插件示例",
-			Path: "/x-assets/linapro-demo-dynamic/v0.1.0/mount.js",
+			Path: "/extension/linapro-demo-dynamic",
 			Type: menutype.Menu.String(),
 		},
 	}
@@ -50,18 +50,18 @@ func TestResolveHomePathPrefersStableHostRoutes(t *testing.T) {
 	}
 }
 
-// TestResolveHomePathFallsBackToHostedPluginAssetWhenNeeded verifies hosted
-// plugin assets are still used when no stable host route exists.
-func TestResolveHomePathFallsBackToHostedPluginAssetWhenNeeded(t *testing.T) {
+// TestResolveHomePathFallsBackToDynamicPluginRouteWhenNeeded verifies internal
+// dynamic plugin routes remain eligible when no earlier host route exists.
+func TestResolveHomePathFallsBackToDynamicPluginRouteWhenNeeded(t *testing.T) {
 	items := []*menu.MenuItem{
 		{
 			Name: "动态插件示例",
-			Path: "/x-assets/linapro-demo-dynamic/v0.1.0/mount.js",
+			Path: "/extension/linapro-demo-dynamic",
 			Type: menutype.Menu.String(),
 		},
 	}
 
-	if got := resolveHomePath(items); got != "/x-assets/linapro-demo-dynamic/v0.1.0/mount.js" {
-		t.Fatalf("expected hosted plugin asset fallback, got %s", got)
+	if got := resolveHomePath(items); got != "/extension/linapro-demo-dynamic" {
+		t.Fatalf("expected dynamic plugin route fallback, got %s", got)
 	}
 }

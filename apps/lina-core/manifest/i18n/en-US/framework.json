@@ -48,26 +48,23 @@
         }
       },
       "frontend": {
-        "ant-design-vue": {
+        "react": {
+          "description": "Management workbench UI runtime"
+        },
+        "semi-design": {
           "description": "UI component library"
         },
-        "pinia": {
+        "zustand": {
           "description": "State management"
         },
-        "tailwindcss": {
-          "description": "Utility-first CSS framework"
+        "tanstack-query": {
+          "description": "Server state and request cache"
         },
         "typescript": {
           "description": "Type-safe JavaScript"
         },
-        "vben-5": {
-          "description": "Default admin workspace frontend framework"
-        },
         "vite": {
           "description": "Frontend build tool"
-        },
-        "vue": {
-          "description": "Progressive JavaScript framework"
         }
       }
     }

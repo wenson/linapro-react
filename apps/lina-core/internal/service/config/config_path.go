@@ -103,5 +103,5 @@ func isRepositoryRoot(dir string) bool {
 		return true
 	}
 	return gfile.Exists(filepath.Join(dir, "apps", "lina-core", "go.mod")) &&
-		gfile.Exists(filepath.Join(dir, "apps", "lina-vben", "package.json"))
+		gfile.Exists(filepath.Join(dir, "apps", "lina-web", "package.json"))
 }

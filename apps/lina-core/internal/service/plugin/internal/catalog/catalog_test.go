@@ -1115,11 +1115,11 @@ func TestDiscoverPluginSQLPathsUsesDirectoryConvention(t *testing.T) {
 	}
 }
 
-// TestDiscoverPluginVuePathsUseDirectoryConvention verifies page and slot
-// discovery follows the source-plugin frontend directory convention.
-func TestDiscoverPluginVuePathsUseDirectoryConvention(t *testing.T) {
+// TestSourcePluginUIDiscoveryBelongsToReactWorkbench verifies lina-core does
+// not discover source-plugin UI files from backend directories.
+func TestSourcePluginUIDiscoveryBelongsToReactWorkbench(t *testing.T) {
 	svcs := testutil.NewServices()
-	pluginDir := testutil.CreateTestPluginDir(t, "acme-demo-vue-convention")
+	pluginDir := testutil.CreateTestPluginDir(t, "acme-demo-react-boundary")
 
 	slotDir := filepath.Join(pluginDir, "frontend", "slots", "dashboard.workspace.after")
 	if err := os.MkdirAll(slotDir, 0o755); err != nil {
@@ -1128,13 +1128,13 @@ func TestDiscoverPluginVuePathsUseDirectoryConvention(t *testing.T) {
 	testutil.WriteTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
 
 	pagePaths := svcs.Catalog.DiscoverPagePaths(pluginDir)
-	if len(pagePaths) != 1 || pagePaths[0] != "frontend/pages/main-entry.vue" {
-		t.Fatalf("unexpected page paths: %#v", pagePaths)
+	if len(pagePaths) != 0 {
+		t.Fatalf("expected backend page discovery to be disabled, got: %#v", pagePaths)
 	}
 
 	slotPaths := svcs.Catalog.DiscoverSlotPaths(pluginDir)
-	if len(slotPaths) != 1 || slotPaths[0] != "frontend/slots/dashboard.workspace.after/workspace-card.vue" {
-		t.Fatalf("unexpected slot paths: %#v", slotPaths)
+	if len(slotPaths) != 0 {
+		t.Fatalf("expected backend slot discovery to be disabled, got: %#v", slotPaths)
 	}
 }
 
@@ -1171,8 +1171,8 @@ func TestBuildPluginManifestSnapshotIncludesDirectoryDiscoveredAssets(t *testing
 	}
 
 	for _, expected := range []string{
-		"frontendPageCount: 1",
-		"frontendSlotCount: 1",
+		"frontendPageCount: 0",
+		"frontendSlotCount: 0",
 		"installSqlCount: 1",
 		"menuCount: 1",
 	} {
@@ -1439,11 +1439,11 @@ func TestScanEmbeddedSourcePluginManifestsUsesPluginEmbeddedFiles(t *testing.T) 
 	if target.ManifestPath != "embedded/source-plugins/acme-demo-embedded-manifest/plugin.yaml" {
 		t.Fatalf("unexpected embedded manifest path: %s", target.ManifestPath)
 	}
-	if len(svcs.Catalog.ListFrontendPagePaths(target)) != 1 {
-		t.Fatalf("expected embedded frontend page paths to be discovered")
+	if len(svcs.Catalog.ListFrontendPagePaths(target)) != 0 {
+		t.Fatalf("expected embedded frontend page discovery to remain web-owned")
 	}
-	if len(svcs.Catalog.ListFrontendSlotPaths(target)) != 1 {
-		t.Fatalf("expected embedded frontend slot paths to be discovered")
+	if len(svcs.Catalog.ListFrontendSlotPaths(target)) != 0 {
+		t.Fatalf("expected embedded frontend slot discovery to remain web-owned")
 	}
 }
 
@@ -1695,6 +1695,90 @@ func TestValidateManifestMenusAcceptsCustomTenantParent(t *testing.T) {
 
 	if err := catalog.ValidateManifestMenus(manifest); err != nil {
 		t.Fatalf("expected plugin manifest with custom parent key to be valid, got: %v", err)
+	}
+}
+
+// TestValidateManifestMenusEnforcesDynamicHostedIsolation verifies dynamic
+// plugin menus accept only internal routes plus iframe/new-window HTML metadata.
+func TestValidateManifestMenusEnforcesDynamicHostedIsolation(t *testing.T) {
+	tests := []struct {
+		name          string
+		menu          *catalog.MenuSpec
+		expectedError string
+	}{
+		{
+			name: "iframe",
+			menu: &catalog.MenuSpec{
+				Key:       "plugin:plugin-dev-dynamic-menu:main-entry",
+				Name:      "Dynamic iframe entry",
+				Path:      "/extension/plugin-dev-dynamic-menu",
+				Component: "system/plugin/dynamic-page",
+				Query: map[string]interface{}{
+					"pluginAccessMode": "iframe",
+					"pluginAssetUrl":   "/x-assets/plugin-dev-dynamic-menu/v0.1.0/standalone.html",
+				},
+			},
+		},
+		{
+			name: "legacy mount",
+			menu: &catalog.MenuSpec{
+				Key:        "plugin:plugin-dev-dynamic-menu:main-entry",
+				Name:       "Legacy entry",
+				Path:       "/extension/plugin-dev-dynamic-menu",
+				Component:  "system/plugin/dynamic-page",
+				QueryParam: `{"embeddedSrc":"/x-assets/plugin-dev-dynamic-menu/v0.1.0/mount.js","pluginAccessMode":"embedded-mount"}`,
+			},
+			expectedError: "legacy embedded-mount",
+		},
+		{
+			name: "missing asset URL",
+			menu: &catalog.MenuSpec{
+				Key:       "plugin:plugin-dev-dynamic-menu:main-entry",
+				Name:      "Missing asset entry",
+				Path:      "/extension/plugin-dev-dynamic-menu",
+				Component: "system/plugin/dynamic-page",
+				Query: map[string]interface{}{
+					"pluginAccessMode": "iframe",
+				},
+			},
+			expectedError: "pluginAssetUrl is required",
+		},
+		{
+			name: "hosted path instead of internal route",
+			menu: &catalog.MenuSpec{
+				Key:       "plugin:plugin-dev-dynamic-menu:main-entry",
+				Name:      "Hosted path entry",
+				Path:      "/x-assets/plugin-dev-dynamic-menu/v0.1.0/standalone.html",
+				Component: "system/plugin/dynamic-page",
+				Query: map[string]interface{}{
+					"pluginAccessMode": "new-window",
+					"pluginAssetUrl":   "/x-assets/plugin-dev-dynamic-menu/v0.1.0/standalone.html",
+				},
+			},
+			expectedError: "internal workbench route",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manifest := &catalog.Manifest{
+				ID:      "plugin-dev-dynamic-menu",
+				Name:    "Dynamic Menu Plugin",
+				Version: "v0.1.0",
+				Type:    pluginv1.PluginTypeDynamic.String(),
+				Menus:   []*catalog.MenuSpec{tt.menu},
+			}
+			err := catalog.ValidateManifestMenus(manifest)
+			if tt.expectedError == "" {
+				if err != nil {
+					t.Fatalf("expected valid dynamic menu, got %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.expectedError) {
+				t.Fatalf("expected error containing %q, got %v", tt.expectedError, err)
+			}
+		})
 	}
 }
 

@@ -140,6 +140,26 @@ Source plugins express declaration-time contracts through `pluginhost.Declaratio
 
 Dynamic plugins express declaration-time contracts through `plugin.yaml`, WASM custom sections, `pluginbridge.Declarations.Routes().Group(...)`, `pluginbridge.Declarations.Jobs().Register(...)`, and embedded `protocol` contracts, such as routes, jobs, lifecycle handlers, backend resources, frontend assets, SQL, i18n resources, and `hostServices`.
 
+### Dynamic Hosted Frontends
+
+Dynamic plugin UI is an isolated hosted HTML document. It never runs as an imported module inside the React workbench DOM. A menu entry uses an internal workbench route and binds one current-plugin, current-version HTML asset declared by `public_assets`:
+
+```yaml
+menus:
+  - key: plugin:acme-demo:main-entry
+    path: /extension/acme-demo
+    component: system/plugin/dynamic-page
+    query:
+      pluginAccessMode: iframe
+      pluginAssetUrl: /x-assets/acme-demo/v0.1.0/standalone.html
+```
+
+`pluginAccessMode` accepts only `iframe` or `new-window`. `embedded-mount`, `embeddedSrc`, JavaScript entries, external URLs, cross-plugin assets, undeclared files, and version mismatches are rejected. The iframe sandbox omits `allow-same-origin`.
+
+An iframe that needs protected APIs uses the versioned browser `postMessage` bridge owned by the React workbench. The guest sends only a current-plugin relative API path. The host validates the iframe window, nonce, plugin ID, generation, request ID, sizes, concurrency, timeout, and cancellation, then calls `/x/<plugin-id>/api/v1/<relative-path>` through the normal API client. Authorization, locale, and tenant headers remain in the host and are never projected to the iframe. The guest receives only current-plugin runtime messages and permissions. Locale, tenant, permission, generation, disablement, or uninstall changes invalidate the session. This browser bridge is separate from the Go/WASI `pluginbridge` used by the dynamic backend guest.
+
+`new-window` is for standalone hosted UI that does not require the parent-window protected API bridge. Use `iframe` when the page needs authenticated CRUD, attachments, or other protected plugin routes.
+
 ### Runtime Capabilities
 
 Runtime capabilities are the services available while plugin business logic is executing.

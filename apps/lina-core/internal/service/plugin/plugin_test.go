@@ -11,7 +11,6 @@ import (
 	pluginv1 "lina-core/api/plugin/v1"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -873,9 +872,9 @@ func buildVersionedRuntimeFrontendAssets(marker string) []*catalog.ArtifactFront
 			ContentType:   "text/html; charset=utf-8",
 		},
 		{
-			Path:          "frontend/pages/mount.js",
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("export function mount() { return " + strconv.Quote(marker) + "; }")),
-			ContentType:   "application/javascript",
+			Path:          "frontend/pages/standalone.html",
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>" + marker + " standalone</body></html>")),
+			ContentType:   "text/html; charset=utf-8",
 		},
 	}
 }
