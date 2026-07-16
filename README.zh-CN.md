@@ -6,13 +6,12 @@
 [![LinaPro License](https://img.shields.io/badge/license-apache%202.0-green.svg?style=flat&v=0.5.0)](https://github.com/linaproai/linapro)
 [![LinaPro Is Production Ready](https://img.shields.io/badge/production-ready-blue.svg?style=flat&v=0.5.0)](https://github.com/linaproai/linapro)
 
-[![Vue](https://img.shields.io/badge/Vue-3.x-42b883.svg?v=0.5.0)](https://vuejs.org/)
+[![React](https://img.shields.io/badge/React-19.x-61DAFB.svg?v=0.5.0)](https://react.dev/)
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8.svg?v=0.5.0)](https://golang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?v=0.5.0)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.x-646CFF.svg?v=0.5.0)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4.svg?v=0.5.0)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg?v=0.5.0)](https://vitejs.dev/)
 [![GoFrame](https://img.shields.io/badge/GoFrame-v2-00ADD8.svg?v=0.5.0)](https://goframe.org/)
-[![Ant Design Vue](https://img.shields.io/badge/Ant_Design_Vue-UI-4096FF.svg?v=0.5.0)](https://github.com/vueComponent/ant-design-vue)
+[![Semi Design](https://img.shields.io/badge/Semi_Design-2.x-0064FA.svg?v=0.5.0)](https://semi.design/)
 
 [English](README.md) | 简体中文
 
@@ -20,7 +19,7 @@
 
 # 项目介绍
 
-`LinaPro`是一款**面向可持续交付的`AI`原生全栈框架**，将规范驱动的`AI`研发工作流、全生命周期`AI`技能体系、完整插件运行时与前后端一体化全栈设计融为一体，并内置权限管理、系统配置、任务调度等企业级基础能力，为团队构建起一套完整的`AI`原生交付底座。
+`LinaPro`是一款**面向可持续交付的`AI`原生全栈框架**，将证据驱动的`AI`研发工作流、全生命周期`AI`技能体系、完整插件运行时与前后端一体化全栈设计融为一体，并内置权限管理、系统配置、任务调度等企业级基础能力，为团队构建起一套完整的`AI`原生交付底座。
 
 团队无需从零搭建基础设施，从第一天起就能以`AI`作为主力驱动业务开发和持续交付。
 
@@ -37,12 +36,12 @@
 
 `LinaPro`面向独立开发者、研发团队和企业，提供以下核心能力：
 
-- **AI 原生研发工作流**：内置规范驱动的`AI`研发工作流，对可选但推荐的`OpenSpec`提供良好支持，让`AI`主导分析、设计与实现，每次变更均锚定在增量规范与强制`E2E`测试上，团队专注于方向决策
+- **AI 原生研发工作流**：使用设计文档、冻结 Tasklist、阶段证据、自动化测试和强制审查保持`AI`主导实现可追踪，团队负责方向与关键决策
 - **丰富的 AI 技能体系**：内置十余项覆盖研发全生命周期的专属`AI`技能，涵盖后端开发、前端设计、测试编写、代码审查、性能审计、版本升级等场景，让`AI`在每个具体工作环节都能做出符合框架约束的专业决策
 - **快速业务开发**：开箱即用的管理工作台与丰富的内置模块，显著缩短项目从零到上线的时间
 - **全栈一体化**：前后端统一设计，接口契约、权限模型与设计规范完全对齐，无需独立集成两套框架
 - **完整 API 文档**：自动聚合宿主与所有插件接口，支持在线浏览与调试
-- **插件生态**：双模式插件系统（源码插件 +`WASM`动态插件），任意能力均可通过插件扩展或替换；官方插件以`submodule`形式独立维护，按需引入，不增加主框架负担
+- **插件生态**：双模式插件系统（源码插件 +`WASM`动态插件），任意能力均可通过插件扩展或替换；产品插件统一放在`apps/lina-plugins`，与产品共同版本化，实现原子开发和交付
 - **多租户支持**：框架原生支持多租户能力，提供官方多租户管理插件，未启用时自动回退单租户模式，迁移零成本
 - **企业级治理**：`JWT`认证配合声明式`RBAC`权限体系，内置操作日志、登录日志、会话管理等审计能力
 - **原生分布式**：底层支持分布式锁、键值缓存、水平扩展，集群模式基于`Redis`协调器实现高可用，无需改造业务代码
@@ -51,13 +50,13 @@
 
 ```mermaid
 graph TB
-    subgraph Workflow["AI 研发工作流  openspec/"]
+    subgraph Workflow["AI 研发工作流  docs/"]
         direction LR
-        Explore["🔍 探索"] --> Propose["📋 提案"] --> Implement["⚙️ 实现"] --> Review["🔎 审查"] --> Archive["📦 归档"]
+        Clarify["🔍 澄清"] --> Design["🧭 设计"] --> Plan["📋 冻结 Tasklist"] --> Implement["⚙️ 实现"] --> Verify["✅ 验证"] --> Review["🔎 审查"]
     end
 
-    subgraph Frontend["默认管理工作台  lina-vben"]
-        UI["Vue 3 + Vben5 + Ant Design"]
+    subgraph Frontend["默认管理工作台  apps/lina-web"]
+        UI["React 19 + Semi Design + TypeScript"]
     end
 
     subgraph Host["核心宿主服务  lina-core"]
@@ -83,8 +82,8 @@ graph TB
     DB[("数据存储\nPostgreSQL")]
     Redis[("集群协调\nRedis")]
 
-    Workflow -.->|规范驱动| Frontend
-    Workflow -.->|规范驱动| Host
+    Workflow -.->|证据驱动| Frontend
+    Workflow -.->|证据驱动| Host
     UI -->|HTTP| API
     Plugin -->|编译加载| Source
     Plugin -->|沙箱执行| Dynamic
@@ -119,8 +118,8 @@ graph TB
 |------|------|------|
 | 后端语言 | `Go` | `v1.25.0` |
 | 后端框架 | `GoFrame` | `v2.10.1`，提供路由、`ORM`、配置等全套能力 |
-| 前端框架 | `Vue 3` | 基于`Vben 5`管理台模板 |
-| 前端 UI | `Ant Design Vue` | 企业级 `UI` 组件库 |
-| 构建工具 | `Vite` | 极速前端构建 |
+| 前端框架 | `React 19` | `apps/lina-web`下的唯一宿主工作台 |
+| 前端 UI | `Semi Design 2` | 宿主组件、图标、语言和主题 |
+| 构建工具 | `Vite 7` | React 开发与生产构建 |
 | 数据库 | `PostgreSQL` | 默认数据存储 |
 | 插件运行时 | `WebAssembly` | `tetratelabs/wazero`，支持`WASM`动态插件 |
