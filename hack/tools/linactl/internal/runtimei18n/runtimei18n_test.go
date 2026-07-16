@@ -34,7 +34,7 @@ func TestScanRuntimeI18NFindsHardcodedGoErrors(t *testing.T) {
 
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-vben", "package.json"), "{}\n")
+	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-web", "package.json"), "{}\n")
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-core", "internal", "service", "demo", "demo.go"),
@@ -60,7 +60,7 @@ func TestScanRuntimeI18NFindsExpandedBackendPatterns(t *testing.T) {
 
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-vben", "package.json"), "{}\n")
+	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-web", "package.json"), "{}\n")
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-core", "internal", "service", "demo", "demo.go"),
@@ -113,7 +113,7 @@ func TestScanRuntimeI18NReportsAllowlistAndExcludedStats(t *testing.T) {
 
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-vben", "package.json"), "{}\n")
+	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-web", "package.json"), "{}\n")
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-core", "internal", "service", "demo", "demo.go"),
@@ -161,7 +161,7 @@ func TestValidateRuntimeI18NMessagesReportsMissingKeys(t *testing.T) {
 
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-vben", "package.json"), "{}\n")
+	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-web", "package.json"), "{}\n")
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-core", "manifest", "i18n", "zh-CN", "error.json"),
@@ -190,13 +190,13 @@ func TestValidateFrontendI18NKeysReportsMissingPluginCommonKey(t *testing.T) {
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "locales", "langs", "zh-CN", "pages.json"),
-		"{\"common\":{\"edit\":\"编辑\"}}\n",
+		filepath.Join(repoRoot, "apps", "lina-web", "src", "locales", "zh-CN", "app.json"),
+		"{\"pages\":{\"common\":{\"edit\":\"编辑\"}}}\n",
 	)
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "locales", "langs", "en-US", "pages.json"),
-		"{\"common\":{\"edit\":\"Edit\"}}\n",
+		filepath.Join(repoRoot, "apps", "lina-web", "src", "locales", "en-US", "app.json"),
+		"{\"pages\":{\"common\":{\"edit\":\"Edit\"}}}\n",
 	)
 	mustWriteToolTestFile(
 		t,
@@ -215,8 +215,8 @@ func TestValidateFrontendI18NKeysReportsMissingPluginCommonKey(t *testing.T) {
 	)
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.vue"),
-		"<template>{{ $t('plugin.demo.title') }} {{ $t('pages.common.save') }}</template>\n",
+		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.tsx"),
+		"export function Demo({ t }) { return <>{t('plugin.demo.title')} {t('pages.common.save')}</>; }\n",
 	)
 
 	errors, err := validateFrontendI18NKeyReferences(repoRoot)
@@ -227,8 +227,8 @@ func TestValidateFrontendI18NKeysReportsMissingPluginCommonKey(t *testing.T) {
 		t.Fatalf("expected two locale errors, got %#v", errors)
 	}
 	for _, expected := range []string{
-		"en-US missing frontend key referenced by apps/lina-plugins/demo/frontend/pages/demo.vue:1: pages.common.save",
-		"zh-CN missing frontend key referenced by apps/lina-plugins/demo/frontend/pages/demo.vue:1: pages.common.save",
+		"en-US missing frontend key referenced by apps/lina-plugins/demo/frontend/pages/demo.tsx:1: pages.common.save",
+		"zh-CN missing frontend key referenced by apps/lina-plugins/demo/frontend/pages/demo.tsx:1: pages.common.save",
 	} {
 		found := false
 		for _, item := range errors {
@@ -266,8 +266,8 @@ func TestValidateFrontendI18NKeysAllowsHostSourcePluginKeys(t *testing.T) {
 	)
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "views", "demo.vue"),
-		"<template>{{ $t('plugin.demo.title') }}</template>\n",
+		filepath.Join(repoRoot, "apps", "lina-web", "src", "features", "demo.tsx"),
+		"export function Demo({ host }) { return <>{host.t('plugin.demo.title')}</>; }\n",
 	)
 
 	errors, err := validateFrontendI18NKeyReferences(repoRoot)
@@ -287,13 +287,13 @@ func TestRunFrontendKeysCommandPasses(t *testing.T) {
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "locales", "langs", "zh-CN", "pages.json"),
-		"{\"common\":{\"save\":\"保存\"}}\n",
+		filepath.Join(repoRoot, "apps", "lina-web", "src", "locales", "zh-CN", "app.json"),
+		"{\"pages\":{\"common\":{\"save\":\"保存\"}}}\n",
 	)
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-vben", "apps", "web-antd", "src", "locales", "langs", "en-US", "pages.json"),
-		"{\"common\":{\"save\":\"Save\"}}\n",
+		filepath.Join(repoRoot, "apps", "lina-web", "src", "locales", "en-US", "app.json"),
+		"{\"pages\":{\"common\":{\"save\":\"Save\"}}}\n",
 	)
 	mustWriteToolTestFile(
 		t,
@@ -312,8 +312,8 @@ func TestRunFrontendKeysCommandPasses(t *testing.T) {
 	)
 	mustWriteToolTestFile(
 		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.vue"),
-		"<template>{{ $t('plugin.demo.title') }} {{ $t('pages.common.save') }}</template>\n",
+		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.tsx"),
+		"export function Demo({ t }) { return <>{t('plugin.demo.title')} {t('pages.common.save')}</>; }\n",
 	)
 
 	var out bytes.Buffer
@@ -335,7 +335,7 @@ func TestRunMessagesCommandPasses(t *testing.T) {
 
 	repoRoot := t.TempDir()
 	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-vben", "package.json"), "{}\n")
+	mustWriteToolTestFile(t, filepath.Join(repoRoot, "apps", "lina-web", "package.json"), "{}\n")
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-core", "manifest", "i18n", "zh-CN", "framework.json"),
@@ -360,7 +360,7 @@ func TestRunMessagesCommandPasses(t *testing.T) {
 	}
 }
 
-// TestValidateModuleLevelCallsDetectsTsTopLevel verifies that $t() calls at
+// TestValidateModuleLevelCallsDetectsTsTopLevel verifies that t() calls at
 // TypeScript module top level (outside any function) produce a warning.
 func TestValidateModuleLevelCallsDetectsTsTopLevel(t *testing.T) {
 	t.Parallel()
@@ -384,7 +384,7 @@ func TestValidateModuleLevelCallsDetectsTsTopLevel(t *testing.T) {
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "data.ts"),
-		"import { $t } from '#/locales';\n\nexport const options = [\n  { label: $t('plugin.demo.missing'), value: 1 },\n];\n",
+		"export const options = [\n  { label: t('plugin.demo.missing'), value: 1 },\n];\n",
 	)
 
 	warnings, err := validateModuleLevelFrontendI18NCalls(repoRoot)
@@ -394,12 +394,12 @@ func TestValidateModuleLevelCallsDetectsTsTopLevel(t *testing.T) {
 	if len(warnings) != 1 {
 		t.Fatalf("expected one module-level warning, got %#v", warnings)
 	}
-	if !strings.Contains(warnings[0], "module-level $t()") {
-		t.Fatalf("expected warning about module-level $t(), got %q", warnings[0])
+	if !strings.Contains(warnings[0], "module-level t()") {
+		t.Fatalf("expected warning about module-level t(), got %q", warnings[0])
 	}
 }
 
-// TestValidateModuleLevelCallsIgnoresTsFunctionScope verifies that $t() calls
+// TestValidateModuleLevelCallsIgnoresTsFunctionScope verifies that t() calls
 // inside a function body do not produce warnings.
 func TestValidateModuleLevelCallsIgnoresTsFunctionScope(t *testing.T) {
 	t.Parallel()
@@ -423,7 +423,7 @@ func TestValidateModuleLevelCallsIgnoresTsFunctionScope(t *testing.T) {
 	mustWriteToolTestFile(
 		t,
 		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "data.ts"),
-		"import { $t } from '#/locales';\n\nexport function getOptions() {\n  return [\n    { label: $t('plugin.demo.title'), value: 1 },\n  ];\n}\n",
+		"export function getOptions(t) {\n  return [\n    { label: t('plugin.demo.title'), value: 1 },\n  ];\n}\n",
 	)
 
 	warnings, err := validateModuleLevelFrontendI18NCalls(repoRoot)
@@ -431,115 +431,22 @@ func TestValidateModuleLevelCallsIgnoresTsFunctionScope(t *testing.T) {
 		t.Fatalf("expected validation to run, got error: %v", err)
 	}
 	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings for function-scope $t(), got %#v", warnings)
+		t.Fatalf("expected no warnings for function-scope t(), got %#v", warnings)
 	}
 }
 
-// TestValidateModuleLevelCallsDetectsVueScriptSetupTopLevel verifies that $t()
-// calls at <script setup> top level produce a warning.
-func TestValidateModuleLevelCallsDetectsVueScriptSetupTopLevel(t *testing.T) {
+// TestReactI18NScannersExcludeVueSources verifies the React workbench scanner
+// accepts TypeScript and TSX while deleting the retired Vue parsing path.
+func TestReactI18NScannersExcludeVueSources(t *testing.T) {
 	t.Parallel()
 
-	repoRoot := t.TempDir()
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "plugin.yaml"),
-		"id: demo\ni18n:\n  enabled: true\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "zh-CN", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"common\":{\"yes\":\"是\",\"no\":\"否\"}}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "en-US", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"common\":{\"yes\":\"Yes\",\"no\":\"No\"}}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.vue"),
-		"<script setup lang=\"ts\">\nimport { $t } from '#/locales';\n\nconst options = [\n  { label: $t('plugin.demo.common.yes'), value: 1 },\n  { label: $t('plugin.demo.common.no'), value: 0 },\n];\n</script>\n\n<template><div>{{ $t('plugin.demo.common.yes') }}</div></template>\n",
-	)
-
-	warnings, err := validateModuleLevelFrontendI18NCalls(repoRoot)
-	if err != nil {
-		t.Fatalf("expected validation to run, got error: %v", err)
+	for _, path := range []string{"page.ts", "page.tsx"} {
+		if !isScannableSourceSuffix(path) || !isFrontendI18NKeySourceSuffix(path) {
+			t.Fatalf("expected React source %s to be scannable", path)
+		}
 	}
-	if len(warnings) != 2 {
-		t.Fatalf("expected two module-level warnings (yes + no), got %#v", warnings)
-	}
-}
-
-// TestValidateModuleLevelCallsIgnoresVueTemplate verifies that $t() calls in
-// <template> blocks do not produce warnings.
-func TestValidateModuleLevelCallsIgnoresVueTemplate(t *testing.T) {
-	t.Parallel()
-
-	repoRoot := t.TempDir()
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "plugin.yaml"),
-		"id: demo\ni18n:\n  enabled: true\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "zh-CN", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"title\":\"演示\"}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "en-US", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"title\":\"Demo\"}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.vue"),
-		"<script setup lang=\"ts\">\nimport { $t } from '#/locales';\n\nfunction getTitle() {\n  return $t('plugin.demo.title');\n}\n</script>\n\n<template><div>{{ $t('plugin.demo.title') }}</div></template>\n",
-	)
-
-	warnings, err := validateModuleLevelFrontendI18NCalls(repoRoot)
-	if err != nil {
-		t.Fatalf("expected validation to run, got error: %v", err)
-	}
-	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings for template/function $t(), got %#v", warnings)
-	}
-}
-
-// TestValidateModuleLevelCallsIgnoresVueObjectLiteral verifies that $t() calls
-// inside object literals within <script setup> do not produce warnings.
-func TestValidateModuleLevelCallsIgnoresVueObjectLiteral(t *testing.T) {
-	t.Parallel()
-
-	repoRoot := t.TempDir()
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "plugin.yaml"),
-		"id: demo\ni18n:\n  enabled: true\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "zh-CN", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"title\":\"演示\"}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "manifest", "i18n", "en-US", "plugin.json"),
-		"{\"plugin\":{\"demo\":{\"title\":\"Demo\"}}}\n",
-	)
-	mustWriteToolTestFile(
-		t,
-		filepath.Join(repoRoot, "apps", "lina-plugins", "demo", "frontend", "pages", "demo.vue"),
-		"<script setup lang=\"ts\">\nimport { $t } from '#/locales';\n\nfunction buildSchema() {\n  return [\n    { label: $t('plugin.demo.title'), field: 'title' },\n  ];\n}\n</script>\n",
-	)
-
-	warnings, err := validateModuleLevelFrontendI18NCalls(repoRoot)
-	if err != nil {
-		t.Fatalf("expected validation to run, got error: %v", err)
-	}
-	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings for function-scope object literal $t(), got %#v", warnings)
+	if isScannableSourceSuffix("page.vue") || isFrontendI18NKeySourceSuffix("page.vue") {
+		t.Fatal("Vue files must be excluded from React runtime i18n scanning")
 	}
 }
 

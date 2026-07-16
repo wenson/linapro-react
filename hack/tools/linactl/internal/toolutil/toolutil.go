@@ -82,7 +82,7 @@ func ExecutableName(name string) string {
 
 // ViteCommand returns Vite's project-local JavaScript CLI entrypoint.
 func ViteCommand(root string) string {
-	return filepath.Join(root, "apps", "lina-vben", "node_modules", "vite", "bin", "vite.js")
+	return filepath.Join(root, "apps", "lina-web", "node_modules", "vite", "bin", "vite.js")
 }
 
 // RelativePath renders a path relative to the repository root when possible.

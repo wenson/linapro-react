@@ -68,7 +68,7 @@ func runtimeBuildRepoRootMatches(dir string) bool {
 	if _, err := os.Stat(filepath.Join(dir, "apps", "lina-core", "go.mod")); err != nil {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(dir, "apps", "lina-vben", "package.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, "apps", "lina-web", "package.json")); err != nil {
 		return false
 	}
 	return true

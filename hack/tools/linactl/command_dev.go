@@ -147,7 +147,7 @@ func runDev(ctx context.Context, a *app, input commandInput) error {
 		}
 	}
 	if pluginsEnabled {
-		if _, err = fmt.Fprintln(a.stdout, "Source plugin pages are mounted inside Lina Vben."); err != nil {
+		if _, err = fmt.Fprintln(a.stdout, "Source plugin pages are mounted inside Lina Web."); err != nil {
 			return fmt.Errorf("write plugin entry hint: %w", err)
 		}
 	}

@@ -9,7 +9,6 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -785,7 +784,7 @@ func TestRunEnvSetupInstallsFrontendAndPlaywright(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, ".golangci-lint-version"), "v2.12.2\n")
 	writeFile(t, filepath.Join(root, ".staticcheck-version"), "v0.7.0\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workspace: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, "hack", "tests"), 0o755); err != nil {
@@ -828,8 +827,8 @@ func TestRunEnvSetupInstallsFrontendAndPlaywright(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read captured setup dirs: %v", err)
 	}
-	if !strings.Contains(string(content), filepath.Join(root, "apps", "lina-vben")) {
-		t.Fatalf("env.setup should install frontend deps in apps/lina-vben:\n%s", string(content))
+	if !strings.Contains(string(content), filepath.Join(root, "apps", "lina-web")) {
+		t.Fatalf("env.setup should install frontend deps in apps/lina-web:\n%s", string(content))
 	}
 	if !strings.Contains(string(content), filepath.Join(root, "hack", "tests")) {
 		t.Fatalf("env.setup should install Playwright in hack/tests:\n%s", string(content))
@@ -845,7 +844,7 @@ func TestRunEnvSetupInstallsGoLintToolsFirst(t *testing.T) {
 	staticcheckBinary := filepath.Join(gopath, "bin", toolutil.ExecutableName("staticcheck"))
 	writeFile(t, filepath.Join(root, ".golangci-lint-version"), "v2.12.2\n")
 	writeFile(t, filepath.Join(root, ".staticcheck-version"), "v0.7.0\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workspace: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, "hack", "tests"), 0o755); err != nil {
@@ -1155,8 +1154,8 @@ func TestRunBuildDirBuildsHostFrontendOnly(t *testing.T) {
 	root := t.TempDir()
 	writeBuildFixture(t, root)
 
-	calls := runBuildWithCapturedCommands(t, root, nil, commandInput{Params: map[string]string{
-		"dir": "apps/lina-vben",
+	calls := runBuildWithCapturedCommands(t, root, []string{}, commandInput{Params: map[string]string{
+		"dir": "apps/lina-web",
 	}})
 
 	if len(calls) != 1 {
@@ -1166,11 +1165,21 @@ func TestRunBuildDirBuildsHostFrontendOnly(t *testing.T) {
 	if call.name != "pnpm" || len(call.args) < 2 || call.args[0] != "run" || call.args[1] != "build" {
 		t.Fatalf("unexpected frontend build command: %#v", call)
 	}
-	if call.cmd.Dir != filepath.Join(root, "apps", "lina-vben") {
+	if call.cmd.Dir != filepath.Join(root, "apps", "lina-web") {
 		t.Fatalf("frontend build dir mismatch: %q", call.cmd.Dir)
+	}
+	if got := toolutil.EnvValue(call.cmd.Env, "LINA_WEB_BASE_PATH"); got != defaultHostFrontendBasePath {
+		t.Fatalf("frontend build base path mismatch: got %q want %q", got, defaultHostFrontendBasePath)
 	}
 	if !fileutil.FileExists(filepath.Join(root, "apps", "lina-core", "internal", "packed", "public", "index.html")) {
 		t.Fatalf("host frontend build did not refresh packed public assets")
+	}
+}
+
+func TestHostFrontendBuildEnvPreservesExplicitBasePath(t *testing.T) {
+	env := hostFrontendBuildEnv([]string{"LINA_WEB_BASE_PATH=/console"})
+	if got := toolutil.EnvValue(env, "LINA_WEB_BASE_PATH"); got != "/console" {
+		t.Fatalf("explicit frontend build base path changed: got %q want %q", got, "/console")
 	}
 }
 
@@ -1185,7 +1194,7 @@ func TestRunBuildDirBuildsHostBackendWithPreparedAssets(t *testing.T) {
 	if len(calls) != 2 {
 		t.Fatalf("expected frontend and backend build calls, got %#v", calls)
 	}
-	if calls[0].name != "pnpm" || calls[0].cmd.Dir != filepath.Join(root, "apps", "lina-vben") {
+	if calls[0].name != "pnpm" || calls[0].cmd.Dir != filepath.Join(root, "apps", "lina-web") {
 		t.Fatalf("expected frontend build first, got %#v", calls[0])
 	}
 	if calls[1].name != "go" || len(calls[1].args) < 1 || calls[1].args[0] != "build" || calls[1].cmd.Dir != filepath.Join(root, "apps", "lina-core") {
@@ -1551,6 +1560,29 @@ func TestExecutableNameAddsWindowsExtensionOnlyOnWindows(t *testing.T) {
 	}
 }
 
+// TestReactFrontendToolPaths guards the default dependency, Vite, process,
+// PID, log, and working-directory paths used across supported platforms.
+func TestReactFrontendToolPaths(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join(string(filepath.Separator), "workspace", "lina-tapcanvas")
+	expectedVite := filepath.Join(root, "apps", "lina-web", "node_modules", "vite", "bin", "vite.js")
+	if got := toolutil.ViteCommand(root); got != expectedVite {
+		t.Fatalf("unexpected Vite command path: got %q expected %q", got, expectedVite)
+	}
+	services := devservice.Services(root, defaultBackendPort, defaultFrontendPort)
+	if len(services) != 2 {
+		t.Fatalf("expected backend and frontend service definitions, got %#v", services)
+	}
+	frontend := services[1]
+	if frontend.DisplayName != "Lina Web" || frontend.WorkDir != filepath.Join(root, "apps", "lina-web") {
+		t.Fatalf("unexpected React frontend service definition: %#v", frontend)
+	}
+	if frontend.PIDPath != filepath.Join(root, "temp", "pids", "lina-web.pid") || frontend.LogPath != filepath.Join(root, "temp", "lina-web.log") {
+		t.Fatalf("unexpected React frontend process paths: %#v", frontend)
+	}
+}
+
 func TestPrintStatusTableIncludesDevelopmentServiceDetails(t *testing.T) {
 	var stdout bytes.Buffer
 	err := devservice.PrintStatusTable(&stdout, []devservice.StatusRow{
@@ -1563,12 +1595,12 @@ func TestPrintStatusTableIncludesDevelopmentServiceDetails(t *testing.T) {
 			LogFile: "temp/lina-core.log",
 		},
 		{
-			Entry:   "Lina Vben",
+			Entry:   "Lina Web",
 			Status:  "stopped",
 			URL:     "http://127.0.0.1:5666/",
 			PID:     "-",
-			PIDFile: "temp/pids/lina-vben.pid",
-			LogFile: "temp/lina-vben.log",
+			PIDFile: "temp/pids/lina-web.pid",
+			LogFile: "temp/lina-web.log",
 		},
 	})
 	if err != nil {
@@ -1580,11 +1612,11 @@ func TestPrintStatusTableIncludesDevelopmentServiceDetails(t *testing.T) {
 		"+",
 		"| Entry",
 		"| Lina Core",
-		"| Lina Vben",
+		"| Lina Web",
 		"| running",
 		"| stopped",
 		"temp/pids/lina-core.pid",
-		"temp/lina-vben.log",
+		"temp/lina-web.log",
 	} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("expected status table to contain %q, got:\n%s", expected, output)
@@ -1597,7 +1629,7 @@ func TestPrintStatusTableIncludesDevelopmentServiceDetails(t *testing.T) {
 func TestRunI18nCheckRunsBothChecksWhenScanFails(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "package.json"), "{}\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "package.json"), "{}\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "internal", "service", "demo", "demo.go"), "package demo\n\nfunc f() error { return errors.New(\"中文错误\") }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "zh-CN", "framework.json"), "{\"framework\":{\"name\":\"LinaPro\"}}\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{\"framework\":{\"name\":\"LinaPro\"}}\n")
@@ -1627,7 +1659,7 @@ func TestRunI18nCheckRunsBothChecksWhenScanFails(t *testing.T) {
 func TestRunI18nCheckUsesConsolidatedAllowlist(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "go.mod"), "module lina-core\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "package.json"), "{}\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "package.json"), "{}\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "internal", "service", "demo", "demo.go"), "package demo\n\nfunc f() error { return errors.New(\"中文错误\") }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "zh-CN", "framework.json"), "{\"framework\":{\"name\":\"LinaPro\"}}\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{\"framework\":{\"name\":\"LinaPro\"}}\n")
@@ -1750,11 +1782,11 @@ func TestRunDevRejectsOccupiedPort(t *testing.T) {
 	backendAddress := fmt.Sprintf("server:\n  address: \":%d\"\n", defaultBackendPort)
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), backendAddress)
 	viteConfig := fmt.Sprintf("proxy: { '/api': { target: 'http://localhost:%d' } }\n", defaultBackendPort)
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), viteConfig)
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), viteConfig)
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -1790,11 +1822,11 @@ func TestRunDevWaitsForManagedServicePortsToRelease(t *testing.T) {
 	writeFile(t, filepath.Join(root, "go.work"), "go 1.25.0\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.template.yaml"), "template: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), "server:\n  address: \":9120\"\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -1867,11 +1899,11 @@ func TestRunDevOnlyWaitsForStoppedManagedPorts(t *testing.T) {
 	writeFile(t, filepath.Join(root, "go.work"), "go 1.25.0\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.template.yaml"), "template: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), "server:\n  address: \":9120\"\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -1935,11 +1967,11 @@ func TestRunDevStopsCurrentProjectFrontendPortOccupant(t *testing.T) {
 	writeFile(t, filepath.Join(root, "go.work"), "go 1.25.0\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.template.yaml"), "template: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), "server:\n  address: \":9120\"\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -1967,11 +1999,11 @@ func TestRunDevStopsCurrentProjectFrontendPortOccupant(t *testing.T) {
 				PID: 43210,
 				Args: []string{
 					"node",
-					filepath.Join(root, "apps", "lina-vben", "node_modules", ".bin", "..", "vite", "bin", "vite.js"),
+					filepath.Join(root, "apps", "lina-web", "node_modules", ".bin", "..", "vite", "bin", "vite.js"),
 					"--mode",
 					"development",
 				},
-				CWD: filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"),
+				CWD: filepath.Join(root, "apps", "lina-web"),
 			},
 		}, nil
 	}
@@ -2006,11 +2038,11 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 	// supplied backend port. The test owns minimal fixtures aligned to 9120
 	// so the test stays self-contained and order independent.
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), "server:\n  address: \":9120\"\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -2063,7 +2095,7 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 	}
 	for _, path := range []string{
 		filepath.Join(root, "temp", "pids", "lina-core.pid"),
-		filepath.Join(root, "temp", "pids", "lina-vben.pid"),
+		filepath.Join(root, "temp", "pids", "lina-web.pid"),
 	} {
 		pid := devservice.ReadPID(path)
 		if pid == 0 {
@@ -2083,7 +2115,7 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 	output := stdout.String()
 	for _, expected := range []string{
 		"Lina Core is ready: http://127.0.0.1:9120/",
-		"Lina Vben is ready: http://127.0.0.1:5666/",
+		"Lina Web is ready: http://127.0.0.1:5666/",
 	} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("expected readiness output to contain %q, got:\n%s", expected, output)
@@ -2097,9 +2129,9 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 	for _, expected := range []string{
 		"| Entry",
 		"| Lina Core",
-		"| Lina Vben",
+		"| Lina Web",
 		"temp/pids/lina-core.pid",
-		"temp/lina-vben.log",
+		"temp/lina-web.log",
 	} {
 		if !strings.Contains(finalOutput, expected) {
 			t.Fatalf("expected final status output to contain %q, got:\n%s", expected, finalOutput)
@@ -2117,14 +2149,14 @@ func TestRunDevPassesRepositoryWasmOutputWhenPluginsEnabled(t *testing.T) {
 	// Self-contained fixtures aligned to defaultBackendPort so portcheck.Verify
 	// passes inside the test sandbox.
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.yaml"), "server:\n  address: \":9120\"\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "vite.config.mts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "vite.config.ts"), "proxy: { '/api': { target: 'http://localhost:9120' } }\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "metadata: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "select 1;\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "i18n", "en-US", "framework.json"), "{}\n")
 	writeFile(t, filepath.Join(pluginRoot, "go.mod"), "module lina-plugins\n")
 	writeFile(t, filepath.Join(pluginRoot, "linapro-demo-dynamic", "go.mod"), "module linapro-demo-dynamic\n")
 	writeDynamicPluginManifest(t, filepath.Join(pluginRoot, "linapro-demo-dynamic"), "linapro-demo-dynamic")
-	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-vben", "apps", "web-antd"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "apps", "lina-web"), 0o755); err != nil {
 		t.Fatalf("mkdir frontend workdir: %v", err)
 	}
 	writeFrontendDependencySentinel(t, root)
@@ -2154,7 +2186,7 @@ func TestRunDevPassesRepositoryWasmOutputWhenPluginsEnabled(t *testing.T) {
 	}
 	for _, path := range []string{
 		filepath.Join(root, "temp", "pids", "lina-core.pid"),
-		filepath.Join(root, "temp", "pids", "lina-vben.pid"),
+		filepath.Join(root, "temp", "pids", "lina-web.pid"),
 	} {
 		pid := devservice.ReadPID(path)
 		if pid > 0 {
@@ -2169,7 +2201,7 @@ func TestRunDevPassesRepositoryWasmOutputWhenPluginsEnabled(t *testing.T) {
 	if !fileutil.FileExists(filepath.Join(expected, "linapro-demo-dynamic.wasm")) {
 		t.Fatalf("expected dev wasm artifact under %s", expected)
 	}
-	if !strings.Contains(stdout.String(), "Source plugin pages are mounted inside Lina Vben.") {
+	if !strings.Contains(stdout.String(), "Source plugin pages are mounted inside Lina Web.") {
 		t.Fatalf("expected plugin entry hint, got:\n%s", stdout.String())
 	}
 }
@@ -3300,8 +3332,8 @@ func TestDiscoverGoModuleDirsSkipsGeneratedAndDependencyDirs(t *testing.T) {
 	writeFile(t, filepath.Join(root, "hack", "tools", "linactl", "go.mod"), "module linactl\n")
 	writeFile(t, filepath.Join(root, "temp", "clone", "go.mod"), "module temp-clone\n")
 	writeFile(t, filepath.Join(root, ".tmp", "spike", "go.mod"), "module spike\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "node_modules", "dep", "go.mod"), "module dep\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "dist", "go.mod"), "module dist\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "node_modules", "dep", "go.mod"), "module dep\n")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "dist", "go.mod"), "module dist\n")
 
 	modules, err := discoverGoModuleDirs(root)
 	if err != nil {
@@ -3657,44 +3689,44 @@ func TestHostOnlyArtifactSmokeUsesSystemInfoReadiness(t *testing.T) {
 	}
 }
 
-// TestFrontendTurboAllowsSourcePluginBuildEnv guards plugin-full frontend page discovery.
-func TestFrontendTurboAllowsSourcePluginBuildEnv(t *testing.T) {
+// TestFrontendViteLoadsSourcePluginRegistry guards React source-plugin page discovery.
+func TestFrontendViteLoadsSourcePluginRegistry(t *testing.T) {
 	root, err := fileutil.DiscoverRepoRoot()
 	if err != nil {
 		t.Fatalf("discover repo root: %v", err)
 	}
-	content, err := os.ReadFile(filepath.Join(root, "apps", "lina-vben", "turbo.json"))
+	viteContent, err := os.ReadFile(filepath.Join(root, "apps", "lina-web", "vite.config.ts"))
 	if err != nil {
-		t.Fatalf("read frontend turbo config: %v", err)
+		t.Fatalf("read React frontend Vite config: %v", err)
 	}
-
-	var cfg struct {
-		GlobalEnv []string `json:"globalEnv"`
+	registryContent, err := os.ReadFile(filepath.Join(root, "apps", "lina-web", "build", "plugin-ui-registry.ts"))
+	if err != nil {
+		t.Fatalf("read React plugin UI registry: %v", err)
 	}
-	if err = json.Unmarshal(content, &cfg); err != nil {
-		t.Fatalf("parse frontend turbo config: %v", err)
+	if !strings.Contains(string(viteContent), "createPluginUIRegistryPlugin()") {
+		t.Fatal("React Vite config must load the source-plugin UI registry")
 	}
-
-	if !containsString(cfg.GlobalEnv, plugins.SourcePluginsEnvKey) {
-		t.Fatalf("frontend turbo globalEnv must include %s for plugin-full page discovery, got %#v", plugins.SourcePluginsEnvKey, cfg.GlobalEnv)
+	if !strings.Contains(string(registryContent), `new URL("../../lina-plugins", import.meta.url)`) {
+		t.Fatal("React plugin UI registry must discover manifests from apps/lina-plugins")
 	}
 }
 
-// TestFrontendTailwindScansSourcePluginPages guards plugin-full frontend page styling.
-func TestFrontendTailwindScansSourcePluginPages(t *testing.T) {
+// TestFrontendViteDeduplicatesSharedReactRuntime guards the single React
+// runtime required by the host workbench and source-plugin pages.
+func TestFrontendViteDeduplicatesSharedReactRuntime(t *testing.T) {
 	root, err := fileutil.DiscoverRepoRoot()
 	if err != nil {
 		t.Fatalf("discover repo root: %v", err)
 	}
-	globalCSSPath := filepath.Join(root, "apps", "lina-vben", "packages", "@core", "base", "design", "src", "css", "global.css")
-	content, err := os.ReadFile(globalCSSPath)
+	content, err := os.ReadFile(filepath.Join(root, "apps", "lina-web", "vite.config.ts"))
 	if err != nil {
-		t.Fatalf("read frontend global CSS: %v", err)
+		t.Fatalf("read React frontend Vite config: %v", err)
 	}
-
-	const sourcePluginFrontendSource = "@source '../../../../../../../lina-plugins/';"
-	if !strings.Contains(string(content), sourcePluginFrontendSource) {
-		t.Fatalf("frontend Tailwind sources must include %s for plugin-full page styles", sourcePluginFrontendSource)
+	text := string(content)
+	for _, dependency := range []string{"react", "react-dom", "react-router", "react-router-dom", "@tanstack/react-query"} {
+		if !strings.Contains(text, fmt.Sprintf("\"%s\"", dependency)) {
+			t.Fatalf("React Vite dedupe configuration must include %s", dependency)
+		}
 	}
 }
 
@@ -4611,7 +4643,7 @@ func writeBuildFixture(t *testing.T, root string) {
 	t.Helper()
 	writeFile(t, filepath.Join(root, "go.work"), "go 1.25.0\n\nuse ./apps/lina-core\n")
 	writeFile(t, filepath.Join(root, "hack", "config.yaml"), "build:\n  platforms:\n    - auto\n")
-	writeFile(t, filepath.Join(root, "apps", "lina-vben", "apps", "web-antd", "dist", "index.html"), "host")
+	writeFile(t, filepath.Join(root, "apps", "lina-web", "dist", "index.html"), "host")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "config.template.yaml"), "template: true\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "config", "metadata.yaml"), "framework:\n  version: test\n")
 	writeFile(t, filepath.Join(root, "apps", "lina-core", "manifest", "sql", "001.sql"), "-- sql\n")

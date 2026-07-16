@@ -86,7 +86,7 @@ In PowerShell, run it with an explicit current-directory prefix:
 
 When `plugins` is omitted, build and dev commands enable plugin-full mode if `apps/lina-plugins` contains plugin manifests. Plugin-full mode generates or refreshes ignored `temp/go.work.plugins` from the host-only root `go.work`, then resolves source-plugin Go modules through `GOWORK`.
 
-`linactl build` without `dir` builds the host framework backend, the default admin workspace frontend, host manifest assets, and all enabled official plugins. Use `dir=<path>` for a cross-platform targeted build from the repository root or through `make.cmd`, for example `dir=apps/lina-vben`, `dir=apps/lina-core`, `dir=apps/lina-plugins/<plugin-id>`, or any directory that owns `hack/config.yaml`.
+`linactl build` without `dir` builds the host framework backend, the default admin workspace frontend, host manifest assets, and all enabled official plugins. Use `dir=<path>` for a cross-platform targeted build from the repository root or through `make.cmd`, for example `dir=apps/lina-web`, `dir=apps/lina-core`, `dir=apps/lina-plugins/<plugin-id>`, or any directory that owns `hack/config.yaml`.
 
 Target directories can keep custom commands in their own `hack/config.yaml` under the matching command section. `linactl build dir=<path>` and `linactl dev dir=<path>` execute `build.commands`; `linactl stop dir=<path>` executes `stop.commands`; `linactl status dir=<path>` executes `status.commands`. Commands run from the selected directory. `$(TARGET_DIR)` and `$(BUILD_DIR)` both expand to the selected directory, and `$(REPO_ROOT)` expands to the repository root:
 
