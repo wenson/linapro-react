@@ -45,16 +45,16 @@
 
 - 新增或修改仓库内技术文档、目录级说明文档、`README.md`或`README.zh-CN.md`
 - 新增目录说明文档、变更 Markdown 格式、链接、表格、代码块或图示
-- 修改 OpenSpec 文档语言、说明文档镜像关系或文档治理规则
+- 修改说明文档镜像关系、阶段执行记录或文档治理规则
 
 # 开发流程规范
 
-开发流程规范细则的唯一事实来源为`.agents/rules/openspec.md`，以下任一场景命中时，必须在实施、反馈修复、审查或归档前读取并严格遵守该规则：
+产品开发流程规范细则的唯一事实来源为`.agents/rules/workflow.md`。`lina-tapcanvas`不使用 OpenSpec，继承自上游的 OpenSpec 文件和工具不得作为产品执行或交付门禁。以下任一场景命中时，必须在实施、反馈修复或审查前读取并严格遵守该规则：
 
-- 创建、修改、执行或归档 OpenSpec 变更
-- 编写或更新`proposal.md`、`design.md`、`tasks.md`或`specs/`增量规范
+- 编写或更新总体设计、专项设计、冻结 Tasklist 或阶段执行记录
+- 执行多步骤实现计划、更新任务状态或阶段验收
 - 处理用户反馈、缺陷、改进点或治理类问题
-- 执行`/opsx:explore`、`/opsx:propose`、`/opsx:apply`、`/opsx:archive`、`lina-feedback`或`lina-review`
+- 执行代码、文档、测试、规范合规或交付审查
 
 
 # 架构设计规范

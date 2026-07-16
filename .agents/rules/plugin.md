@@ -9,9 +9,32 @@
 - **使用源码插件还是动态插件**：源码插件以源码形式产出，随宿主编译和发布；动态插件以`WASM`形式产出，运行时加载，用户不可见源码。
 - **是否随框架共同编译和发布**：以便确定分发模式`distribution`是`managed`还是`builtin`。
 
+## 插件 UI 集成边界
+
+### 源码插件 React UI
+
+- 源码插件通过`frontend/plugin-ui.ts`贡献 React 页面和插槽，页面与插槽使用显式 lazy loader，不得依赖运行时字符串 import。
+- 插件页面和插槽只能从`@linapro/plugin-ui`稳定导入面消费宿主公开类型、hooks 和上下文，不得导入宿主私有`#/*`、`@vben/*`或`apps/lina-web/src/*`。
+- 官方源码插件 UI 必须使用 React，不得引入`vue`、`vue-router`、`ant-design-vue`、`antd`或`@ant-design/icons`。
+- `apps/lina-web`在构建期扫描并验证`frontend/plugin-ui.ts`，负责把页面 key 和 slot key 投影为 React 注册表。`lina-core`不扫描`.tsx`、不解析 React 页面 key，也不感知 Semi Design。
+- 源码插件必须复用宿主 React 单例，不得安装或打包第二份 React 主版本。
+- 插件样式必须限制在自身根节点，不得覆盖`body`、`.semi-*`或宿主 token。
+
+### 动态插件隔离 UI
+
+- 动态插件页面只允许`iframe`或`new-window`两种访问模式，统一由`system/plugin/dynamic-page`承载工作台入口。
+- 菜单只接收后端治理后的`pluginAccessMode`和`pluginAssetUrl`。`pluginAssetUrl`必须指向当前插件、当前版本、已由`public_assets`授权的同源`/x-assets/` HTML 文件。
+- 宿主不得下载动态插件脚本后执行动态 import，不得把动态插件框架、组件或样式挂载到宿主 DOM。
+- iframe 必须使用 sandbox，允许脚本执行但不得加入`allow-same-origin`。绝对 URL、协议相对 URL、路径逃逸、非 HTML 和其他插件资源必须拒绝。
+- 需要受保护 API 的 iframe 只能使用宿主提供的版本化受限`postMessage`桥接。桥接必须验证`contentWindow`、nonce、request ID、插件 ID和 generation，并限制消息大小、并发、文件大小和超时。
+- 桥接只代理当前插件的相对 API path，拒绝绝对 URL、`..`、宿主`/api`、其他`/x/{plugin}`和`/x-assets`请求。
+- 宿主代理请求时可以附加当前认证、语言和租户上下文，但不得向 iframe、日志或错误响应暴露 LinaPro Token。
+- 语言、租户、权限、generation、卸载或禁用状态变化时，旧桥接会话必须失效并重新握手。
+- 旧`embedded-mount`和`embeddedSrc`不属于支持契约，清单校验和宿主路由必须明确拒绝。
+
 ## 插件通用资源要求
 
-插件ID命名规范：`<author>-<domain>-<capability>` 
+插件ID命名规范：`<author>-<domain>-<capability>`
 - `<author>`: 插件的作者或组织名称，建议使用小写字母和数字的组合，长度不超过 `20` 字符。
 - `<domain>`: 插件所属的功能领域或业务域，建议使用小写字母和数字的组合，长度不超过 `20` 字符。
 - `<capability>`: 插件提供的具体能力或功能，建议使用小写字母和数字的组合，长度不超过 `20` 字符。
@@ -34,6 +57,7 @@ apps/lina-plugins/<plugin-id>/
 │   ├── pkg/                         # 非标准目录，不承载跨插件领域能力入口
 │   └── plugin.go                    # 插件注册入口
 ├── frontend/                        # 插件前端资源
+│   ├── plugin-ui.ts                 # 源码插件 React 页面与插槽注册入口
 │   ├── pages/                       # 插件页面
 │   └── slots/                       # 插槽页面，可选
 ├── hack/                            # 插件自身脚本和工具
