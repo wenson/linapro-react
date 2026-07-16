@@ -1,0 +1,61 @@
+{
+  "plugin.linapro-tenant-core.name": "Multi Tenant",
+  "plugin.linapro-tenant-core.description": "Tenant management, memberships, built-in resolver policy, and lifecycle governance.",
+  "plugin.linapro-tenant-core.uninstall_blocked.tenants_exist": "Tenants exist. Delete tenants before uninstalling the linapro-tenant-core plugin.",
+  "plugin.linapro-tenant-core.disable_blocked.tenants_exist": "Tenants exist. Delete tenants before disabling the linapro-tenant-core plugin.",
+  "plugin.linapro-tenant-core.tenant_delete_blocked.resources_exist": "The tenant still has protected resources.",
+  "plugin": {
+    "linapro-tenant-core": {
+      "empty": {
+        "plugins": "No tenant-managed plugins",
+        "selectTenant": "Select a tenant before managing tenant plugins"
+      },
+      "fields": {
+        "code": "Tenant Code",
+        "name": "Tenant Name"
+      },
+      "impersonation": {
+        "banner": "Acting as platform administrator for tenant {{tenant}}",
+        "exit": "Exit"
+      },
+      "messages": {
+        "codeRule": "Tenant code must be 2-32 lowercase letters, numbers, or hyphens",
+        "deleteSelectedConfirm": "Delete {{count}} selected tenants?",
+        "deleteTenantConfirm": "Delete tenant {{name}}?",
+        "nameRequired": "Enter a tenant name",
+        "saveFailed": "Failed to save the tenant",
+        "statusUpdated": "Tenant status updated"
+      },
+      "plugin": {
+        "fields": {
+          "description": "Description",
+          "id": "Plugin ID",
+          "name": "Plugin Name"
+        },
+        "installMode": "Install Mode",
+        "installModes": {
+          "global": "Global",
+          "tenant_scoped": "Tenant Scoped"
+        },
+        "tableTitle": "Tenant Plugins"
+      },
+      "status": {
+        "active": "Active",
+        "deleted": "Deleted",
+        "suspended": "Suspended",
+        "unknown": "Unknown"
+      },
+      "tenant": {
+        "actions": {
+          "create": "Create Tenant",
+          "edit": "Edit Tenant",
+          "impersonate": "Impersonate"
+        },
+        "tooltips": {
+          "impersonate": "Act in this tenant as platform admin"
+        },
+        "tableTitle": "Tenants"
+      }
+    }
+  }
+}

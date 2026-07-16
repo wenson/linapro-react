@@ -1,0 +1,62 @@
+{
+  "plugin": {
+    "linapro-content-notice": {
+      "common": {
+        "deleteConfirm": "Delete this notice?",
+        "preview": "Preview"
+      },
+      "description": "Official source plugin for notice and announcement management.",
+      "drawer": {
+        "createTitle": "Create Notice",
+        "editTitle": "Edit Notice"
+      },
+      "editor": {
+        "image": "Image",
+        "link": "Link",
+        "linkPrompt": "Enter a URL"
+      },
+      "fields": {
+        "attachments": "Attachments",
+        "content": "Content",
+        "createdBy": "Created By",
+        "status": "Status",
+        "title": "Notice Title",
+        "type": "Notice Type"
+      },
+      "messages": {
+        "deleteSelectedConfirm": "Delete the selected {count} notice(s)?"
+      },
+      "name": "Content - Notices",
+      "placeholders": {
+        "title": "Please enter a notice title"
+      },
+      "preview": {
+        "title": "Notice Preview"
+      },
+      "status": {
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "tableTitle": "Notice List",
+      "upload": {
+        "failed": "File upload failed",
+        "hint": "Drag files here or click to upload, up to 5 files and 10 MB each",
+        "tooLarge": "Each attachment must be no larger than 10 MB"
+      },
+      "validation": {
+        "content": "Please enter the notice content",
+        "status": "Please select a status",
+        "title": "Please enter a notice title",
+        "type": "Please select a notice type"
+      },
+      "lifecycleGuard": {
+        "uninstall_blocked": {
+          "published_notices_exist": "Published tenant notices still exist. Archive or delete them before uninstalling."
+        },
+        "disable_blocked": {
+          "pending_notices_exist": "Pending tenant notices still require processing before this plugin can be disabled."
+        }
+      }
+    }
+  }
+}

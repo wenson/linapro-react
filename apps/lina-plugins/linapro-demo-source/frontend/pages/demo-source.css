@@ -1,0 +1,9 @@
+.demo-source-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px; }
+.demo-source-search { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px; }
+.demo-source-search > * { margin-bottom: 0; min-width: 220px; }
+.demo-source-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.demo-source-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.demo-source-field-label { display: block; font-weight: 600; margin: 16px 0 8px; }
+.demo-source-upload-section { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.demo-source-existing-attachment { background: var(--semi-color-fill-0); border: 1px dashed var(--semi-color-border); border-radius: var(--semi-border-radius-medium); color: var(--semi-color-text-2); padding: 10px 12px; }
+@media (max-width: 767px) { .demo-source-page { padding: 12px; } .demo-source-search, .demo-source-search > * { width: 100%; } }

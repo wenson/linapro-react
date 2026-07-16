@@ -1,0 +1,11 @@
+.org-core-page { display: grid; gap: 16px; }
+.org-core-page .org-core-search { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px 16px; }
+.org-core-page .org-core-search > * { margin: 0; min-width: 180px; }
+.org-core-page .org-core-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.org-core-page .org-core-post-layout { display: grid; gap: 16px; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); }
+.org-core-page .org-core-tree { min-width: 0; }
+.org-core-page .org-core-post-main { display: grid; gap: 16px; min-width: 0; }
+.org-core-dept-sheet .org-core-drawer-form, .org-core-post-sheet .org-core-drawer-form { display: grid; gap: 0 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.org-core-dept-sheet .org-core-drawer-form > :last-child, .org-core-post-sheet .org-core-drawer-form > :last-child { justify-self: start; }
+@media (max-width: 960px) { .org-core-page .org-core-post-layout { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .org-core-page .org-core-search > * { width: 100%; } .org-core-page .org-core-toolbar { justify-content: flex-start; } .org-core-dept-sheet .org-core-drawer-form, .org-core-post-sheet .org-core-drawer-form { grid-template-columns: 1fr; } }

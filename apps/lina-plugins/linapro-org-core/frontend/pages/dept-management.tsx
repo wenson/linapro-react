@@ -1,0 +1,33 @@
+import Button from "@douyinfe/semi-ui/lib/es/button";
+import Card from "@douyinfe/semi-ui/lib/es/card";
+import { Form } from "@douyinfe/semi-ui/lib/es/form";
+import Popconfirm from "@douyinfe/semi-ui/lib/es/popconfirm";
+import Space from "@douyinfe/semi-ui/lib/es/space";
+import Table from "@douyinfe/semi-ui/lib/es/table";
+import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
+import Tag from "@douyinfe/semi-ui/lib/es/tag";
+import Toast from "@douyinfe/semi-ui/lib/es/toast";
+import Typography from "@douyinfe/semi-ui/lib/es/typography";
+import { useLinaPluginHost } from "@linapro/plugin-ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { createDeptApi, type DeptListParams, type DictOption } from "./dept-client";
+import { buildDeptRows, deptRowKeys, dictColor, dictLabel, formatTimestamp, type DeptRow } from "./dept-data";
+import { DeptSideSheet } from "./dept-side-sheet";
+import "./org-core.css";
+
+function can(permissions: ReadonlySet<string>, permission: string): boolean { return permissions.has("*") || permissions.has(permission); }
+function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
+
+export default function DeptManagement() {
+  const host = useLinaPluginHost(); const api = useMemo(() => createDeptApi(host.api), [host.api]); const [params, setParams] = useState<DeptListParams>({}); const [rows, setRows] = useState<DeptRow[]>([]); const [expanded, setExpanded] = useState<number[]>([]); const [statuses, setStatuses] = useState<DictOption[]>([]); const [loading, setLoading] = useState(false); const [editing, setEditing] = useState<{ deptId?: number; parentId?: number }>();
+  const load = useCallback(async () => { setLoading(true); try { const result = buildDeptRows(await api.list(params)); setRows(result); setExpanded(deptRowKeys(result)); } catch (error) { Toast.error(message(error)); } finally { setLoading(false); } }, [api, params]);
+  useEffect(() => { queueMicrotask(() => void load()); }, [load]); useEffect(() => { queueMicrotask(() => void api.dict("sys_normal_disable").then(setStatuses).catch((error: unknown) => Toast.error(message(error)))); }, [api]);
+  async function remove(row: DeptRow): Promise<void> { try { await api.delete(row.id); Toast.success(host.t("pages.common.deleteSuccess")); await load(); } catch (error) { Toast.error(message(error)); } }
+  function toggle(row: DeptRow, open?: boolean): void { setExpanded((current) => { const next = new Set(current); const shouldOpen = open ?? !next.has(row.id); if (shouldOpen) next.add(row.id); else next.delete(row.id); return [...next]; }); }
+  const columns: ColumnProps<DeptRow>[] = [
+    { dataIndex: "name", title: host.t("plugin.linapro-org-core.dept.fields.name"), width: 260 }, { dataIndex: "code", title: host.t("plugin.linapro-org-core.dept.fields.code"), width: 150 }, { dataIndex: "orderNum", title: host.t("plugin.linapro-org-core.dept.fields.sortOrder"), width: 100 }, { dataIndex: "status", render: (value) => <Tag color={dictColor(statuses, Number(value))}>{dictLabel(statuses, Number(value))}</Tag>, title: host.t("pages.common.status"), width: 120 }, { dataIndex: "createdAt", render: (value) => formatTimestamp(value as number | null, host.locale), title: host.t("pages.common.createdAt"), width: 190 },
+    { fixed: "right", render: (_, row) => <Space>{can(host.permissions, "system:dept:edit") ? <Button onClick={() => setEditing({ deptId: row.id })} theme="borderless">{host.t("pages.common.edit")}</Button> : null}{can(host.permissions, "system:dept:add") ? <Button onClick={() => setEditing({ parentId: row.id })} theme="borderless" type="primary">{host.t("pages.common.add")}</Button> : null}{can(host.permissions, "system:dept:remove") ? <Popconfirm content={host.t("pages.common.deleteConfirm")} onConfirm={() => void remove(row)}><Button theme="borderless" type="danger">{host.t("pages.common.delete")}</Button></Popconfirm> : null}</Space>, title: host.t("pages.common.actions"), width: 220 },
+  ];
+  return <section className="org-core-page" data-testid="org-dept-page"><Typography.Title heading={3}>{host.t("plugin.linapro-org-core.dept.tableTitle")}</Typography.Title><Card><Form<DeptListParams> className="org-core-search" layout="horizontal" onReset={() => setParams({})} onSubmit={setParams}><Form.Input field="name" label={host.t("plugin.linapro-org-core.dept.fields.name")} /><Form.Select field="status" label={host.t("pages.common.status")} optionList={statuses.map((item) => ({ label: item.label, value: Number(item.value) }))} /><Space><Button htmlType="submit" theme="solid" type="primary">{host.t("pages.common.search")}</Button><Button htmlType="reset">{host.t("pages.common.reset")}</Button></Space></Form></Card><Card><div className="org-core-toolbar"><Space><Button onClick={() => setExpanded([])}>{host.t("pages.common.collapse")}</Button><Button onClick={() => setExpanded(deptRowKeys(rows))}>{host.t("pages.common.expand")}</Button>{can(host.permissions, "system:dept:add") ? <Button data-testid="org-dept-add" onClick={() => setEditing({})} theme="solid" type="primary">{host.t("pages.common.add")}</Button> : null}</Space></div><div data-testid="org-dept-table"><Table<DeptRow> columns={columns} dataSource={rows} expandedRowKeys={expanded} loading={loading} onExpand={(open, row) => { if (row && "id" in row) toggle(row as DeptRow, open); }} onRow={(row) => ({ onDoubleClick: () => { if (row?.children?.length) toggle(row); } })} pagination={false} rowKey="id" scroll={{ x: 1050 }} /></div></Card><DeptSideSheet api={api} deptId={editing?.deptId} onClose={() => setEditing(undefined)} onSaved={load} open={editing !== undefined} parentId={editing?.parentId} t={host.t} /></section>;
+}

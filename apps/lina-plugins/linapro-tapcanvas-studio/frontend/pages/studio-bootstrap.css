@@ -1,0 +1,132 @@
+.tapcanvas-studio-bootstrap {
+  box-sizing: border-box;
+  color: var(--semi-color-text-0);
+  width: 100%;
+}
+
+.tapcanvas-studio-bootstrap--page {
+  margin: 0 auto;
+  max-width: 1080px;
+  padding: 24px;
+}
+
+.tapcanvas-studio-bootstrap--workspace {
+  align-items: center;
+  background:
+    radial-gradient(circle at 20% 18%, rgb(80 106 255 / 14%), transparent 34%),
+    var(--semi-color-bg-0);
+  display: flex;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.tapcanvas-studio-bootstrap--workspace[aria-busy="true"] {
+  justify-content: center;
+}
+
+.tapcanvas-studio-bootstrap--blocked {
+  background: var(--semi-color-bg-0);
+  border: 1px solid var(--semi-color-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 6%);
+  margin: 48px auto;
+  max-width: 680px;
+  padding: 32px;
+}
+
+.tapcanvas-studio-bootstrap--blocked h2 {
+  font-size: 24px;
+  margin: 0 0 12px;
+}
+
+.tapcanvas-studio-bootstrap--blocked p {
+  color: var(--semi-color-text-2);
+  margin: 0;
+}
+
+.tapcanvas-studio-bootstrap__canvas-placeholder {
+  border: 1px solid var(--semi-color-border);
+  border-radius: 16px;
+  margin: auto;
+  max-width: 720px;
+  padding: 32px;
+  width: 100%;
+}
+
+.tapcanvas-studio-bootstrap__eyebrow {
+  color: var(--semi-color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tapcanvas-studio-bootstrap h1 {
+  font-size: clamp(28px, 5vw, 48px);
+  margin: 8px 0 12px;
+}
+
+.tapcanvas-studio-bootstrap dl {
+  display: grid;
+  gap: 12px;
+  margin: 24px 0 0;
+}
+
+.tapcanvas-studio-bootstrap dl div {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(88px, 0.3fr) 1fr;
+}
+
+.tapcanvas-studio-bootstrap dt {
+  color: var(--semi-color-text-2);
+}
+
+.tapcanvas-studio-bootstrap dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tapcanvas-projects {
+  display: grid;
+  gap: 16px;
+  max-width: 1440px;
+}
+
+.tapcanvas-projects__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.tapcanvas-projects__search {
+  margin-bottom: 16px;
+}
+
+.tapcanvas-projects__chapters {
+  min-width: 0;
+}
+
+.tapcanvas-projects__chapter-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.tapcanvas-projects__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+@media (width <= 720px) {
+  .tapcanvas-studio-bootstrap--page {
+    padding: 16px;
+  }
+
+  .tapcanvas-projects__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

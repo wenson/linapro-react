@@ -1,0 +1,33 @@
+{
+  "error": {
+    "tapcanvas": {
+      "chapter": {
+        "context": { "required": "Enter a LinaPro Tenant before using TapCanvas chapters" },
+        "create": { "failed": "Failed to create TapCanvas chapter" },
+        "delete": { "failed": "Failed to delete TapCanvas chapter" },
+        "forbidden": "You do not have access to this TapCanvas chapter operation",
+        "invalid": {
+          "input": "TapCanvas chapter input is invalid",
+          "status": "TapCanvas chapter status is invalid"
+        },
+        "not": { "found": "TapCanvas chapter does not exist" },
+        "query": { "failed": "Failed to query TapCanvas chapters" },
+        "reorder": {
+          "failed": "Failed to reorder TapCanvas chapters",
+          "mismatch": "Chapter order must contain every visible project chapter exactly once"
+        },
+        "update": { "failed": "Failed to update TapCanvas chapter" }
+      },
+      "project": {
+        "context": { "required": "Enter a LinaPro Tenant before using TapCanvas projects" },
+        "create": { "failed": "Failed to create TapCanvas project" },
+        "delete": { "failed": "Failed to delete TapCanvas project" },
+        "forbidden": "You do not have access to this TapCanvas project operation",
+        "invalid": { "input": "TapCanvas project input is invalid" },
+        "not": { "found": "TapCanvas project does not exist" },
+        "query": { "failed": "Failed to query TapCanvas projects" },
+        "update": { "failed": "Failed to update TapCanvas project" }
+      }
+    }
+  }
+}
