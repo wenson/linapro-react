@@ -6,6 +6,18 @@
 
 死代码门禁不启用独立`unused` linter，而由固定版本`staticcheck U1000`承担；含`wasip1`/`!wasip1`构建约束的包按宿主目标与`GOOS=wasip1 GOARCH=wasm` guest 目标归并结果，避免 guest 专属符号被宿主目标误判。`lint.go`与`env.setup`在扫描或初始化前按锁定版本自动检测/安装`golangci-lint`与`staticcheck`，安装使用`GOWORK=off`并剥离可能污染的构建变量。`CI`复用`make lint.go`/`linactl lint.go`路径，主验证与发布验证均阻断宿主与插件完整模式失败，不使用`only-new-issues`作为长期豁免。
 
+**可选`dir=`定向粒度 = 单个 Go module，而非包。** 本地与 Agent 迭代修改单个后端组件时，全量工作区扫描反馈周期过长；`build`/`ctrl`/`dao`已支持`dir=`定向，lint 对齐同一语义。实现要点：
+
+1. 先按`plugins`准备宿主或官方插件完整工作区，再在`go list -m`结果中过滤`dir`对应 module；插件 module 依赖`temp/go.work.plugins`，跳过环境准备会导致插件定向解析失败。
+2. 路径解析：相对仓库根转绝对路径 → 必须存在且为目录 → 含`plugin.yaml`且存在`backend/go.mod`时优先`backend` → 否则向上查找最近`go.mod`（止于仓库根）→ 与 workspace module 列表做路径等价匹配（`EvalSymlinks`）→ 匹配失败则明确报错，不静默回退全量。
+3. 日志 plan/summary 标识`scope=workspace|dir`与目标相对路径，避免审查误读为已跑全量。
+4. 未传`dir`时行为与`CI`兼容、完全不变；首期仅单路径，不允许多个`dir`一次传入。
+5. 明确不做包级`packages=`筛选（`U1000`跨包语义不可靠）、不做基于 git diff 的自动范围推断。
+
+公开入口示例：`make lint dir=apps/lina-core`、`make lint.go dir=apps/lina-plugins/<id>/backend plugins=1`、`linactl lint.go dir=hack/tools/linactl plugins=0`。`lint.mk`只透传`dir`，业务逻辑仅在`linactl`。
+
+风险：定向 lint 通过不代表其他 module 无问题 → 文档与规则写明`CI`/PR 仍跑全量，Agent 约定变更涉及的全部 module 至少各跑一次；插件根误解析到 monorepo 上级`go.mod` → 插件根优先`backend`且查找止于 repo root。
+
 动态插件 builder 配置与静态检查治理同期收敛：`wasm.hooks`、`wasm.resources`与`wasm.lifecycle.timeouts`统一放在插件根`hack/config.yaml`，时长必须使用带单位字符串；构建工具与宿主本地目录加载均不得再扫描`backend/*/*.yaml`。
 
 公开参数只接受标准契约：`plugins`显式值仅标准布尔，省略时按工作区探测；参数 key 仅 kebab-case；布尔仅`true/false/1/0`；`wasm`单插件仅`dir=`，拒绝`p`/`plugin-dir`；发布标签仅显式`tag=`；镜像 registry 仅配置或`registry=`，不读`LINAPRO_IMAGE_REGISTRY`；构建变量展开仅`TARGET_DIR`/`BUILD_DIR`/`REPO_ROOT`，定向构建缺`hack/config.yaml`时拒绝且不回退`package.json`。
@@ -14,9 +26,24 @@
 
 `linactl`是仓库默认跨平台开发命令承载者。所有常用命令使用 Go 标准库处理路径、进程、HTTP readiness、端口、文件复制、PID、日志和参数解析。`Makefile`继续服务 Linux/macOS 与既有 CI，Windows`make.cmd`服务`cmd.exe`和 PowerShell，但两者只转发到同一套`linactl`实现。命令保留 make-style`key=value`参数，避免迁移破坏既有开发习惯。
 
-工具实现从独立 Go 模块收敛到`hack/tools/linactl/internal/`。镜像构建、动态插件 Wasm 打包、运行时 i18n 扫描、GoFrame controller/DAO 生成分别由内部子组件承载；公开命令仍保持`make image`、`make image.build`、`make wasm`、`make i18n.check`、`make ctrl`、`make dao`等稳定入口。GoFrame CLI 通过仓库锁定的 module 版本嵌入到隐藏隔离入口执行，避免开发者本地`gf`版本或`latest`二进制漂移。
+工具实现从独立 Go 模块收敛到`hack/tools/linactl/internal/`。镜像构建、动态插件 Wasm 打包、运行时 i18n 扫描、GoFrame controller/DAO 生成、框架源码升级分别由内部子组件或命令实现承载；公开命令仍保持`make image`、`make image.build`、`make wasm`、`make i18n.check`、`make ctrl`、`make dao`、`make upgrade`等稳定入口。GoFrame CLI 通过仓库锁定的 module 版本嵌入到隐藏隔离入口执行，避免开发者本地`gf`版本或`latest`二进制漂移。
 
 `env.check`只做轻量工具级健康检查，不启动服务、不修改依赖；`env.setup`承接原`dev.setup`语义，用于前端依赖和 Playwright Chromium headless shell。`linactl dev`只等待自己管理的旧进程端口释放，仍拒绝杀死未知外部端口占用。
+
+## Runtime i18n Check For Config Display Keys
+
+参数设置页对`sys_config`行通过`config.<config_key>.name`与`config.<config_key>.remark`做运行时投影；插件首次`SetValue`落库时`name`常等于技术 key，缺译时管理页会裸显类 i18n key 字符串。既有`i18n.check`覆盖 locale 对等、`bizerr` messageKey、插件管理展示键与前端静态`$t`，但未约束 config 展示键。
+
+**期望键静态收集（不读运行时库）**：
+
+| 范围 | 收集方式 |
+|------|----------|
+| 宿主 | `apps/lina-core/manifest/sql/**/*.sql`中`sys_config` seed 写入的 key 字面量；宿主 Go 中`SysConfigKey`及明确的`sys.*`/`demo.*`受保护常量 |
+| 插件 | 仅`plugin.yaml`中`i18n.enabled: true`的插件；扫描模块内`hostconfigcap.SysConfigKey = "..."`（及等价赋值）字面量 |
+
+**强制键**：各运行时 locale 必须齐全`config.<key>.name`与`config.<key>.remark`；宿主键落在宿主`manifest/i18n/<locale>/`，插件键落在该插件`manifest/i18n/<locale>/`（运行时由宿主合并）。未启用 i18n 的插件跳过该项。
+
+**集成**：在`runtimei18n`的`messages`子检查中追加 config 展示元数据校验，与 bizerr / plugin display metadata 并列，由既有`RunCheck`/`make i18n.check`一并执行。历史错误键名若仍存在于资源中，locale 对等仍要求各语言一致，但不会替代正确键；正确键缺失即失败。动态拼接的 key 无法静态收集，约定插件必须以常量声明`SysConfigKey`。规则文件`.agents/rules/i18n.md`与`linactl`中英文 README 同步该契约。
 
 ## GoFrame Code Generation With Target Directory Support
 
@@ -66,9 +93,36 @@ release 发布链路以`framework.version`为唯一 tag 基线。`linactl releas
 
 镜像构建使用每个平台对应的宿主二进制，多平台 buildx 构建必须`push=1`。demo Compose 使用 PostgreSQL 和 tmpfs 提供内存态体验环境，运行时配置独立放在`hack/deploy/config.yaml`并只读注入；测试 Compose 只提供手工开发容器，不自动初始化或启动业务服务。
 
-## Upgrade And Installation
+## Framework Source Upgrade
 
-`make upgrade`是开发工具治理中的历史升级入口，用于区分框架升级与源码插件升级的文件发现、命令确认和开发期操作边界。后续插件有效版本、发现版本、运行时升级、发布切换、依赖校验、治理资源同步和失败诊断统一收敛到插件运行时升级模型；本分组只保留命令入口和开发工具侧的演进原因。
+二次开发或 fork 后的业务仓库需要持续合并上游框架。最终开发期入口为`linactl upgrade`（根`Makefile`/`make.cmd`薄包装为`make upgrade`），业务逻辑全部在 Go 中实现，禁止平台专属 shell 承载合并逻辑。handler 使用`runFrameworkUpgrade`，与`db.upgrade`的`runUpgrade`隔离；公开命令名`upgrade`与`db.upgrade`并存。
+
+**升级源**：硬编码官方仓库`https://github.com/linaproai/linapro.git`，工具托管 remote 名`linapro`（不存在则创建，URL 不正确则纠正）。不使用本地`origin`/fork，不接受`remote=`覆盖；测试可通过可覆盖的官方 URL 变量指向临时 bare 仓。
+
+**目标 ref**：
+
+| `v` 输入 | 行为 |
+| --- | --- |
+| 省略 / 空 | 通过`git ls-remote --tags --refs`轻量列出远端 tag 名（不下载对象），本地`selectLatestStableTag`取最新稳定版（匹配`^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$`，规范化为`vMAJOR.MINOR.PATCH`；含`-`预发布后缀不参与默认选择） |
+| 稳定版本模式 | 规范化为`vX.Y.Z`（缺`v`前缀则补齐），无需 ls-remote；用户显式指定时可尝试含预发布的 tag |
+| 其它非空（如`main`） | 作为分支目标，合并`linapro/<name>` |
+
+**发现与下载拆分**：将「发现目标」与「下载对象」拆开。下载阶段 MUST 仅 fetch 已解析目标 ref 的可达对象，禁止默认路径使用`git fetch <remote> --tags`或`--tags --prune`全量拉 tag。
+
+| 目标类型 | 下载命令要点 |
+| --- | --- |
+| tag | `git fetch --no-tags <remote> refs/tags/<name>:refs/tags/<name>`，只更新该 tag 及其可达对象 |
+| 分支 | `git fetch --no-tags <remote> +refs/heads/<name>:refs/remotes/<remote>/<name>`，只更新该 remote-tracking 分支 |
+
+必须带`--no-tags`，避免 Git 默认 tag following 把指向本地已有对象的其它远端 tag 自动物化回来。若用户本机已有其它 tags，不受影响；upgrade 不再主动补齐全部远端 tags。远端无稳定 tag 时与现网一致提示传`v=`；指定 tag/分支不存在则 fetch 或`rev-parse`失败非零退出。
+
+**安全门禁**：detached HEAD 始终拒绝（`force`不得跳过）。脏工作区且未传`force`时，在`ensureCleanWorktree`中提示工作区不干净，向 stdout 输出`Continue upgrade with a dirty worktree? [y/N]: `，从`app.stdin`用`bufio.Reader`读取一行：`y`/`yes`（大小写不敏感、trim）则继续；其它值、空行或 EOF 返回错误且不执行 merge。`force=1`跳过脏检查与确认提示。不强制 TTY：管道可注入`y\n`继续；CI 默认空 stdin 失败，需显式`force=1`。逻辑在 Go`linactl`中实现，Windows/Linux/macOS 一致；不自动 stash/commit。
+
+**Git 操作序列**：确认`git`可用与仓库根 → 解析当前分支 → 安全门禁 → 确保官方 remote → 解析目标（ls-remote 或参数）并选择性 fetch 目标 ref → 记录 pre-merge`HEAD` →`git merge --no-edit --no-commit <ref>` → 将`apps/lina-plugins`恢复为升级前状态（官方插件变更不进入结果；升级前不存在则丢弃官方引入的该路径）→ 若剔除插件后无差异则`merge --abort`并报告无宿主变更 → 否则`git commit --no-edit`完成合并并提示插件需`plugins.update`单独更新。不自动处理冲突、不 hard reset、不 rebase、不 force-push；不自动执行`db.upgrade`、依赖 tidy 或服务重启。
+
+历史`upgrade-governance`中带`scope=framework|source-plugin`、基于`hack/config.yaml`的`frameworkUpgrade`元数据与宿主 SQL 全量重放的源码升级路径，已由上述官方 remote + 稳定 tag 合并模型取代为当前开发期框架升级入口；早期默认`git fetch --tags`全量同步 tags 的下载路径，已演进为先发现再窄范围 fetch。插件运行时升级、有效版本隔离与发布切换仍归`plugin-upgrade-governance`。
+
+## Installation
 
 安装脚本位于`hack/scripts/install/`，Unix 使用`install.sh`，Windows PowerShell 使用`install.ps1`。安装默认下载源码 archive，不要求本地 Git；部署先解压到临时目录再移动到目标目录，非空目标默认拒绝覆盖。安装完成后输出 Go、Node.js、pnpm、MySQL、make 等环境健康检查和后续命令建议，不自动安装系统依赖。
 
@@ -85,11 +139,12 @@ release 发布链路以`framework.version`为唯一 tag 基线。`linactl releas
 - `cron-job-management`承载内置日志清理任务投射、任务权限和调度业务规则；当前契约由`openspec/specs/cron-job-management/spec.md`承载，历史 owner 为`archive/scheduled-jobs`。
 - `e2e-suite-organization`承载 Playwright 测试目录、TC 编号、host-only/plugin-full 和 nightly E2E 治理；当前契约由`openspec/specs/e2e-suite-organization/spec.md`承载，历史 owner 为`archive/e2e-testing`。
 - `release-image-build`同时影响 CI、workflow、image builder 和 demo Compose；本分组保留发布工具链历史 owner，但运行时容器行为以当前主规范为准。
-- `plugin-upgrade-governance`承载源码插件与动态插件的有效版本隔离、运行时升级、发布切换和失败诊断；当前契约由`openspec/specs/plugin-upgrade-governance/spec.md`承载，历史 owner 为`archive/plugin-framework`。本分组只保留开发期命令入口对该能力的历史影响。
+- `plugin-upgrade-governance`承载源码插件与动态插件的有效版本隔离、运行时升级、发布切换和失败诊断；当前契约由`openspec/specs/plugin-upgrade-governance/spec.md`承载，历史 owner 为`archive/plugin-framework`。本分组只保留开发期`upgrade`命令与插件路径隔离边界。
+- `config-management`承载参数设置投影与 config 展示键本地化；本分组保留`i18n.check`门禁与展示键契约交叉影响，完整配置管理行为以主规范为准。
 - `spec-governance`同时涉及 OpenSpec 流程与项目规范规则加载；本分组保留月度归档自动化影响，主规范仍由`openspec/specs/spec-governance/spec.md`承载。
 
 ## Governance Notes
 
-本分组历史实现修改过开发工具、脚本、workflow、README、Agent skill 和 OpenSpec 文档，按开发工具和文档规则完成过跨平台影响记录。运行时影响均应在对应 owner 变更中审查：本归档压缩不新增 Go、API、SQL、前端、插件或运行时 i18n 变更。测试策略以工具单测、命令 smoke、workflow 语法、shell 语法、OpenSpec 校验、diff 检查和手工触发 dry-run 为主，E2E 仅在具体用户可观察行为变更的 owner 任务中维护。
+本分组覆盖开发工具、脚本、workflow、README、Agent skill、OpenSpec 文档、框架源码升级命令与运行时 i18n 扫描门禁。跨平台入口以`linactl`/Go 标准库为准，`Makefile`/`make.cmd`仅透传。测试策略以工具单测、临时 Git 仓库集成路径、命令 smoke、`make i18n.check`、workflow/shell 语法、OpenSpec 校验和手工 dry-run 为主；E2E 仅在用户可观察页面行为变更的 owner 中维护。
 
-反馈闭环处理过 FB-1（`make dao`/`make ctrl`只能在宿主或插件后端目录下正确生成）、FB-2（插件根目录 Makefile 硬编码插件后端路径）和 FB-3（Redis cluster smoke 脚本仍调用已移除的`make init`目标）。FB-1 根因为`linactl`的 GoFrame CLI 入口固定使用`apps/lina-core`作为项目目录，修复为支持显式目标目录参数；FB-2 根因为插件 Makefile 硬编码`dir=apps/lina-plugins/<plugin-id>/backend`，修复为引入共享`plugin.codegen.mk`片段；FB-3 根因为 smoke 脚本未同步`db.init`目标重命名，修复为更新命令名称。三项反馈均不修改运行时代码、HTTP API、SQL、前端 UI 或插件运行时契约。
+关键反馈闭环：代码生成目标目录与插件 Makefile 硬编码路径、Redis cluster smoke 旧`init`目标、静态检查首批噪声与 wasip1 死代码归并、builder 配置迁入`hack/config.yaml`、`linactl`兼容面删除、升级源固定官方 remote 且合并不更新`lina-plugins`、默认升级全量`fetch --tags`导致大仓库过慢（改为 ls-remote 发现 + 目标 ref 选择性 fetch）、参数设置页 config 展示键缺译导致类 i18n key 裸显（扩展`i18n.check`并补齐宿主/插件资源）。

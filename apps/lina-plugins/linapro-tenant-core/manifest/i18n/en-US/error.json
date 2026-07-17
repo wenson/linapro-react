@@ -2,16 +2,55 @@
   "error": {
     "multi": {
       "tenant": {
+        "code": {
+          "exists": "Tenant code already exists",
+          "invalid": "Tenant code is invalid",
+          "reserved": "Tenant code is reserved"
+        },
         "delete": {
           "precondition": {
             "vetoed": "Tenant deletion was blocked by a lifecycle precondition"
           }
-        }
-      },
-      "platform": {
-        "permission": {
-          "required": "Platform context permission is required"
-        }
+        },
+        "forbidden": "User is not allowed to access the tenant",
+        "impersonation": {
+          "permission": { "denied": "Only platform administrators can start tenant impersonation" },
+          "tenant": { "unavailable": "Target tenant cannot be impersonated" },
+          "token": { "invalid": "Impersonation token is invalid", "unavailable": "Impersonation token signing is not available" }
+        },
+        "invalid": { "tenant": { "status": "Tenant status is invalid" } },
+        "membership": {
+          "exists": "User is already a member of the tenant",
+          "not": { "found": "Tenant membership does not exist" }
+        },
+        "not": { "found": "Tenant does not exist" },
+        "override": { "invalid": "Tenant override is invalid" },
+        "platform": {
+          "membership": { "forbidden": "Platform users cannot be added to tenant memberships" },
+          "permission": { "required": "Platform context permission is required" }
+        },
+        "plugin": {
+          "not": { "found": "Plugin does not exist" },
+          "runtime": { "revision": { "unavailable": "Plugin runtime revision is unavailable" } },
+          "tenant": { "required": "Plugin tenant context is required" }
+        },
+        "tenant": {
+          "code": {
+            "exists": "Tenant code already exists",
+            "invalid": "Tenant code is invalid",
+            "reserved": "Tenant code is reserved"
+          },
+          "forbidden": "User is not allowed to access the tenant",
+          "not": { "found": "Tenant does not exist" },
+          "override": { "invalid": "Tenant override is invalid" },
+          "required": "Tenant selection is required",
+          "status": { "transition": { "invalid": "Tenant status transition is invalid" } },
+          "unavailable": "Tenant is not available"
+        },
+        "required": "Tenant selection is required",
+        "single": { "cardinality": { "violation": "User already belongs to another tenant" } },
+        "status": { "transition": { "invalid": "Tenant status transition is invalid" } },
+        "unavailable": "Tenant is not available"
       }
     }
   }

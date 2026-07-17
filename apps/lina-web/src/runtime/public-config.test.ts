@@ -15,10 +15,14 @@ describe("public frontend config", () => {
     const config = normalizePublicFrontendConfig({
       app: { logo: "/brand.svg", logoDark: "/brand-dark.svg", name: "Lina Custom" },
       auth: {
+        forgetPasswordEnabled: true,
         loginSubtitle: "Sign in",
         panelLayout: "panel-center",
         pageDesc: "Description",
         pageTitle: "Title",
+        privacyPolicy: "Privacy",
+        registerEnabled: false,
+        termsOfService: "Terms",
       },
       cron: {
         logRetention: { mode: "count", value: 80 },
@@ -43,10 +47,14 @@ describe("public frontend config", () => {
     expect(config).toEqual({
       app: { logo: "/brand.svg", logoDark: "/brand-dark.svg", name: "Lina Custom" },
       auth: {
+        forgetPasswordEnabled: true,
         loginSubtitle: "Sign in",
         panelLayout: "panel-center",
         pageDesc: "Description",
         pageTitle: "Title",
+        privacyPolicy: "Privacy",
+        registerEnabled: false,
+        termsOfService: "Terms",
       },
       cron: {
         logRetention: { mode: "count", value: 80 },

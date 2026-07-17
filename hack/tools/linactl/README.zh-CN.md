@@ -20,6 +20,7 @@ go run . tidy
 go run . lint.go plugins=0
 go run . lint.go plugins=1
 go run . lint.go plugins=0 fix=true
+go run . lint.go dir=apps/lina-core plugins=0
 go run . build platforms=linux/amd64,linux/arm64
 go run . build dir=apps/lina-plugins/john-ai-agentbox
 go run . dev dir=tools/custom-builder
@@ -27,6 +28,10 @@ go run . stop dir=tools/custom-builder
 go run . status dir=tools/custom-builder
 go run . image tag=v0.2.0 push=0
 go run . version to=v0.2.0
+go run . upgrade
+go run . upgrade v=v0.5.0
+go run . upgrade v=main
+go run . upgrade force=1
 go run . release.tag.check tag=v0.2.0
 go run . release.tag.check print-version=1
 ```
@@ -48,6 +53,9 @@ make.cmd tidy
 make.cmd lint.go plugins=0
 make.cmd lint.go plugins=1
 make.cmd version to=v0.2.0
+make.cmd upgrade
+make.cmd upgrade v=v0.5.0
+make.cmd upgrade v=main
 make.cmd release.tag.check tag=v0.2.0
 ```
 
@@ -60,6 +68,8 @@ make.cmd release.tag.check tag=v0.2.0
 .\make.cmd i18n.check
 .\make.cmd lint.go plugins=0
 .\make.cmd version to=v0.2.0
+.\make.cmd upgrade
+.\make.cmd upgrade v=main
 .\make.cmd release.tag.check tag=v0.2.0
 ```
 
@@ -71,17 +81,18 @@ make.cmd release.tag.check tag=v0.2.0
 |------|------|------|
 | `confirm` | `confirm=upgrade` | 确认高风险数据库维护命令。 |
 | `rebuild` | `rebuild=true` | 在`db.init`时重建配置中的数据库。 |
-| `dir` | `dir=tools/custom-builder` | 为`build`、`dev`、`stop`或`status`选择单个定向命令目录，或为`wasm`选择单个显式动态插件源码目录。省略时执行对应命令的默认完整流程。 |
+| `dir` | `dir=tools/custom-builder` | 为`build`、`dev`、`stop`或`status`选择单个定向命令目录；为`wasm`选择单个显式动态插件源码目录；或为`lint.go`选择单个组件路径（解析为其所属`Go module`）。省略时执行对应命令的默认完整流程。 |
 | `platforms` | `platforms=linux/amd64,linux/arm64` | 指定构建目标平台。 |
 | `plugins` | `plugins=0` | 覆盖构建、开发、镜像、`Go`测试和`Go`静态检查命令的自动插件完整模式探测。 |
 | `fix` | `fix=true` | 允许`lint.go`向`golangci-lint`传入`--fix`；默认不启用，避免检查路径改写文件。 |
 | `to` | `to=v0.2.0` | 指定`version`写入的框架版本号。 |
+| `v` | `v=v0.5.0`或`v=main` | 指定`upgrade`的升级目标：省略时从官方仓库取最新稳定 tag；可传稳定版本号或分支名（如`main`）。 |
 | `tag` | `tag=v0.2.0` | 指定`release.tag.check`校验的 release tag。 |
 | `print-version` | `print-version=1` | 输出已校验的`framework.version`，供发布自动化使用。 |
 | `p` | `p=linapro-tenant-core` | 为插件工作区管理命令选择单个插件。 |
 | `out` | `out=temp/output` | 指定动态插件产物输出目录；相对路径按仓库根目录解析。 |
 | `source` | `source=official` | 为插件工作区管理命令选择单个已配置来源。 |
-| `force` | `force=1` | 允许插件安装或更新命令覆盖已存在或存在本地改动的插件目录。 |
+| `force` | `force=1` | 允许插件安装或更新命令覆盖已存在或存在本地改动的插件目录；对`upgrade`跳过工作区干净检查与脏工作区确认提示。 |
 | `verbose` | `verbose=1` | 构建任务展示子命令输出。 |
 
 未传入`plugins`时，构建和开发命令会在`apps/lina-plugins`存在插件清单时启用插件完整模式。插件完整模式会基于宿主专用的根目录`go.work`生成或刷新已忽略的`temp/go.work.plugins`，并通过`GOWORK`解析源码插件`Go`模块。
@@ -116,10 +127,15 @@ status:
 make lint.go plugins=0
 make lint.go plugins=1
 make lint.go plugins=0 fix=true
+make lint dir=apps/lina-core plugins=0
+make lint dir=hack/tools/linactl plugins=0
+make lint dir=apps/lina-plugins/<plugin-id> plugins=1
 go run . lint.go plugins=0
 ```
 
 使用`plugins=0`检查宿主工作区，覆盖`apps/lina-core`和`hack/tools/linactl`。官方插件源码已初始化时，使用`plugins=1`；该模式会准备已忽略的`temp/go.work.plugins`工作区，并检查宿主、工具和官方插件`Go`模块。未传入`plugins`时，`linactl`沿用构建和测试命令的自动探测行为。
+
+可选`dir=<path>`会将扫描范围收敛到该路径所属的单个`Go module`。包含`plugin.yaml`且存在`backend/go.mod`的插件根目录会解析到`backend`模块；子包目录会向上查找仓库根内最近的`go.mod`。plan 与 summary 输出会打印`scope=dir`和解析后的模块路径，避免本地或 Agent 定向检查被误认为全量覆盖。`CI`与审查门禁仍以不传`dir`的工作区全量扫描为准。
 
 `golangci-lint`不启用独立`unused` linter。`linactl lint.go`会对所有包运行`staticcheck U1000`作为死代码检查；非测试文件包含`//go:build wasip1`或`//go:build !wasip1`的包使用宿主目标和`GOOS=wasip1 GOARCH=wasm`矩阵，避免 guest 专属桥接代码在默认宿主构建下被误报为死代码。
 
@@ -152,12 +168,21 @@ go run . dao dir=apps/lina-plugins/linapro-content-notice/backend
 
 ## 运行时 I18n 检查
 
-`linactl i18n.check`统一承载运行时`i18n`治理检查。该命令会扫描高风险运行时可见硬编码文案，并校验宿主和插件运行时消息`key`覆盖：
+`linactl i18n.check`统一承载运行时`i18n`治理检查。该命令会：
+
+1. 扫描高风险运行时可见硬编码文案；
+2. 校验宿主与插件运行时语言包的 **locale key 对等**；
+3. 校验宿主与所有`plugin.yaml`中`i18n.enabled: true`的插件：**每个`bizerr.MustDefine`按约定派生的`messageKey`都必须存在于对应`manifest/i18n/<locale>/`资源中**；
+4. 校验所有`i18n.enabled: true`的插件：**每个运行时 locale 必须提供插件管理页展示键`plugin.<plugin-id>.name`与`plugin.<plugin-id>.description`**（宿主列表投影按该约定本地化，仅写顶层`name`/`description`不会生效）；
+5. 校验参数设置展示元数据：**宿主`sys_config` seed / 受保护常量，以及`i18n.enabled: true`插件中声明的`SysConfigKey`常量，必须在对应运行时 locale 提供`config.<config_key>.name`与`config.<config_key>.remark`**（与参数设置列表投影约定一致；locale 对等不能替代该检查）；
+6. 校验前端静态`$t(...)`引用覆盖。
 
 ```bash
 make i18n.check
 go run . i18n.check
 ```
+
+CI 通过可复用工作流`.github/workflows/reusable-i18n-check.yml`在 Main CI、Nightly 与 Release 验证套件中执行同一入口（检出官方插件 submodule 后运行`make i18n.check`）。
 
 默认扫描`allowlist`维护在`hack/tools/linactl/internal/runtimei18n/allowlist.json`。
 
@@ -285,6 +310,29 @@ make agents.md.unlink agent=claude-code              # 移除 AGENTS.md 软链
 ```bash
 make.cmd version to=v0.2.0
 make version to=v0.2.0
+```
+
+## 框架升级
+
+`upgrade`**始终**以官方仓库`https://github.com/linaproai/linapro.git`为升级源（工具托管 remote 名`linapro`），再**合并到当前本地分支**。不会使用本地`origin`或 fork remote。
+
+对象下载为**按目标选择性 fetch**（不会执行全量`git fetch --tags`）：
+
+- 不传`v`：先用`ls-remote`仅获取远端 tag 名列表，选出最新稳定版本 tag（`vMAJOR.MINOR.PATCH`；带`-rc`等预发布后缀的 tag 不会被默认选中），再**只拉取该 tag**；
+- `v=v0.5.0`或`v=0.5.0`：**只拉取**对应 tag；
+- `v=main`（或其它分支名）：**只拉取**该分支到`linapro/<branch>`。
+
+`apps/lina-plugins`**不会被自动更新**。合并后会保留升级前的插件工作区（submodule 指针或本地目录树）。只有在你主动需要时，才通过`make plugins.update` / `linactl plugins.update`更新插件。
+
+`HEAD`必须位于已命名分支。工作区建议保持干净：若存在未提交变更，命令会提示确认，输入`y`（或`yes`）可继续，其它输入则退出；也可传入`force=1`跳过确认。插件路径以外的合并冲突需手动解决（或使用`git merge --abort`取消）。
+
+```bash
+make upgrade
+make upgrade v=v0.5.0
+make upgrade v=main
+make upgrade force=1
+make.cmd upgrade v=main
+go run . upgrade v=v0.5.0
 ```
 
 ## Release Tag 校验

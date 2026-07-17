@@ -112,7 +112,7 @@ jobs:
           template: true
           YAML
           # linactl dev 启动前会通过 portcheck 校验后端 server.address 与前端
-          # vite proxy target 的端口与 BACKEND_PORT 一致；这里写入与沙盒
+          # vite proxy target 的端口与 LINA_CORE_PORT 一致；这里写入与沙盒
           # backend_port=18080 对齐的最小 config.yaml 与 vite.config.ts，确保
           # portcheck 在沙盒内通过。
           # linactl dev runs portcheck before starting subprocesses; emit minimal
@@ -152,11 +152,11 @@ jobs:
           }).listen(port, host);
           JS
 
-          make -C "$smoke_root" dev plugins=0 BACKEND_PORT="$backend_port" FRONTEND_PORT="$frontend_port"
-          make -C "$smoke_root" status BACKEND_PORT="$backend_port" FRONTEND_PORT="$frontend_port" | tee "$RUNNER_TEMP/dev-status.txt"
+          make -C "$smoke_root" dev plugins=0 LINA_CORE_PORT="$backend_port" LINA_WEB_PORT="$frontend_port"
+          make -C "$smoke_root" status LINA_CORE_PORT="$backend_port" LINA_WEB_PORT="$frontend_port" | tee "$RUNNER_TEMP/dev-status.txt"
           grep -q "Lina Core" "$RUNNER_TEMP/dev-status.txt"
           grep -q "Lina Web" "$RUNNER_TEMP/dev-status.txt"
-          make -C "$smoke_root" stop BACKEND_PORT="$backend_port" FRONTEND_PORT="$frontend_port"
+          make -C "$smoke_root" stop LINA_CORE_PORT="$backend_port" LINA_WEB_PORT="$frontend_port"
           test ! -f "$smoke_root/temp/pids/lina-core.pid"
           test ! -f "$smoke_root/temp/pids/lina-web.pid"
 

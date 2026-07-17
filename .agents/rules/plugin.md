@@ -59,7 +59,8 @@ apps/lina-plugins/<plugin-id>/
 ├── frontend/                        # 插件前端资源
 │   ├── plugin-ui.ts                 # 源码插件 React 页面与插槽注册入口
 │   ├── pages/                       # 插件页面
-│   └── slots/                       # 插槽页面，可选
+│   ├── slots/                       # 插槽页面，可选
+│   └── icons/                       # 可选：侧栏菜单自定义 SVG
 ├── hack/                            # 插件自身脚本和工具
 │   ├── config.yaml                  # 插件开发期工具配置入口，包含代码生成、自定义构建等配置
 │   └── tests/                       # 插件测试内容
@@ -85,6 +86,7 @@ apps/lina-plugins/<plugin-id>/
 - 插件多语言资源放在`manifest/i18n/<locale>/`，API 文档翻译资源放在`manifest/i18n/<locale>/apidoc/`。
 - 插件拥有非核心领域能力时，公开契约统一放在`backend/cap/<domain>cap`，动态`guest SDK`放在该能力契约下的`bridge`或等价子包，`provider SPI`放在`spi`或等价子包。
 - 插件 SQL 必须遵守`.agents/rules/database.md`。
+- 插件自有业务表名必须使用完整插件 ID 前缀：`plugin_<plugin_id_snake>_<entity>`（将`plugin.yaml`的`id`中`-`替换为`_`且不得截断 ID 段）。细则与正反例见`.agents/rules/database.md`「插件业务表命名要求」。
 - 插件 i18n 资源必须遵守`.agents/rules/i18n.md`。
 - 插件开发期工具配置统一维护在插件根`hack/config.yaml`，包括代码生成、自定义构建等插件本地工具配置。
 - 插件自定义构建指令统一放在插件根`hack/config.yaml`的`build.commands`下，由仓库根`make build`或`linactl build`读取执行。
@@ -122,6 +124,11 @@ apps/lina-plugins/<plugin-id>/
 - 源码插件必须维护`plugin_embed.go`作为宿主编译嵌入和静态资源装配入口。
 - 源码插件应通过 registrar 或等价上下文把`backend/plugin.go`中声明的 controller、service、路由、中间件和生命周期能力接入宿主。
 - 源码插件 provider/adapter 只能承载宿主稳定能力接缝实现，业务编排和领域逻辑仍必须放在`backend/internal/service/`。
+
+## 插件信任与能力对等
+
+- 源码插件与动态插件在经宿主安装或升级治理、并处于启用状态后，适用**同权、同信任级**：不得仅因插件 `type=dynamic` 而永久拒绝发布某一领域能力。
+- 能力可用性由安装/启用状态、依赖满足、`hostServices`（或等价）声明与授权、以及方法级校验共同决定，与插件类型无关。
 
 ## 动态插件对接要求
 

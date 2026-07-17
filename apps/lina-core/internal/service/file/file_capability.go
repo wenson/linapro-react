@@ -100,18 +100,20 @@ func (a *fileCapabilityAdapter) BatchGet(ctx context.Context, ids []capabilityfi
 	if len(ids) > capabilityfilecap.MaxBatchGetFiles {
 		return nil, bizerr.NewCode(capmodel.CodeCapabilityLimitExceeded, bizerr.P("limit", capabilityfilecap.MaxBatchGetFiles))
 	}
-	result := &capmodel.BatchResult[*capabilityfilecap.FileInfo, capabilityfilecap.FileID]{
-		Items:      make(map[capabilityfilecap.FileID]*capabilityfilecap.FileInfo, len(ids)),
-		MissingIDs: []capabilityfilecap.FileID{},
-	}
-	missingSeen := make(map[capabilityfilecap.FileID]struct{}, len(ids))
-	addMissing := func(id capabilityfilecap.FileID) {
-		if _, ok := missingSeen[id]; ok {
-			return
+	var (
+		result = &capmodel.BatchResult[*capabilityfilecap.FileInfo, capabilityfilecap.FileID]{
+			Items:      make(map[capabilityfilecap.FileID]*capabilityfilecap.FileInfo, len(ids)),
+			MissingIDs: []capabilityfilecap.FileID{},
 		}
-		missingSeen[id] = struct{}{}
-		result.MissingIDs = append(result.MissingIDs, id)
-	}
+		missingSeen = make(map[capabilityfilecap.FileID]struct{}, len(ids))
+		addMissing  = func(id capabilityfilecap.FileID) {
+			if _, ok := missingSeen[id]; ok {
+				return
+			}
+			missingSeen[id] = struct{}{}
+			result.MissingIDs = append(result.MissingIDs, id)
+		}
+	)
 	parsedIDs, requested := capmodel.ParseInt64IDs(ids, addMissing)
 	if len(parsedIDs) == 0 {
 		return result, nil
@@ -380,11 +382,7 @@ func (a *fileCapabilityAdapter) DeleteMany(ctx context.Context, ids []capability
 		return bizerr.NewCode(capmodel.CodeCapabilityDenied)
 	}
 	if a != nil && a.owner != nil {
-		idValues := make([]string, 0, len(parsedIDs))
-		for _, id := range parsedIDs {
-			idValues = append(idValues, fmt.Sprintf("%d", id))
-		}
-		return a.owner.Delete(ctx, strings.Join(idValues, ","))
+		return a.owner.Delete(ctx, parsedIDs)
 	}
 	model := dao.SysFile.Ctx(ctx).WhereIn(dao.SysFile.Columns().Id, parsedIDs)
 	if a != nil && a.tenantFilter != nil {

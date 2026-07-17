@@ -8,7 +8,7 @@
 
 | 冻结项 | 值 |
 | --- | --- |
-| 版本 | `v1.3` |
+| 版本 | `v1.4` |
 | 状态 | `Frozen` |
 | 冻结日期 | `2026-07-12` |
 | 宿主基线 | `7d149838e77fe3d2b1bdda5ebb9d46679f79fd23` |
@@ -28,6 +28,10 @@
 ### v1.3 变更记录
 
 2026-07-16，产品 owner 要求删除后续独立 Tasklist 的占位任务，再按独立范围重新细化。`v1.3`不再维护`NEXT-*`映射；TapCanvas Studio、AI、Agents Bridge 和其他后续工作只在各自 Tasklist 中记录任务和状态。本次变更不修改`RW-*`任务、既有验收证据或 React 工作台实现。
+
+### v1.4 变更记录
+
+2026-07-17，产品 owner 授权合入 LinaPro 上游在 React 工作台替换基线之后的功能更新。上游更新原本落在`apps/lina-vben`，但`apps/lina-web`继续是唯一宿主工作台，禁止恢复 Vue、Vben 或 Ant Design Vue 运行时。实施任务、冲突决策和验收门禁见`docs/2026-07-17-react-upstream-sync-tasklist.md`，执行事实记录在`docs/2026-07-17-react-upstream-sync-execution-record.md`；认证、配置、文件上传、插件治理、路由、i18n 与 E2E 仅在 React 等价实现完成后才可标记为已同步。
 
 ## 仓库实例
 

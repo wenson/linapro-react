@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -29,6 +30,22 @@ const (
 	// services to release their TCP ports after StopService sends a kill.
 	defaultPortReleaseTimeout = 5 * time.Second
 )
+
+// portFromEnv resolves a TCP port from the named environment variable, falling
+// back to fallback when unset or invalid.
+// Example: portFromEnv("LINA_CORE_PORT", defaultBackendPort)
+// portFromEnv 从指定环境变量读取端口，未设置或非法时返回 fallback。
+func portFromEnv(name string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return fallback
+	}
+	port, err := strconv.Atoi(raw)
+	if err != nil || port <= 0 || port > 65535 {
+		return fallback
+	}
+	return port
+}
 
 // errHelpRequested marks help output as a successful early return.
 var errHelpRequested = errors.New("help requested")
@@ -93,7 +110,7 @@ type targetPlatform struct {
 func commandRegistry() map[string]commandSpec {
 	specs := []commandSpec{
 		{Name: "help", Description: "Show available cross-platform commands.", Usage: "linactl help [command|--all]", Run: runHelp},
-		{Name: "dev", Description: "Restart backend and frontend development services.", Usage: "linactl dev [dir=<path>] [backend_port=9120] [frontend_port=5666] [plugins=0|1] [skip_wasm=true]", Run: runDev},
+		{Name: "dev", Description: "Restart backend and frontend development services.", Usage: "linactl dev [dir=<path>] [backend_port=9120] [frontend_port=5666] [plugins=0|1] [skip_wasm=true] (ports also accept LINA_CORE_PORT/LINA_WEB_PORT env)", Run: runDev},
 		{Name: "stop", Description: "Stop backend and frontend development services started by linactl.", Usage: "linactl stop [dir=<path>] [backend_port=9120] [frontend_port=5666]", Run: runStop},
 		{Name: "status", Description: "Show backend and frontend service status.", Usage: "linactl status [dir=<path>] [backend_port=9120] [frontend_port=5666]", Run: runStatus},
 		{Name: "pack.assets", Description: "Prepare host manifest assets for embedding.", Usage: "linactl pack.assets", Run: runPreparePackedAssets},
@@ -106,6 +123,7 @@ func commandRegistry() map[string]commandSpec {
 		{Name: "image", Description: "Build the production Docker image.", Usage: "linactl image [tag=v0.6.0] [push=1]", Run: runImage},
 		{Name: "image.build", Description: "Stage image build artifacts without invoking Docker build.", Usage: "linactl image.build [tag=v0.6.0]", Run: runImageBuild},
 		{Name: "version", Description: "Update framework.version metadata and README image cache keys.", Usage: "linactl version to=v0.6.0", Run: runVersion},
+		{Name: "upgrade", Description: "Merge the latest stable official LinaPro release, a specific version, or an official branch into the current branch.", Usage: "linactl upgrade [v=<version|branch>] [force=1]", Run: runFrameworkUpgrade},
 		{Name: "release.tag.check", Description: "Verify a release tag matches framework.version metadata.", Usage: "linactl release.tag.check [tag=v0.6.0]", Run: runReleaseTagCheck},
 		{Name: "env.check", Description: "Check local development tool versions.", Usage: "linactl env.check", Run: runEnvCheck},
 		{Name: "env.setup", Description: "Install Go lint tools, frontend dependencies, and Playwright browsers.", Usage: "linactl env.setup", Run: runEnvSetup},
@@ -113,7 +131,7 @@ func commandRegistry() map[string]commandSpec {
 		{Name: "db.upgrade", Description: "Replay host SQL assets to upgrade the configured database.", Usage: "linactl db.upgrade confirm=upgrade", Run: runUpgrade},
 		{Name: "db.mock", Description: "Load optional mock demo data.", Usage: "linactl db.mock confirm=mock", Run: runMock},
 		{Name: "test", Description: "Run the Playwright E2E test suite.", Usage: "linactl test [scope=full|host|plugins|plugin:<id>]", Run: runTest},
-		{Name: "lint.go", Description: "Run golangci-lint for workspace Go modules.", Usage: "linactl lint.go [plugins=0|1] [fix=true]", Run: runLintGo},
+		{Name: "lint.go", Description: "Run golangci-lint for workspace Go modules.", Usage: "linactl lint.go [plugins=0|1] [dir=<path>] [fix=true]", Run: runLintGo},
 		{Name: "test.go", Description: "Run Go unit tests for workspace modules.", Usage: "linactl test.go [plugins=0|1] [race=true] [verbose=true]", Run: runTestGo},
 		{Name: "test.host", Description: "Run host-owned Playwright E2E tests without official plugins.", Usage: "linactl test.host", Run: runTestHost},
 		{Name: "test.plugins", Description: "Run official plugin Playwright E2E tests.", Usage: "linactl test.plugins", Run: runTestPlugins},

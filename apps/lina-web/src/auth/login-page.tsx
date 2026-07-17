@@ -3,6 +3,7 @@ import { Form } from "@douyinfe/semi-ui/lib/es/form";
 import Spin from "@douyinfe/semi-ui/lib/es/spin";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -13,11 +14,16 @@ import { LanguageToggle } from "#/runtime/language-toggle";
 
 interface LoginPageProps {
   appName: string;
+  externalLoginAfter?: ReactNode;
+  externalLoginSocial?: ReactNode;
+  externalLoginError?: string;
+  forgetPasswordEnabled?: boolean;
   logoUrl: string;
   loginSubtitle?: string;
   pageDescription?: string;
   pageTitle?: string;
   panelLayout?: AuthPanelLayout;
+  registerEnabled?: boolean;
   runtime: AuthRuntime;
 }
 
@@ -25,7 +31,20 @@ interface TenantFormValues {
   tenantId: number;
 }
 
-export function LoginPage({ appName, logoUrl, loginSubtitle, pageDescription, pageTitle, panelLayout = "panel-right", runtime }: LoginPageProps) {
+export function LoginPage({
+  appName,
+  externalLoginAfter,
+  externalLoginError,
+  externalLoginSocial,
+  forgetPasswordEnabled = true,
+  logoUrl,
+  loginSubtitle,
+  pageDescription,
+  pageTitle,
+  panelLayout = "panel-right",
+  registerEnabled = true,
+  runtime,
+}: LoginPageProps) {
   const { i18n, t } = useTranslation();
   const sessionStore = runtime.getSessionStore();
   const tenantStore = runtime.getTenantStore();
@@ -177,11 +196,32 @@ export function LoginPage({ appName, logoUrl, loginSubtitle, pageDescription, pa
                 {t("auth.submit")}
               </Button>
             </Form>
+            {externalLoginAfter ? <div data-testid="login-external-auth-region">{externalLoginAfter}</div> : null}
+            {externalLoginSocial ? (
+              <div data-testid="login-social-auth-region">
+                <Typography.Text type="tertiary">{t("auth.social.divider")}</Typography.Text>
+                {externalLoginSocial}
+              </div>
+            ) : null}
+            {(forgetPasswordEnabled || registerEnabled) ? (
+              <div className="login-public-actions">
+                {forgetPasswordEnabled ? (
+                  <a data-testid="login-forgot-password" href="/auth/forget-password">
+                    {t("auth.forgotPassword")}
+                  </a>
+                ) : null}
+                {registerEnabled ? (
+                  <a data-testid="login-create-account" href="/auth/register">
+                    {t("auth.createAccount")}
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         )}
-        {error || authNotice ? (
+        {error || externalLoginError || authNotice ? (
           <Typography.Text className="login-error" role="alert" type="danger">
-            {error || t("auth.errors.sessionExpired")}
+            {error || externalLoginError || t("auth.errors.sessionExpired")}
           </Typography.Text>
         ) : null}
       </section>

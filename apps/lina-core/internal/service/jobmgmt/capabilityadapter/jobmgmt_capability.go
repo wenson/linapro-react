@@ -74,11 +74,13 @@ func (a *jobCapabilityAdapter) BatchGet(ctx context.Context, ids []capabilityjob
 	if len(parsedIDs) == 0 {
 		return result, nil
 	}
-	rows := make([]*jobInfoRow, 0, len(parsedIDs))
-	cols := dao.SysJob.Columns()
-	model := dao.SysJob.Ctx(ctx).
-		Fields(cols.Id, cols.Name, cols.GroupId, cols.Status, cols.LogRetentionOverride).
-		WhereIn(cols.Id, parsedIDs)
+	var (
+		rows  = make([]*jobInfoRow, 0, len(parsedIDs))
+		cols  = dao.SysJob.Columns()
+		model = dao.SysJob.Ctx(ctx).
+			Fields(cols.Id, cols.Name, cols.GroupId, cols.Status, cols.LogRetentionOverride).
+			WhereIn(cols.Id, parsedIDs)
+	)
 	if a != nil && a.tenantFilter != nil {
 		model = tenantspi.ApplyPluginTableFilter(ctx, a.tenantFilter, model, "")
 	}
@@ -232,7 +234,7 @@ func (a *jobCapabilityAdapter) Delete(ctx context.Context, id capabilityjobcap.J
 	if err != nil {
 		return err
 	}
-	return owner.DeleteJobs(ctx, strconv.FormatInt(parsedID, 10))
+	return owner.DeleteJobs(ctx, []int64{parsedID})
 }
 
 // Run triggers one visible scheduled job through the job owner.

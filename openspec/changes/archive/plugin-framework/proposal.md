@@ -8,6 +8,7 @@ Phase A-D 治理的核心问题包括：catalog 反向回调环、setter 注入�
 
 - 建立统一插件契约，以 `plugin.yaml`、源码插件目录和动态插件发布产物作为插件身份、资源、依赖、菜单、权限和生命周期的事实入口。
 - 定义源码插件和动态插件生命周期，覆盖发现、安装、启用、禁用、卸载、升级、同版本刷新、租户级生命周期和失败诊断。
+- 将插件硬依赖阻断拆成安装轴与运行轴：安装/卸载/升级版本契约只认已安装状态与版本范围；启用要求依赖已启用；禁用仅由已启用下游阻断；卸载仍由已安装下游阻断；错误文案按轴分流。
 - 构建动态 WASM 插件运行时，包括自定义段解析、运行时资源视图、前端资产、动态路由、桥接协议、生命周期自动发现和执行资源边界。
 - 建立统一宿主服务模型，通过 `hostServices` 授权快照和 `pkg/plugin/capability` 能力目录向动态插件和源码插件暴露受治理的宿主能力。
 - 建立插件宿主领域能力模型，覆盖 usercap、authzcap、dictcap、filecap、sessioncap、plugincap、jobcap、infracap，并重整 orgcap、tenantcap 和 ai 能力。
@@ -25,7 +26,8 @@ Phase A-D 治理的核心问题包括：catalog 反向回调环、setter 注入�
 - 将插件资源读取统一为 `Manifest()`，删除旧 `Metadata` 服务语义。
 - 收敛插件公共包边界：`pluginhost` 负责源码插件贡献，`pluginbridge` 负责动态插件 ABI 与 transport，`capability` 负责插件消费宿主能力。
 - 引入 `plugin.autoEnable` 启动引导、事务性 mock data 安装、安装并启用快捷操作、插件依赖检查、运行时升级预览和显式升级执行。
-- 在插件 manifest 中新增`distribution`字段，合法值为`managed|builtin`（缺省归一化为`managed`，拒绝旧值`marketplace`）；支持`builtin`声明项目内建源码插件；启动期自动安装、启用和安全升级 builtin 源码插件，普通插件管理入口隐藏并拒绝写操作。
+- 在插件管理列表操作列提供「管理」入口：已安装且存在宿主已注册可导航管理页时可跳转；未安装或无管理页时按钮置灰；多菜单时按侧边栏菜单顺序进入第一个匹配页（禁止字母序误选）；路由当前不可访问时保持列表并提示。判定来源为前端 page-registry，不扩展列表接口字段。
+- 在插件 manifest 中新增`distribution`字段，合法值为`managed|builtin`（缺省归一化为`managed`，拒绝旧值`marketplace`）；支持`builtin`声明项目内建源码插件；启动期自动安装、启用和安全升级 builtin 源码插件。普通插件管理列表默认展示`distribution=builtin`插件（不再依赖诊断参数`includeBuiltin`），UI 展示「内置插件」标识（可与「自动启用」并存），隐藏安装/启停/升级/租户策略写入口，卸载入口置灰并附 tooltip；详情与「管理」入口可用；服务端写操作拒绝边界不变；`includeBuiltin`保留为兼容字段（可忽略或始终等价于包含）。
 - 冻结插件领域能力扩展的阶段 0 门禁和阶段 1 第一批高频只读能力（`Users.Current`、`Users.BatchResolve`、`Authz.BatchHasPermissions`、`Dict.EnsureValuesVisible`、`Sessions.Current`），同步动态 host service catalog、guest client、WASM dispatcher 和 README。
 - 继续完成阶段 1.5 至阶段 5 的剩余能力：候选搜索、组织/租户/插件治理投影、插件私有资源批量、通知类型化和 AI 状态，覆盖 40+ 个新方法的动态发布矩阵、错误语义、规模上限和授权资源。
 - 废除`capability.AdminServices`和各领域`AdminService`，每个领域只保留一个插件可见`Service`入口；动态 wire method 一次性标准化，不保留旧方法兼容别名。
@@ -59,10 +61,11 @@ Phase A-D 治理的核心问题包括：catalog 反向回调环、setter 注入�
 - `plugin-notify-service`：动态插件通知服务、授权通道。
 - `plugin-storage-service`：插件存储领域能力契约。Storage 新增 Provider 扩展机制和分片上传。
 - `plugin-hook-slot-extension`：宿主后端扩展点、前端 slot 扩展点。
-- `plugin-ui-integration`：插件页面多模式集成、前端资产托管。
+- `plugin-ui-integration`：插件页面多模式集成、前端资产托管；插件管理详情弹窗与操作列「管理」入口协同；插件注册表变更后菜单/动态路由即时同步，宿主静态页在路由仍可访问时静默刷新（不 force rematch remount）。
+- `plugin-management-manage-entry`：插件管理列表操作列「管理」入口语义、启用/置灰规则、多菜单首位跳转与失败提示。
 - `plugin-embed-snapshot-packaging`：动态插件 go:embed 资源声明。
 - `plugin-id-governance`：插件 ID 安全边界。
-- `plugin-dependency-management`：插件依赖声明、结构化校验。
+- `plugin-dependency-management`：插件依赖声明、结构化校验；安装轴与运行轴阻断矩阵；启用正向补齐与禁用反向收紧。
 - `plugin-startup-bootstrap`：plugin.autoEnable 结构化条目。
 - `plugin-mock-data-installation`：安装请求可选 mock-data 加载。
 - `plugin-install-enable-shortcut`：安装弹窗安装并启用快捷操作。
@@ -79,6 +82,9 @@ Phase A-D 治理的核心问题包括：catalog 反向回调环、setter 注入�
 - `plugin-permission-governance`：插件菜单和权限复用宿主体系。
 - `plugin-upgrade-governance`：插件升级必须由统一升级编排组件执行、失败诊断必须使用单一账本约定、治理守卫必须只在公开入口执行一次、缓存发布必须复用插件变化发布入口。
 
+- `plugin-trust-parity`：安装授权后源码与动态插件同权同信原则。
+- `dynamic-external-login`：动态插件外部登录与从外部建号的 host service 契约。
+
 ### Modified Capabilities
 
 - `menu-management`、`role-management`、`user-auth`、`cron-jobs`、`cluster-deployment-mode`、`distributed-locker`、`leader-election`、`project-setup`、`e2e-suite-organization`、`server-monitor`、`online-user`、`core-host-boundary-governance`、`module-decoupling`、`source-upgrade-governance` 和 `system-api-docs` 只保留插件相关交叉影响摘要，当前契约以 `openspec/specs` 为准。
@@ -86,10 +92,11 @@ Phase A-D 治理的核心问题包括：catalog 反向回调环、setter 注入�
 ## Impact
 
 - 后端影响集中在插件注册、运行时加载、生命周期编排、WASM 桥接、host service、能力目录、领域能力适配、启动引导、升级治理、缓存一致性、插件管理读模型、协议样板治理、内部文件组织、`pkg/plugin` 包边界治理、host service registry dispatch、领域能力 SPI 分离、provider 注册机制收敛、AI 授权简化、guest 传输单轨化和资源能力领域能力化。
-- 前端影响集中在插件管理摘要列表、详情按需加载、动态页面承载、插件菜单和路由刷新、公开资产引用、安装与升级弹窗。
+- 前端影响集中在插件管理摘要列表（默认含 builtin 与内置标识）、详情按需加载、操作列「管理」入口跳转、builtin 写操作隐藏与卸载置灰、动态页面承载、插件菜单和路由刷新、公开资产引用、安装与升级弹窗。
 - 数据和配置影响集中在插件治理表、发布快照、迁移账本、资源引用、plugin.autoEnable、插件运行期配置、manifest 资源和动态产物快照。
-- 不涉及数据库迁移、HTTP API 路由、前端 UI 或运行时用户可见文案变更。
+- 「管理」入口无后端 API、数据模型或权限码变更；管理页判定与跳转全部在前端完成。
 - 数据权限影响：租户与组织 scope 过滤只迁移类型归属和注入路径，过滤语义和拒绝策略不变；动态插件缓存、锁和存储仍按插件 ID 和租户上下文隔离。
 - 缓存一致性影响：Cache 继续复用启动期共享后端；统一 `publishPluginChange` 入口复用 `plugin-runtime` revision controller。
-- i18n 影响：动态插件 i18n host service 移除属于边界调整，无运行时用户可见文案或语言包新增。
+- i18n 影响：动态插件 i18n host service 移除属于边界调整；「管理」入口新增宿主前端 `pages.system.plugin.actions.manage` 等中英文文案与无管理页/未安装/路由不可访问提示；builtin 列表标识新增「内置插件」/ “Built-in” 及卸载禁用 tooltip 文案。
 - 本归档压缩不修改运行时代码、数据库、API、前端页面或插件源码；当前能力契约以 `openspec/specs` 为准，归档仅保留历史设计和治理原因。
+- 动态插件经安装授权后可调用 `external_login.login_by_verified_identity` 与 `users.create_from_external`；provider ownership 对动态路径走 hostServices resources.ref；文档对齐同权同信。

@@ -19,10 +19,14 @@ export interface PublicFrontendConfig {
     name: string;
   };
   auth: {
+    forgetPasswordEnabled: boolean;
     loginSubtitle: string;
     panelLayout: AuthPanelLayout;
     pageDesc: string;
     pageTitle: string;
+    privacyPolicy: string;
+    registerEnabled: boolean;
+    termsOfService: string;
   };
   cron: {
     logRetention: {
@@ -62,11 +66,15 @@ export const defaultPublicFrontendConfig: PublicFrontendConfig = {
     name: "LinaPro.AI",
   },
   auth: {
+    forgetPasswordEnabled: true,
     loginSubtitle: "Enter your account credentials to start managing your projects",
     panelLayout: "panel-right",
     pageDesc:
       "Built for evolving business needs, with an out-of-the-box admin entry point and a flexible pluggable extension model",
     pageTitle: "An AI-native full-stack framework engineered for sustainable delivery",
+    privacyPolicy: "",
+    registerEnabled: true,
+    termsOfService: "",
   },
   cron: {
     logRetention: {
@@ -238,6 +246,10 @@ export function normalizePublicFrontendConfig(payload: unknown): PublicFrontendC
       name: normalizeString(app.name, defaultPublicFrontendConfig.app.name),
     },
     auth: {
+      forgetPasswordEnabled: normalizeBoolean(
+        auth.forgetPasswordEnabled,
+        defaultPublicFrontendConfig.auth.forgetPasswordEnabled,
+      ),
       loginSubtitle: normalizeString(auth.loginSubtitle, defaultPublicFrontendConfig.auth.loginSubtitle),
       panelLayout: normalizeEnum(
         auth.panelLayout,
@@ -246,6 +258,12 @@ export function normalizePublicFrontendConfig(payload: unknown): PublicFrontendC
       ),
       pageDesc: normalizeString(auth.pageDesc, defaultPublicFrontendConfig.auth.pageDesc),
       pageTitle: normalizeString(auth.pageTitle, defaultPublicFrontendConfig.auth.pageTitle),
+      privacyPolicy: normalizeString(auth.privacyPolicy),
+      registerEnabled: normalizeBoolean(
+        auth.registerEnabled,
+        defaultPublicFrontendConfig.auth.registerEnabled,
+      ),
+      termsOfService: normalizeString(auth.termsOfService),
     },
     cron: {
       logRetention: {

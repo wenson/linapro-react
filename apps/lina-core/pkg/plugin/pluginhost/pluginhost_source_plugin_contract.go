@@ -8,6 +8,7 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
+	"lina-core/pkg/plugin/capability/authcap/extlogin/extidspi"
 	"lina-core/pkg/plugin/capability/capregistry"
 	"lina-core/pkg/plugin/capability/orgcap/orgspi"
 	"lina-core/pkg/plugin/capability/tenantcap/tenantspi"
@@ -142,6 +143,25 @@ func (r *sourcePluginProviders) ProvideCapability(descriptor capregistry.Descrip
 	return r.plugin.registerCapabilityDescriptor(descriptor)
 }
 
+// ProvideExternalIdentity declares one source-plugin external-identity provider ID.
+func (r *sourcePluginProviders) ProvideExternalIdentity(providerID string) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin provider facade is nil")
+	}
+	return r.plugin.registerExternalIdentityProvider(providerID)
+}
+
+// ProvideExternalIdentityProvider declares this source plugin's external-identity
+// provider engine factory (linapro-extlogin-core). It is distinct from
+// ProvideExternalIdentity, which stamps provider-ID ownership for calling
+// plugins. A plugin that supplies the engine need not own any provider ID.
+func (r *sourcePluginProviders) ProvideExternalIdentityProvider(factory extidspi.ProviderFactory) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin provider facade is nil")
+	}
+	return r.plugin.registerExternalIdentityProviderFactory(factory)
+}
+
 // UseEmbeddedFiles binds one plugin-owned embedded filesystem.
 func (r *sourcePluginAssets) UseEmbeddedFiles(fileSystem fs.FS) {
 	if r == nil || r.plugin == nil {
@@ -172,6 +192,54 @@ func (r *sourcePluginLifecycle) RegisterAfterInstallHandler(handler SourcePlugin
 		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
 	}
 	return r.plugin.registerAfterInstallHandler(handler)
+}
+
+// RegisterBeforeEnableHandler registers one pre-enable veto callback.
+func (r *sourcePluginLifecycle) RegisterBeforeEnableHandler(handler SourcePluginBeforeLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerBeforeEnableHandler(handler)
+}
+
+// RegisterAfterEnableHandler registers one post-enable callback.
+func (r *sourcePluginLifecycle) RegisterAfterEnableHandler(handler SourcePluginAfterLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerAfterEnableHandler(handler)
+}
+
+// RegisterGlobalBeforeInstallHandler registers one global pre-install veto callback.
+func (r *sourcePluginLifecycle) RegisterGlobalBeforeInstallHandler(handler SourcePluginGlobalLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerGlobalBeforeInstallHandler(handler)
+}
+
+// RegisterGlobalBeforeEnableHandler registers one global pre-enable veto callback.
+func (r *sourcePluginLifecycle) RegisterGlobalBeforeEnableHandler(handler SourcePluginGlobalLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerGlobalBeforeEnableHandler(handler)
+}
+
+// RegisterGlobalBeforeDisableHandler registers one global pre-disable veto callback.
+func (r *sourcePluginLifecycle) RegisterGlobalBeforeDisableHandler(handler SourcePluginGlobalLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerGlobalBeforeDisableHandler(handler)
+}
+
+// RegisterGlobalBeforeUninstallHandler registers one global pre-uninstall veto callback.
+func (r *sourcePluginLifecycle) RegisterGlobalBeforeUninstallHandler(handler SourcePluginGlobalLifecycleHandler) error {
+	if r == nil || r.plugin == nil {
+		return gerror.New("pluginhost: source plugin lifecycle facade is nil")
+	}
+	return r.plugin.registerGlobalBeforeUninstallHandler(handler)
 }
 
 // RegisterBeforeUpgradeHandler registers one pre-upgrade veto callback.

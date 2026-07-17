@@ -20,6 +20,7 @@ go run . tidy
 go run . lint.go plugins=0
 go run . lint.go plugins=1
 go run . lint.go plugins=0 fix=true
+go run . lint.go dir=apps/lina-core plugins=0
 go run . build platforms=linux/amd64,linux/arm64
 go run . build dir=apps/lina-plugins/john-ai-agentbox
 go run . dev dir=tools/custom-builder
@@ -27,6 +28,10 @@ go run . stop dir=tools/custom-builder
 go run . status dir=tools/custom-builder
 go run . image tag=v0.2.0 push=0
 go run . version to=v0.2.0
+go run . upgrade
+go run . upgrade v=v0.5.0
+go run . upgrade v=main
+go run . upgrade force=1
 go run . release.tag.check tag=v0.2.0
 go run . release.tag.check print-version=1
 ```
@@ -48,6 +53,9 @@ make.cmd tidy
 make.cmd lint.go plugins=0
 make.cmd lint.go plugins=1
 make.cmd version to=v0.2.0
+make.cmd upgrade
+make.cmd upgrade v=v0.5.0
+make.cmd upgrade v=main
 make.cmd release.tag.check tag=v0.2.0
 ```
 
@@ -60,6 +68,8 @@ In PowerShell, run it with an explicit current-directory prefix:
 .\make.cmd i18n.check
 .\make.cmd lint.go plugins=0
 .\make.cmd version to=v0.2.0
+.\make.cmd upgrade
+.\make.cmd upgrade v=main
 .\make.cmd release.tag.check tag=v0.2.0
 ```
 
@@ -71,17 +81,18 @@ In PowerShell, run it with an explicit current-directory prefix:
 | --- | --- | --- |
 | `confirm` | `confirm=upgrade` | Confirms sensitive database maintenance commands. |
 | `rebuild` | `rebuild=true` | Rebuilds the configured database during `db.init`. |
-| `dir` | `dir=tools/custom-builder` | Selects one targeted command directory for `build`, `dev`, `stop`, or `status`, or one explicit dynamic plugin source directory for `wasm`. Omit it to run the command's default full workflow. |
+| `dir` | `dir=tools/custom-builder` | Selects one targeted command directory for `build`, `dev`, `stop`, or `status`; one explicit dynamic plugin source directory for `wasm`; or one component path for `lint.go` (resolved to its owning Go module). Omit it to run the command's default full workflow. |
 | `platforms` | `platforms=linux/amd64,linux/arm64` | Selects build target platforms. |
 | `plugins` | `plugins=0` | Overrides automatic plugin-full detection for build, dev, image, Go test, and Go lint commands. |
 | `fix` | `fix=true` | Allows `lint.go` to pass `--fix` to `golangci-lint`; omitted by default so checks do not rewrite files. |
 | `to` | `to=v0.2.0` | Selects the framework version written by `version`. |
+| `v` | `v=v0.5.0` or `v=main` | Selects the framework upgrade target for `upgrade`: omit for the latest stable tag from the official repository, pass a stable version, or pass a branch name such as `main`. |
 | `tag` | `tag=v0.2.0` | Selects the release tag checked by `release.tag.check`. |
 | `print-version` | `print-version=1` | Prints the validated `framework.version` for release automation. |
 | `p` | `p=linapro-tenant-core` | Selects one plugin for plugin workspace management commands. |
 | `out` | `out=temp/output` | Selects the dynamic plugin artifact output directory. Relative paths resolve from the repository root. |
 | `source` | `source=official` | Selects one configured plugin source for plugin workspace management commands. |
-| `force` | `force=1` | Allows plugin install/update commands to overwrite existing or dirty plugin directories. |
+| `force` | `force=1` | Allows plugin install/update commands to overwrite existing or dirty plugin directories; for `upgrade`, skips the clean-worktree check and dirty-worktree confirmation prompt only. |
 | `verbose` | `verbose=1` | Shows child command output for build tasks. |
 
 When `plugins` is omitted, build and dev commands enable plugin-full mode if `apps/lina-plugins` contains plugin manifests. Plugin-full mode generates or refreshes ignored `temp/go.work.plugins` from the host-only root `go.work`, then resolves source-plugin Go modules through `GOWORK`.
@@ -116,10 +127,15 @@ If `golangci-lint` or `staticcheck` is missing from `PATH` or reports a differen
 make lint.go plugins=0
 make lint.go plugins=1
 make lint.go plugins=0 fix=true
+make lint dir=apps/lina-core plugins=0
+make lint dir=hack/tools/linactl plugins=0
+make lint dir=apps/lina-plugins/<plugin-id> plugins=1
 go run . lint.go plugins=0
 ```
 
 Use `plugins=0` for the host workspace, covering `apps/lina-core` and `hack/tools/linactl`. Use `plugins=1` when official plugin sources are initialized; this mode prepares the ignored `temp/go.work.plugins` workspace and lints host, tool, and official plugin `Go` modules. If `plugins` is omitted, `linactl` keeps the existing auto-detection behavior used by build and test commands.
+
+Optional `dir=<path>` narrows the scan to the single Go module that owns the path. Plugin roots that contain `plugin.yaml` and `backend/go.mod` resolve to the backend module; nested package directories walk up to the nearest `go.mod` under the repository root. The plan and summary output print `scope=dir` and the resolved module so local or agent runs are not mistaken for full-workspace coverage. CI and review gates still use the default full-workspace scan without `dir`.
 
 `golangci-lint` does not enable the standalone `unused` linter. `linactl lint.go` runs `staticcheck U1000` for dead-code checks across all packages; packages that contain non-test files with `//go:build wasip1` or `//go:build !wasip1` use a host plus `GOOS=wasip1 GOARCH=wasm` matrix so guest-only bridge code is not reported as dead code under the default host build.
 
@@ -152,12 +168,21 @@ Without a target parameter, generated code uses the `apps/lina-core` GoFrame pro
 
 ## Runtime I18n Checks
 
-`linactl i18n.check` owns the runtime `i18n` governance checks. It scans high-risk runtime-visible hard-coded copy and validates host/plugin runtime message key coverage:
+`linactl i18n.check` owns the runtime `i18n` governance checks. It:
+
+1. Scans high-risk runtime-visible hard-coded copy;
+2. Validates host/plugin runtime locale **key parity**;
+3. Validates host and every plugin with `i18n.enabled: true` in `plugin.yaml`: **each `bizerr.MustDefine` derived `messageKey` must exist under that module's `manifest/i18n/<locale>/` catalogs**;
+4. Validates every `i18n.enabled: true` plugin: **each runtime locale must provide management-list display keys `plugin.<plugin-id>.name` and `plugin.<plugin-id>.description`** (host list projection localizes via this convention; bare top-level `name`/`description` keys do not take effect);
+5. Validates config-management display metadata: **host `sys_config` seeds / protected constants and `SysConfigKey` constants in `i18n.enabled: true` plugins must provide `config.<config_key>.name` and `config.<config_key>.remark` for every runtime locale** (matches list projection; locale parity alone cannot catch keys missing from every locale);
+6. Validates frontend static `$t(...)` key coverage.
 
 ```bash
 make i18n.check
 go run . i18n.check
 ```
+
+CI runs the same entrypoint via `.github/workflows/reusable-i18n-check.yml` in the Main CI, Nightly, and Release verification suites (after checking out the official plugin submodule).
 
 The default scanner allowlist is maintained at `hack/tools/linactl/internal/runtimei18n/allowlist.json`.
 
@@ -285,6 +310,29 @@ The `agents.skills.*` subcommands behave identically to the previous `skills.*` 
 ```bash
 make.cmd version to=v0.2.0
 make version to=v0.2.0
+```
+
+## Framework Upgrade
+
+`upgrade` always resolves the target against the official LinaPro repository `https://github.com/linaproai/linapro.git` (managed remote name `linapro`) and merges into the **current local branch**. Local `origin` / fork remotes are not used.
+
+Object download is **selective** (not a full `git fetch --tags`):
+
+- with no `v` parameter: lists remote tags via `ls-remote` (names only), picks the latest stable release tag (`vMAJOR.MINOR.PATCH`, pre-release tags such as `-rc` are ignored), then fetches **only that tag**;
+- with `v=v0.5.0` or `v=0.5.0`: fetches **only that tag**;
+- with `v=main` (or another branch name): fetches **only that branch** into `linapro/<branch>`.
+
+`apps/lina-plugins` is **never auto-updated**. The pre-upgrade plugin workspace (submodule pointer or local tree) is preserved after the merge. Update plugins only when you intend to, via `make plugins.update` / `linactl plugins.update`.
+
+HEAD must be on a named branch. A clean worktree is recommended: if uncommitted changes exist, the command prompts for confirmation — type `y` (or `yes`) to continue, any other answer to abort. Pass `force=1` to skip the prompt non-interactively. Merge conflicts outside plugins are left for manual resolution (`git merge --abort` if you need to cancel).
+
+```bash
+make upgrade
+make upgrade v=v0.5.0
+make upgrade v=main
+make upgrade force=1
+make.cmd upgrade v=main
+go run . upgrade v=v0.5.0
 ```
 
 ## Release Tag Check

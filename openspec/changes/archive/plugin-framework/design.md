@@ -20,6 +20,22 @@ LinaPro 插件平台经过多轮演进，从初始的清单契约和生命周期
 
 **关键实现**：`plugin.RuntimeDelegate` 作为组合根专用窄代理打破启动环；middleware 删除未使用的完整 `pluginsvc.Service` 字段。
 
+## 3.0 依赖生命周期两轴模型
+
+插件硬依赖曾用统一 `dependency.Resolver`：安装/启用共用 `CheckInstall`（只认 Installed），卸载/禁用共用 `CheckReverse`（只认已安装下游），导致「下游已全部禁用仍不能禁用 core」等反直觉行为。
+
+**最终模型**：
+
+| 操作 | 正向 | 反向 |
+|------|------|------|
+| 安装 | 依赖 installed + version | — |
+| 卸载 | — | 下游 installed |
+| 启用 | 依赖 installed + enabled + version | — |
+| 禁用 | — | 下游 enabled |
+| 升级 | 同安装轴候选版本 | 下游 installed 版本契约 |
+
+实现要点：`PluginSnapshot.Enabled` 从 registry 全局 `Status == enabled` 写入；`InstallCheckInput.RequireEnabled` / `ReverseCheckInput.OnlyEnabledDependents` 区分轴；新增 `not_enabled` / `dependency_not_enabled`；卸载反向保留 `PLUGIN_REVERSE_DEPENDENCY_BLOCKED`，禁用反向使用 `PLUGIN_REVERSE_ENABLED_DEPENDENCY_BLOCKED`；任何轴只阻断不级联。租户粒度与现网 `UpdateStatus` 对齐，只认全局 registry 启用态。行为 BREAKING：下游仅禁用后允许禁用依赖插件；卸载语义不变。
+
 ## 3. 生命周期编排下沉
 
 `plugin_lifecycle.go`、`plugin_lifecycle_source.go` 和 `plugin_auto_enable.go` 仍在根门面承载长状态机。
@@ -108,9 +124,37 @@ source/dynamic 两套升级骨架分散在 `sourceupgrade`、`runtimeupgrade`、
 
 **关键设计**：
 - `sys_plugin`基线表结构使用`distribution varchar(32) not null default 'managed'`
-- 普通插件管理列表默认隐藏`builtin`插件，写操作由服务端 guard 统一拒绝
+- 普通插件管理列表默认展示`builtin`与`managed`；列表/详情投影继续暴露`distribution`；`includeBuiltin`保留为兼容查询字段（忽略或始终视为包含），不再用于隐藏 builtin
+- 写操作（安装、启用/禁用、卸载、手动升级、租户供应策略变更）由服务端 guard 统一拒绝，拒绝语义不因列表可见而放宽
 - 启动期独立执行`BootstrapBuiltinPlugins(ctx)`，在插件路由、cron、前端包预热前自动安装、启用和安全升级 builtin 源码插件
 - 生命周期变化继续复用现有依赖解析、SQL 迁移、资源同步、缓存失效、enabled snapshot 和集群主节点边界
+
+**管理 UI 只读治理**：
+- `distribution === 'builtin'` 时展示「内置插件」badge（中/英 i18n）；若同时命中宿主`plugin.autoEnable`，继续展示既有「自动启用」类标识，二者可并存
+- 安装/启停/升级/租户策略入口对 builtin 行继续隐藏；具备卸载权限时仍展示「卸载」按钮，但置为`disabled`并附 tooltip 说明不可卸载，以与可卸载行保持操作列按钮数量与列宽一致
+- 详情入口始终可用；「管理」仍按「已安装 + 存在管理页」判定，不因 distribution 禁用
+- 前端隐藏或置灰不得作为安全边界；绕过 UI 调用写 API 时服务端仍按升级治理规范拒绝
+
+## 10.0 插件注册表变更后的静默路由刷新
+
+插件启停后宿主会重建菜单与动态路由；早期在当前路由仍可访问时默认 `router.replace({ force: true })`，导致插件管理页等宿主静态页 remount、筛选/滚动丢失。
+
+**决策**：在 `access-refresh` 决策层、于 `generateAccess` 之后按当次结果判定——当前路由仍可访问且无需路径纠正、无强制默认路由、无当前页 pending plugin generation remount 时静默跳过 force 导航；不可访问则 fallback；存在 `replacementPath` 则纠正导航。不按插件管理页白名单特例。禁用/卸载的 Tab 清理仍在业务动作处执行。自动静默不得在入队时把 `skipRouteNavigation` 无脑 OR 进队列以免吞掉必要导航。
+
+## 10.1 插件管理列表「管理」入口
+
+运维人员进入某个插件的业务管理页（如 LDAP 设置、登录日志、通知管理）时，不应只能从左侧菜单自行定位。列表操作列需要提供直达入口，并在无管理页或未安装时明确置灰。
+
+**决策**：
+
+1. **判定来源：前端 page-registry**。以`getPluginPages()`中归属该`pluginId`的可导航页面为准；排除`frontend/pages/components/**`以及文件名含`modal`/`drawer`的辅助组件。构建期已有稳定注册表，无需后端扩展列表字段，符合列表首屏性能约束。
+2. **多管理页目标选择**。以当前会话`accessMenus`深度优先遍历顺序选择该插件第一个匹配菜单路径；若 access 菜单尚无匹配则回退`router.getRoutes()`注册顺序中的第一个匹配路径。**禁止**按`routePath`字母序排序，否则会出现如`/ai/invocations`排在`/ai/providers`前、误进非首位菜单的问题。侧边栏菜单顺序即用户感知的“第一个菜单”，与`plugin.yaml`的`sort`一致。
+3. **跳转路径解析**。路径匹配支持完整相等或后缀匹配，以兼容相对菜单路径挂到父目录后的完整 URL。当前会话找不到任何匹配路由时，保持在列表页并给出用户可见提示。按钮启用只表达“插件声明了管理页且已安装”；真正可访问性仍受启用状态与权限约束。
+4. **按钮状态**。已安装且存在可导航管理页 → 可点击；未安装 → 禁用并提示先安装；已安装但无管理页 → 禁用并提示无管理页面。
+
+**非目标**：不为每个插件强制新增管理页；不改变菜单同步、权限过滤或动态插件资产托管语义；不在列表接口返回`managementPath`等新字段。
+
+**取舍**：仅 iframe/资产页、未进入 page-registry 的动态插件可能被判定为无管理页（当前托管工作台主要源码插件管理页走 page-registry）；多管理页只进一个，优先菜单顺序首位，后续若需要可改为下拉。
 
 ## 11. 插件领域能力扩展
 
@@ -165,3 +209,13 @@ Import boundary scanning via `linactl plugins.check` allows cross-plugin product
 ## Host Layer Simplification
 
 New core-owned host service methods must use JSON envelopes. Existing dedicated codecs are frozen as a method-level allowlist. Wire constants for services and methods live only under `protocol/hostservices` and are referenced by the catalog; no `go generate`. Historical `HostServiceCapabilityJSON*` aliases are removed in favor of `HostServiceJSON*`. Upgrade preview/execute is owned by the lifecycle facade; the root plugin package no longer constructs or holds a parallel `upgrade.Service`, while public type aliases remain stable for management API callers.
+
+## 同权同信与动态外部登录
+
+**决策**：经宿主安装或升级治理并处于启用状态的动态插件，与源码插件适用同一信任级与能力准入模型；不得仅因 `type=dynamic` 永久拒绝发布某一 core-owned 领域能力。
+
+**关键设计**：
+- 动态插件可经 hostServices 授权调用 `external_login.login_by_verified_identity` 与 `users.create_from_external`，guest 走真实 host call 而非永久 stub。
+- 源码 provider ownership 继续 `ProvideExternalIdentity(providerID)`；动态 ownership 由 `auth` 服务下 `resources[].ref` 声明 provider ID，WASM dispatcher 校验后盖章 pluginID 铸会话。
+- 调用链：dynamic guest → domainhostcall → wasm dispatcher（授权 + ownership）→ capability 或等价 auth/users 实现。
+- 安全仍依赖安装治理、方法级授权、provider ownership 与启用检查；被攻破的已授权动态插件与源码插件同信模型，后续可叠加宿主验签加固。

@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 
 export const pluginSlotKeys = [
   "auth.login.after",
+  "auth.login.social",
   "crud.table.after",
   "crud.toolbar.after",
   "dashboard.workspace.before",

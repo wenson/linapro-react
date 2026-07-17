@@ -53,6 +53,7 @@ export default function FilePage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [upload, setUpload] = useState<"file" | "image">();
   const [detailId, setDetailId] = useState<number>();
+  const [downloadingId, setDownloadingId] = useState<number>();
 
   const list = useQuery({
     queryFn: () => api.list(params),
@@ -80,6 +81,32 @@ export default function FilePage() {
     await api.delete(ids);
     Toast.success(t("pages.common.deleteSuccess"));
     await refresh();
+  }
+
+  async function download(row: FileInfo) {
+    setDownloadingId(row.id);
+    try {
+      const direct = await api.directDownload(row.id);
+      const access = direct.access;
+      if (access?.mode === "presigned_url" && access.url) {
+        window.location.assign(access.url);
+        return;
+      }
+      if (access?.mode === "proxy" && direct.proxyUrl) {
+        downloadBlob(await api.downloadUrl(direct.proxyUrl), row.original);
+        return;
+      }
+      downloadBlob(await api.download(row.id), row.original);
+    } catch {
+      try {
+        downloadBlob(await api.download(row.id), row.original);
+        Toast.info(t("pages.settings.file.downloadFallback"));
+      } catch {
+        Toast.error(t("pages.settings.file.downloadFailed"));
+      }
+    } finally {
+      setDownloadingId(undefined);
+    }
   }
 
   function resetSearch() {
@@ -204,7 +231,8 @@ export default function FilePage() {
           {allowed(permissions, "system:file:download") ? (
             <Button
               data-testid={`file-download-${row.id}`}
-              onClick={() => void api.download(row.id).then((blob) => downloadBlob(blob, row.original))}
+              loading={downloadingId === row.id}
+              onClick={() => void download(row)}
               theme="borderless"
             >
               {t("pages.settings.file.download")}

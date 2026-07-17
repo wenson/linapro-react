@@ -32,7 +32,12 @@ export class PluginPage {
   }
 
   get tableTitle(): Locator {
-    return this.page.getByText(pluginTableTitlePattern).first();
+    // Prefer the visible grid title; keep-alive or secondary headers may leave
+    // a hidden matching node that would break `.first()`.
+    return this.page
+      .getByText(pluginTableTitlePattern)
+      .filter({ visible: true })
+      .first();
   }
 
   pluginListHelpIcon(): Locator {
@@ -272,6 +277,16 @@ export class PluginPage {
     return this.page.getByTestId("plugin-host-service-auth-modal").last();
   }
 
+  pluginInstallDescriptions(): Locator {
+    return this.page.getByTestId("plugin-install-descriptions").last();
+  }
+
+  pluginInstallDescriptionLabels(): Locator {
+    return this.pluginInstallDescriptions().locator(
+      ".ant-descriptions-item-label",
+    );
+  }
+
   hostServiceAuthDialog(): Locator {
     return this.page
       .getByRole("dialog", {
@@ -380,8 +395,23 @@ export class PluginPage {
     return this.page.getByTestId(`plugin-detail-button-${pluginId}`).last();
   }
 
+  pluginManageAction(pluginId: string): Locator {
+    return this.page.getByTestId(`plugin-manage-button-${pluginId}`).last();
+  }
+
+  pluginManageActionWrapper(pluginId: string): Locator {
+    return this.page.getByTestId(`plugin-manage-wrapper-${pluginId}`).last();
+  }
+
   pluginManualRepairAction(pluginId: string): Locator {
     return this.page.getByTestId(`plugin-abnormal-repair-${pluginId}`).last();
+  }
+
+  async openPluginManagement(pluginId: string) {
+    const manageAction = this.pluginManageAction(pluginId);
+    await expect(manageAction).toBeVisible();
+    await expect(manageAction).toBeEnabled();
+    await manageAction.click();
   }
 
   async expectManualRepairActionMatchesDetailStyle(pluginId: string) {
@@ -473,6 +503,16 @@ export class PluginPage {
     return this.page.getByTestId("plugin-detail-modal").last();
   }
 
+  pluginDetailDescriptions(): Locator {
+    return this.page.getByTestId("plugin-detail-descriptions").last();
+  }
+
+  pluginDetailDescriptionLabels(): Locator {
+    return this.pluginDetailDescriptions().locator(
+      ".ant-descriptions-item-label",
+    );
+  }
+
   pluginRouteReviewToggle(): Locator {
     return this.page.getByTestId("plugin-route-review-toggle").last();
   }
@@ -507,8 +547,28 @@ export class PluginPage {
     return this.page.getByTestId("plugin-detail-install-mode").last();
   }
 
+  pluginDetailPluginScope(): Locator {
+    return this.page.getByTestId("plugin-detail-plugin-scope").last();
+  }
+
+  pluginDetailPluginStatus(): Locator {
+    return this.page.getByTestId("plugin-detail-plugin-status").last();
+  }
+
   pluginAutoEnableTag(pluginId: string): Locator {
     return this.page.getByTestId(`plugin-auto-enable-tag-${pluginId}`).first();
+  }
+
+  pluginBuiltinTag(pluginId: string): Locator {
+    return this.page.getByTestId(`plugin-builtin-tag-${pluginId}`).first();
+  }
+
+  pluginBuiltinDetailAlert(): Locator {
+    return this.page.getByTestId("plugin-builtin-detail-alert").last();
+  }
+
+  pluginDetailDistribution(): Locator {
+    return this.page.getByTestId("plugin-detail-distribution").last();
   }
 
   pluginNameCell(pluginId: string): Locator {
@@ -852,13 +912,79 @@ export class PluginPage {
   }
 
   async openPluginDetail(pluginId: string) {
-    const detailButton = await this.pluginActionButton(
-      pluginId,
-      pluginDetailActionPattern,
-    );
+    // Prefer stable test id when present; fall back to action-column text match.
+    const byTestId = this.pluginDetailAction(pluginId);
+    const detailButton = (await byTestId.count()) > 0
+      ? byTestId
+      : await this.pluginActionButton(pluginId, pluginDetailActionPattern);
     await expect(detailButton).toBeVisible();
     await detailButton.click();
-    await expect(this.pluginDetailDialog()).toBeVisible();
+    await expect(this.pluginDetailModal()).toBeVisible();
+  }
+
+  /**
+   * Opens the plugin detail modal by clicking a non-interactive cell in the row
+   * (name cell), not the action-column Detail button.
+   */
+  async openPluginDetailByRowClick(pluginId: string) {
+    await this.ensurePluginRowVisible(pluginId);
+    const nameCell = this.pluginNameCell(pluginId);
+    await expect(nameCell).toBeVisible();
+    await nameCell.click();
+    await expect(this.pluginDetailModal()).toBeVisible();
+  }
+
+  async expectPluginRowClickableCursor(pluginId: string) {
+    const row = this.pluginRow(pluginId);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveCSS("cursor", "pointer");
+  }
+
+  /**
+   * Asserts every label cell in a plugin Descriptions table stays on one line
+   * (no multi-line wrap of field names such as "Authorization Status").
+   */
+  private async expectDescriptionsLabelsNoWrap(
+    labels: Locator,
+    contextLabel: string,
+  ) {
+    await expect(labels.first()).toBeVisible();
+    const count = await labels.count();
+    expect(count, `${contextLabel}标签列应至少包含一个字段`).toBeGreaterThan(0);
+
+    for (let index = 0; index < count; index += 1) {
+      const label = labels.nth(index);
+      await expect(
+        label,
+        `${contextLabel}第 ${index + 1} 个标签应禁止换行`,
+      ).toHaveCSS("white-space", "nowrap");
+      await expect
+        .poll(
+          async () =>
+            await label.evaluate((element) => {
+              // With wrap, multi-line labels grow scrollHeight; with nowrap they stay one line.
+              return element.scrollHeight <= element.clientHeight + 1;
+            }),
+          {
+            message: `${contextLabel}第 ${index + 1} 个标签内容应保持单行`,
+          },
+        )
+        .toBe(true);
+    }
+  }
+
+  async expectPluginDetailLabelsNoWrap() {
+    await this.expectDescriptionsLabelsNoWrap(
+      this.pluginDetailDescriptionLabels(),
+      "插件详情",
+    );
+  }
+
+  async expectPluginInstallLabelsNoWrap() {
+    await this.expectDescriptionsLabelsNoWrap(
+      this.pluginInstallDescriptionLabels(),
+      "插件安装",
+    );
   }
 
   async openRuntimeUpgradeDialog(pluginId: string) {
@@ -1082,16 +1208,36 @@ export class PluginPage {
     ).toHaveCount(0);
   }
 
+  pluginUninstallAction(pluginId: string): Locator {
+    return this.page.getByTestId(`plugin-uninstall-button-${pluginId}`).last();
+  }
+
+  pluginUninstallActionWrapper(pluginId: string): Locator {
+    return this.page.getByTestId(`plugin-uninstall-wrapper-${pluginId}`).last();
+  }
+
   async expectUninstallActionVisible(pluginId: string) {
+    const byTestId = this.pluginUninstallAction(pluginId);
+    if ((await byTestId.count()) > 0) {
+      await expect(byTestId).toBeVisible();
+      return;
+    }
     await expect(
       await this.pluginActionButton(pluginId, pluginUninstallActionPattern),
     ).toBeVisible();
   }
 
   async expectUninstallActionHidden(pluginId: string) {
+    await expect(this.pluginUninstallAction(pluginId)).toHaveCount(0);
     await expect(
       await this.pluginActionButton(pluginId, pluginUninstallActionPattern),
     ).toHaveCount(0);
+  }
+
+  async expectUninstallActionDisabled(pluginId: string) {
+    const uninstallButton = this.pluginUninstallAction(pluginId);
+    await expect(uninstallButton).toBeVisible();
+    await expect(uninstallButton).toBeDisabled();
   }
 
   async expectPluginSwitchDisabled(pluginId: string) {
@@ -1394,6 +1540,71 @@ export class PluginPage {
     expect(width, `${title} 列宽不应超过 ${maxWidth}px`).toBeLessThanOrEqual(
       maxWidth,
     );
+  }
+
+  /**
+   * Measures the fixed action column via a body cell (header cells for
+   * fixed-right columns are marked fixed--hidden in the main header table).
+   */
+  async expectPluginActionColumnWidthAtMost(
+    pluginId: string,
+    maxWidth: number,
+  ) {
+    const detail = this.pluginDetailAction(pluginId);
+    await expect(detail).toBeVisible();
+    const width = await detail.evaluate((element) => {
+      const cell = element.closest(".vxe-body--column");
+      return cell instanceof HTMLElement
+        ? cell.getBoundingClientRect().width
+        : 0;
+    });
+    expect(
+      width,
+      `插件 ${pluginId} 操作列宽不应超过 ${maxWidth}px（实际 ${width}px）`,
+    ).toBeLessThanOrEqual(maxWidth);
+  }
+
+  /**
+   * Asserts the action-column buttons for a plugin row stay on a single line
+   * by comparing vertical baselines of the always-visible detail/manage
+   * buttons and any sibling ghost buttons in the same cell.
+   */
+  async expectPluginActionButtonsSingleLine(pluginId: string) {
+    const detail = this.pluginDetailAction(pluginId);
+    const manage = this.pluginManageAction(pluginId);
+    await expect(detail).toBeVisible();
+    await expect(manage).toBeVisible();
+
+    await expect
+      .poll(
+        async () =>
+          await detail.evaluate((detailNode, manageTestId) => {
+            const cell = detailNode.closest(".vxe-body--column");
+            if (!(cell instanceof HTMLElement)) {
+              return false;
+            }
+            const manageNode = cell.querySelector(
+              `[data-testid="${manageTestId}"]`,
+            );
+            if (!(manageNode instanceof HTMLElement)) {
+              return false;
+            }
+            const buttons = Array.from(
+              cell.querySelectorAll("button.ant-btn"),
+            ).filter((node): node is HTMLElement => node instanceof HTMLElement);
+            if (buttons.length < 2) {
+              return false;
+            }
+            const tops = buttons.map((button) => button.getBoundingClientRect().top);
+            const baseTop = tops[0] ?? 0;
+            // Wrapped buttons jump by roughly a full control height (~24px+).
+            return tops.every((top) => Math.abs(top - baseTop) <= 2);
+          }, `plugin-manage-button-${pluginId}`),
+        {
+          message: `插件 ${pluginId} 操作列按钮应保持单行不换行`,
+        },
+      )
+      .toBe(true);
   }
 
   async expectPluginVersionNotClipped(pluginId: string) {

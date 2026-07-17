@@ -1,17 +1,14 @@
 {
   "error": {
     "auth": {
-      "login": {
-        "clientType": {
-          "invalid": "Client type is invalid"
-        },
-        "invalidCredentials": "Invalid username or password",
-        "ipBlacklisted": "Login from this IP address is blocked",
-        "updateLastLoginFailed": "Failed to update last login time",
-        "userDisabled": "User account is disabled"
-      },
       "password": {
-        "hashFailed": "Failed to hash password"
+        "hashFailed": "Failed to hash password",
+        "reset": {
+          "unavailable": "Password recovery is temporarily unavailable",
+          "token": {
+            "invalid": "Password reset token is invalid or expired"
+          }
+        }
       },
       "tenant": {
         "unavailable": "Tenant is not available"
@@ -20,6 +17,67 @@
         "invalid": "Invalid token",
         "state": {
           "unavailable": "Authentication token state is temporarily unavailable"
+        }
+      },
+      "pre": {
+        "token": {
+          "invalid": "Pre-login token is invalid or expired"
+        }
+      },
+      "invalid": {
+        "credentials": "Invalid username or password"
+      },
+      "ip": {
+        "blacklisted": "Login from this IP address is blocked"
+      },
+      "client": {
+        "type": {
+          "invalid": "Client type is invalid"
+        }
+      },
+      "user": {
+        "disabled": "User account is disabled"
+      },
+      "login": {
+        "state": {
+          "update": {
+            "failed": "Failed to update last login time"
+          }
+        }
+      },
+      "external": {
+        "identity": {
+          "invalid": "External authentication provider returned an invalid identity"
+        },
+        "user": {
+          "not": {
+            "provisioned": "No local account is linked to this external identity"
+          }
+        }
+      },
+      "register": {
+        "disabled": "Public registration is disabled",
+        "username": {
+          "exists": "Username already exists"
+        },
+        "email": {
+          "exists": "Email is already registered"
+        },
+        "rate": {
+          "limited": "Too many registration attempts, please try again later"
+        }
+      },
+      "forget": {
+        "password": {
+          "disabled": "Password recovery is disabled",
+          "rate": {
+            "limited": "Too many password recovery attempts, please try again later"
+          }
+        }
+      },
+      "default": {
+        "role": {
+          "missing": "Default user role is not available"
         }
       }
     },
@@ -89,6 +147,16 @@
           "rename": {
             "denied": "Built-in runtime configuration keys cannot be renamed"
           }
+        },
+        "type": {
+          "change": {
+            "denied": "Built-in system parameter type and options cannot be modified"
+          }
+        }
+      },
+      "system": {
+        "manage": {
+          "denied": "This system configuration cannot be maintained on the system settings page"
         }
       },
       "import": {
@@ -130,6 +198,19 @@
       "protected": {
         "value": {
           "invalid": "Built-in system configuration value is invalid"
+        }
+      },
+      "value": {
+        "type": {
+          "invalid": "System configuration value type is invalid"
+        }
+      },
+      "options": {
+        "invalid": "System configuration options are invalid"
+      },
+      "typed": {
+        "value": {
+          "invalid": "System configuration value does not match its value type"
         }
       }
     },
@@ -228,6 +309,7 @@
         "failed": "Failed to store uploaded file"
       },
       "storage": {
+        "conflict": "Multiple cloud storage plugins are enabled; enable only one and try again",
         "read": {
           "failed": "Failed to read stored file"
         }
@@ -237,6 +319,30 @@
       },
       "upload": {
         "required": "Please upload a file"
+      },
+      "direct": {
+        "session": {
+          "invalid": "File direct upload session is invalid",
+          "expired": "File direct upload session has expired"
+        },
+        "complete": {
+          "failed": "File direct upload complete validation failed"
+        },
+        "init": {
+          "failed": "Failed to initialize file direct upload"
+        }
+      },
+      "chunked": {
+        "session": {
+          "invalid": "File chunked upload session is invalid",
+          "expired": "File chunked upload session has expired"
+        },
+        "part": {
+          "invalid": "File chunked upload part is invalid"
+        },
+        "complete": {
+          "failed": "File chunked upload complete validation failed"
+        }
       }
     },
     "job": {
@@ -657,7 +763,10 @@
         "type": {
           "unsupported": "Notification channel type {channelType} is not supported"
         },
-        "unavailable": "Notification channel does not exist or is disabled"
+        "unavailable": "Notification channel does not exist or is disabled",
+        "query": {
+          "failed": "Failed to query notification channel"
+        }
       },
       "inbox": {
         "recipient": {
@@ -676,13 +785,45 @@
         "not": {
           "found": "User does not exist"
         }
+      },
+      "recipient": {
+        "query": {
+          "failed": "Failed to query inbox notification recipients"
+        }
+      },
+      "message": {
+        "create": {
+          "failed": "Failed to create notification message"
+        }
+      },
+      "delivery": {
+        "create": {
+          "failed": "Failed to create notification delivery"
+        }
+      },
+      "email": {
+        "delivery": {
+          "unavailable": "Email notification delivery is unavailable; install and enable linapro-mail-core",
+          "failed": "Email notification delivery failed"
+        },
+        "recipient": {
+          "required": "Email notification recipients cannot be empty"
+        }
       }
     },
     "permission": {
-      "contextLoadFailed": "Failed to load API permission context",
-      "currentUserMissing": "Current authenticated user is unavailable",
       "denied": {
         "required": "Current user lacks required API permissions: {permissions}"
+      },
+      "current": {
+        "user": {
+          "missing": "Current authenticated user is unavailable"
+        }
+      },
+      "context": {
+        "load": {
+          "failed": "Failed to load API permission context"
+        }
       }
     },
     "plugin": {
@@ -723,6 +864,11 @@
           },
           "wait": {
             "canceled": "Startup wait for plugin {pluginId} auto-enable was canceled"
+          },
+          "tenant": {
+            "provisioning": {
+              "failed": "Startup auto-enable tenant provisioning failed for plugin {pluginId}"
+            }
           }
         }
       },
@@ -769,6 +915,11 @@
         "version": {
           "downgrade": {
             "unsupported": "Downgrading to an older dynamic plugin version is not supported. Use host rollback output or upload a newer version"
+          }
+        },
+        "uninstall": {
+          "artifact": {
+            "missing": "Dynamic plugin {pluginId} cannot run full uninstall because its wasm artifact is missing. Use force uninstall to clear host governance only"
           }
         }
       },
@@ -843,6 +994,9 @@
           },
           "service": {
             "unavailable": "Source plugin cache service is not configured"
+          },
+          "key": {
+            "required": "Source plugin cache key cannot be empty"
           }
         },
         "enable": {
@@ -935,6 +1089,149 @@
       "reverse": {
         "dependency": {
           "blocked": "Plugin {pluginId} cannot be changed because installed plugins depend on it: {dependents}"
+        },
+        "enabled": {
+          "dependency": {
+            "blocked": "Plugin {pluginId} cannot be disabled because enabled plugins depend on it: {dependents}"
+          }
+        }
+      },
+      "lock": {
+        "plugin": {
+          "id": {
+            "required": "Plugin lock service requires a plugin ID"
+          }
+        },
+        "name": {
+          "required": "Plugin lock name cannot be empty",
+          "too": {
+            "long": "Plugin lock name exceeds the limit of {maxBytes} bytes"
+          }
+        },
+        "lease": {
+          "too": {
+            "short": "Plugin lock lease cannot be shorter than {minLease}",
+            "long": "Plugin lock lease cannot be longer than {maxLease}"
+          }
+        },
+        "ticket": {
+          "required": "Plugin lock ticket cannot be empty"
+        },
+        "service": {
+          "unavailable": "Plugin lock service is unavailable"
+        }
+      },
+      "storage": {
+        "plugin": {
+          "id": {
+            "required": "Plugin storage service requires a plugin ID"
+          }
+        },
+        "path": {
+          "required": "Plugin storage path cannot be empty",
+          "invalid": "Plugin storage path is invalid",
+          "too": {
+            "long": "Plugin storage path exceeds the limit of {maxBytes} bytes"
+          }
+        },
+        "object": {
+          "exists": "Plugin storage object already exists"
+        },
+        "list": {
+          "limit": {
+            "invalid": "Plugin storage list limit is invalid"
+          }
+        },
+        "provider": {
+          "unavailable": "Plugin storage provider is unavailable",
+          "conflict": "Multiple plugin storage providers are available: {providerIds}",
+          "already": {
+            "registered": "Plugin storage provider {providerId} is already registered"
+          },
+          "id": {
+            "required": "Plugin storage provider ID cannot be empty"
+          },
+          "factory": {
+            "required": "Plugin storage provider factory is required"
+          }
+        },
+        "direct": {
+          "access": {
+            "unsupported": "Plugin storage direct access is not supported for this operation",
+            "operation": {
+              "invalid": "Plugin storage direct access operation is invalid"
+            },
+            "issue": {
+              "failed": "Failed to issue plugin storage direct access"
+            }
+          },
+          "session": {
+            "invalid": "Plugin storage direct access session is invalid",
+            "expired": "Plugin storage direct access session has expired"
+          },
+          "complete": {
+            "failed": "Plugin storage direct upload complete validation failed"
+          }
+        },
+        "multipart": {
+          "unsupported": "Plugin storage multipart upload is not supported by the active provider",
+          "session": {
+            "invalid": "Plugin storage multipart upload session is invalid"
+          },
+          "part": {
+            "invalid": "Plugin storage multipart part is invalid"
+          },
+          "complete": {
+            "failed": "Plugin storage multipart complete failed"
+          }
+        }
+      },
+      "install": {
+        "mock": {
+          "data": {
+            "failed": "Plugin {pluginId} installed successfully, but mock data file {failedFile} failed to load and was rolled back: {cause}"
+          }
+        },
+        "mode": {
+          "invalid": "Plugin install mode supports only global or tenant_scoped",
+          "scope": {
+            "nature": {
+              "mismatch": "Plugin {pluginId} with scope_nature={scopeNature} cannot use install_mode={installMode}"
+            }
+          }
+        }
+      },
+      "startup": {
+        "consistency": {
+          "failed": "Plugin startup consistency validation failed: {details}"
+        }
+      },
+      "force": {
+        "uninstall": {
+          "disabled": "Force uninstall is disabled by plugin.allowForceUninstall"
+        }
+      },
+      "host": {
+        "auth": {
+          "token": {
+            "state": {
+              "unavailable": "Plugin host authentication token state is temporarily unavailable"
+            },
+            "invalid": "Plugin host authentication token is invalid"
+          }
+        },
+        "external": {
+          "login": {
+            "plugin": {
+              "id": {
+                "required": "External login service requires a plugin ID"
+              },
+              "disabled": "External login is unavailable because the plugin is disabled"
+            },
+            "provider": {
+              "forbidden": "External login provider is not owned by the calling plugin"
+            }
+          }
         }
       }
     },
@@ -970,6 +1267,9 @@
         "assignment": {
           "forbidden": "The current context cannot assign the selected menu permissions"
         }
+      },
+      "tenant": {
+        "mismatch": "Role does not belong to the current tenant"
       }
     },
     "tenant": {
@@ -980,8 +1280,14 @@
               "forbidden": "Tenant roles cannot use all-data scope"
             }
           }
+        },
+        "assignment": {
+          "forbidden": "Tenant roles can only be assigned to active users in the same tenant"
         }
-      }
+      },
+      "required": "Tenant selection is required",
+      "forbidden": "Current user cannot access tenant {tenantId}",
+      "suspended": "Tenant {tenantId} is suspended"
     },
     "user": {
       "builtin": {
@@ -1052,6 +1358,13 @@
       "not": {
         "authenticated": "Not signed in",
         "found": "User does not exist"
+      },
+      "provision": {
+        "email": {
+          "conflict": "An account with the same email already exists. Sign in to that account and bind this identity instead",
+          "invalid": "External provisioning requires a valid email address"
+        },
+        "failed": "Failed to provision the external user"
       },
       "username": {
         "exists": "Username already exists"
@@ -1288,6 +1601,77 @@
     "platform": {
       "permission": {
         "required": "Platform context permission is required"
+      },
+      "role": {
+        "assignment": {
+          "forbidden": "Platform roles can only be assigned in platform context"
+        }
+      }
+    },
+    "dialect": {
+      "link": {
+        "required": "Database link is required"
+      },
+      "unsupported": "Database dialect {prefix} is unsupported; supported prefix is pgsql:",
+      "mysql": {
+        "unsupported": "mysql dialect is no longer supported; supported prefix is pgsql:"
+      },
+      "sqlite": {
+        "unsupported": "sqlite dialect is no longer supported; supported prefix is pgsql:"
+      }
+    },
+    "capability": {
+      "current": {
+        "user": {
+          "required": "Current user is required"
+        }
+      },
+      "denied": "Capability access is denied",
+      "unavailable": "Capability {capability} is unavailable",
+      "provider": {
+        "conflict": "Multiple providers are available for capability {capability}: {providerIds}"
+      },
+      "limit": {
+        "exceeded": "Capability request exceeds limit {limit}"
+      }
+    },
+    "cross": {
+      "tenant": {
+        "not": {
+          "allowed": "Cross-tenant access is not allowed in this context"
+        }
+      }
+    },
+    "coordination": {
+      "key": {
+        "invalid": "Coordination key is invalid"
+      },
+      "ttl": {
+        "invalid": "Coordination TTL is invalid"
+      },
+      "lock": {
+        "not": {
+          "held": "Coordination lock is not held by the current owner"
+        }
+      },
+      "redis": {
+        "unavailable": "Redis coordination backend is unavailable"
+      },
+      "kv": {
+        "operation": {
+          "failed": "Coordination KV operation failed"
+        }
+      },
+      "revision": {
+        "unavailable": "Coordination revision is unavailable"
+      },
+      "event": {
+        "publish": {
+          "failed": "Coordination event publish failed"
+        },
+        "subscribe": {
+          "failed": "Coordination event subscription failed"
+        }
       }
     }
   },

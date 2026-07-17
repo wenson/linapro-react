@@ -1,6 +1,8 @@
 import type { ApiClient } from "#/api/client";
 
-export interface SysConfig { canEdit: boolean; canOverride: boolean; createdAt: number | null; id: number; isBuiltin: number; isFallback: boolean; key: string; name: string; overrideMode: "createTenantOverride" | "none"; remark: string; sourceTenantId: number; updatedAt: number | null; value: string }
+export type ConfigValueType = "text" | "textarea" | "number" | "boolean" | "select" | "radio" | "multi_select" | "richtext";
+export interface ConfigValueOption { label: string; value: string }
+export interface SysConfig { canEdit: boolean; canOverride: boolean; createdAt: number | null; id: number; isBuiltin: number; isFallback: boolean; key: string; name: string; options: ConfigValueOption[]; overrideMode: "createTenantOverride" | "none"; remark: string; sourceTenantId: number; updatedAt: number | null; value: string; valueType: ConfigValueType }
 export interface ConfigListParams { beginTime?: string; endTime?: string; ids?: number[]; key?: string; name?: string; pageNum?: number; pageSize?: number }
 export interface ImportResult { fail: number; failList: Array<{ reason: string; row: number }>; success: number }
 

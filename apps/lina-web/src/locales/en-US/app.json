@@ -12,7 +12,12 @@
     }
   },
   "auth": {
+    "backToLogin": "Back to sign in",
+    "createAccount": "Create an account",
     "description": "Use your LinaPro account to continue.",
+    "email": "Email",
+    "emailInvalid": "Enter a valid email address",
+    "emailRequired": "Email is required",
     "errors": {
       "contextFailed": "The authenticated workspace context could not be loaded.",
       "contextTitle": "Workspace access could not be verified",
@@ -22,9 +27,40 @@
       "tenantSelectionFailed": "The tenant could not be selected."
     },
     "loading": "Verifying your LinaPro session…",
+    "external": {
+      "configMissing": "Third-party login is not configured yet. Contact an administrator.",
+      "discoveryFailed": "The identity provider could not be reached. Please try again later.",
+      "failed": "Third-party login failed. Please try again later.",
+      "handoffInvalid": "Third-party login handoff is invalid or expired. Please try again."
+    },
+    "forgotPassword": "Forgot password?",
+    "forgot": {
+      "accepted": "If this email is linked to an account, reset instructions have been accepted.",
+      "failed": "Password reset request failed.",
+      "submit": "Send reset link"
+    },
     "password": "Password",
     "passwordPlaceholder": "Please enter password",
     "passwordRequired": "Password is required",
+    "passwordTooShort": "Password must contain at least 6 characters",
+    "register": {
+      "confirmPassword": "Confirm password",
+      "confirmRequired": "Confirm the password",
+      "consent": "I agree to the",
+      "consentRequired": "Agree to the privacy policy and terms before creating an account.",
+      "failed": "Registration failed.",
+      "passwordMismatch": "The passwords do not match",
+      "privacyPolicy": "Privacy Policy",
+      "submit": "Create account",
+      "termsOfService": "Terms of Service",
+      "title": "Create account"
+    },
+    "reset": {
+      "failed": "Password reset failed.",
+      "submit": "Reset password",
+      "title": "Reset password"
+    },
+    "social": { "divider": "Or continue with" },
     "submit": "Sign in",
     "subtitle": "A sustainable AI-native full-stack framework",
     "tenant": {
@@ -286,12 +322,12 @@
     },
     "settings": {
       "builtin": "Built-in",
-      "config": { "create": "Create configuration", "edit": "Edit configuration", "importOverwrite": "Update and overwrite existing parameter settings", "importTitle": "Import Parameter Settings", "key": "Parameter Key", "name": "Parameter Name", "title": "Parameter configuration", "value": "Parameter Value" },
+      "config": { "create": "Create configuration", "edit": "Edit configuration", "importOverwrite": "Update and overwrite existing parameter settings", "importTitle": "Import Parameter Settings", "key": "Parameter Key", "name": "Parameter Name", "options": "Options", "optionsHint": "One option per line: Label=value", "optionsInvalid": "Options must use unique, non-empty values.", "optionsRequired": "This value type requires at least one option.", "title": "Parameter configuration", "value": "Parameter Value", "valueType": "Value Type", "valueTypes": { "boolean": "Boolean", "multi_select": "Multiple select", "number": "Number", "radio": "Radio", "richtext": "Rich text", "select": "Select", "text": "Text", "textarea": "Text area" } },
       "deleteConfirm": "Delete this record?",
       "dict": { "allowOverride": "Allow tenant override", "cascadeConfirm": "Deleting this dictionary type also deletes its data. Continue?", "editData": "Edit dictionary data", "editType": "Edit dictionary type", "exportAllConfirm": "Export all dictionary types and dictionary data?", "exportSelectedConfirm": "Export the selected dictionary types and their related dictionary data?", "importDataOverwrite": "Update and overwrite existing dictionary data", "importDataTitle": "Import Dictionary Data", "importOverwrite": "Update and overwrite existing dictionary types and dictionary data", "importTitle": "Import Dictionaries", "label": "Dictionary label", "name": "Dictionary name", "selectType": "Select a dictionary type on the left", "style": "Tag style", "styles": { "cyan": "Cyan", "danger": "Danger", "default": "Default", "green": "Green", "info": "Info", "orange": "Orange", "pink": "Pink", "primary": "Primary", "purple": "Purple", "red": "Red", "success": "Success", "warning": "Warning" }, "title": "Dictionary management", "type": "Dictionary type", "types": "Dictionary types", "value": "Dictionary value" },
       "export": "Export",
       "exportConfirm": "Export the current filtered result?",
-      "file": { "deleteSelectedConfirm": "Delete the selected {{count}} record(s)?", "detail": "Details", "download": "Download", "id": "File ID", "imageOnly": "Only image files are allowed.", "list": "Files", "name": "File name", "original": "Original name", "pdfPreview": "Preview PDF", "preview": "Preview", "previewImages": "Preview images", "scene": "Usage scene", "size": "File size", "storedName": "Stored name", "suffix": "Suffix", "title": "File management", "tooLarge": "The file must be no larger than 20 MB.", "upload": "Upload File", "uploadedAt": "Uploaded", "uploader": "Uploaded by", "uploadFailed": "File upload failed.", "uploadImage": "Upload Image", "uploadSuccess": "File uploaded successfully.", "url": "File URL" },
+      "file": { "deleteSelectedConfirm": "Delete the selected {{count}} record(s)?", "detail": "Details", "download": "Download", "downloadFailed": "File download failed.", "downloadFallback": "Direct download is unavailable; using the protected download channel.", "id": "File ID", "imageOnly": "Only image files are allowed.", "list": "Files", "name": "File name", "original": "Original name", "pdfPreview": "Preview PDF", "preview": "Preview", "previewImages": "Preview images", "scene": "Usage scene", "size": "File size", "storedName": "Stored name", "suffix": "Suffix", "title": "File management", "tooLarge": "The file must be no larger than 20 MB.", "upload": "Upload File", "uploadedAt": "Uploaded", "uploader": "Uploaded by", "uploadFailed": "File upload failed.", "uploadImage": "Upload Image", "uploadSuccess": "File uploaded successfully.", "url": "File URL" },
       "import": { "choose": "Choose Excel file", "drag": "Click or drag a file here to upload", "failureTitle": "Import failed", "hint": "Supports xlsx and xls files", "overwrite": "Overwrite existing data", "result": "Import result", "submit": "Start import", "successTitle": "Import successful", "summary": "{{success}} succeeded, {{fail}} failed", "template": "Download template" },
       "importAction": "Import",
       "message": { "clear": "Clear messages", "clearConfirm": "Clear all messages?", "clearSuccess": "Messages cleared.", "detail": "Message details", "empty": "No messages", "open": "Open my messages", "panelTitle": "Notifications", "readAll": "Mark all read", "readAllSuccess": "All messages marked as read.", "short": "Messages", "title": "My messages", "viewAll": "View all messages" },

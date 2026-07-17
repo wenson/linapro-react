@@ -129,7 +129,8 @@ func TestCommandRegistryUsesDottedPackAssetsCommand(t *testing.T) {
 }
 
 // TestCommandRegistryUsesDottedDatabaseCommands guards the public database
-// command names.
+// command names. Top-level upgrade is reserved for framework source upgrades
+// (see command_upgrade.go), not the legacy database alias of db.upgrade.
 func TestCommandRegistryUsesDottedDatabaseCommands(t *testing.T) {
 	registry := commandRegistry()
 	for _, name := range []string{"db.init", "db.upgrade", "db.mock"} {
@@ -137,10 +138,13 @@ func TestCommandRegistryUsesDottedDatabaseCommands(t *testing.T) {
 			t.Fatalf("expected command %q to be registered", name)
 		}
 	}
-	for _, name := range []string{"init", "upgrade", "mock"} {
+	for _, name := range []string{"init", "mock"} {
 		if _, ok := registry[name]; ok {
-			t.Fatalf("legacy command %q should not be registered", name)
+			t.Fatalf("legacy database command %q should not be registered", name)
 		}
+	}
+	if _, ok := registry["upgrade"]; !ok {
+		t.Fatalf("expected framework upgrade command %q to be registered", "upgrade")
 	}
 }
 
@@ -2063,11 +2067,19 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 			}
 			serviceEnv, _ := runCtx.Value(devservice.RunnerContextServiceEnvKey).([]string)
 			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_FRONTEND_DEV_SERVER_URL"); got != "" {
-				t.Fatalf("frontend process must not receive backend proxy env, got %q", got)
+				t.Fatalf("frontend process must not receive backend-only env, got %q", got)
 			}
-		} else if serviceEnv, _ := runCtx.Value(devservice.RunnerContextServiceEnvKey).([]string); toolutil.EnvValue(serviceEnv, "LINAPRO_FRONTEND_DEV_SERVER_URL") != "http://127.0.0.1:5666" {
-			got := toolutil.EnvValue(serviceEnv, "LINAPRO_FRONTEND_DEV_SERVER_URL")
-			t.Fatalf("backend process must receive frontend dev server URL, got %q", got)
+			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_BACKEND_PROXY_TARGET"); got != "http://127.0.0.1:9120" {
+				t.Fatalf("frontend process must receive backend proxy target, got %q", got)
+			}
+		} else {
+			serviceEnv, _ := runCtx.Value(devservice.RunnerContextServiceEnvKey).([]string)
+			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_FRONTEND_DEV_SERVER_URL"); got != "http://127.0.0.1:5666" {
+				t.Fatalf("backend process must receive frontend dev server URL, got %q", got)
+			}
+			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_SERVER_ADDRESS"); got != ":9120" {
+				t.Fatalf("backend process must receive LINAPRO_SERVER_ADDRESS, got %q", got)
+			}
 		}
 		return exec.Command(os.Args[0], "-test.run=TestHelperLongRunningProcess", "--")
 	}
@@ -3116,6 +3128,145 @@ func TestGoLintStaticcheckMatrixInput(t *testing.T) {
 	const expected = "host:\nwasm_guest: GOOS=wasip1 GOARCH=wasm\n"
 	if got := goLintStaticcheckMatrixInput(); got != expected {
 		t.Fatalf("unexpected staticcheck matrix input:\ngot:\n%s\nexpected:\n%s", got, expected)
+	}
+}
+
+// TestGoLintResolveModuleDirMapsPluginRootAndSubdir verifies dir resolution for
+// host modules, plugin roots, and nested package directories.
+func TestGoLintResolveModuleDirMapsPluginRootAndSubdir(t *testing.T) {
+	root := t.TempDir()
+	coreDir := filepath.Join(root, "apps", "lina-core")
+	coreSubDir := filepath.Join(coreDir, "internal", "service", "auth")
+	pluginRoot := filepath.Join(root, "apps", "lina-plugins", "demo-plugin")
+	pluginBackend := filepath.Join(pluginRoot, "backend")
+	writeFile(t, filepath.Join(coreDir, "go.mod"), "module lina-core\n")
+	writeFile(t, filepath.Join(coreSubDir, "auth.go"), "package auth\n")
+	writeFile(t, filepath.Join(pluginRoot, "plugin.yaml"), "id: demo-plugin\n")
+	writeFile(t, filepath.Join(pluginBackend, "go.mod"), "module demo-plugin\n")
+
+	gotCore, err := goLintResolveModuleDir(root, "apps/lina-core")
+	if err != nil {
+		t.Fatalf("resolve apps/lina-core: %v", err)
+	}
+	if !samePath(t, gotCore, coreDir) {
+		t.Fatalf("apps/lina-core resolved to %s, want %s", gotCore, coreDir)
+	}
+
+	gotSub, err := goLintResolveModuleDir(root, filepath.Join("apps", "lina-core", "internal", "service", "auth"))
+	if err != nil {
+		t.Fatalf("resolve core subdir: %v", err)
+	}
+	if !samePath(t, gotSub, coreDir) {
+		t.Fatalf("core subdir resolved to %s, want %s", gotSub, coreDir)
+	}
+
+	gotPlugin, err := goLintResolveModuleDir(root, "apps/lina-plugins/demo-plugin")
+	if err != nil {
+		t.Fatalf("resolve plugin root: %v", err)
+	}
+	if !samePath(t, gotPlugin, pluginBackend) {
+		t.Fatalf("plugin root resolved to %s, want %s", gotPlugin, pluginBackend)
+	}
+
+	if _, err := goLintResolveModuleDir(root, "apps/missing"); err == nil {
+		t.Fatalf("expected missing dir to fail")
+	}
+	if _, err := goLintResolveModuleDir(root, "apps"); err == nil {
+		t.Fatalf("expected non-module dir to fail")
+	}
+	if _, err := goLintResolveModuleDir(root, ""); err == nil {
+		t.Fatalf("expected empty dir to fail")
+	}
+}
+
+// TestGoLintFilterModulesByDirKeepsMatchingModule verifies workspace filtering
+// for dir-scoped lint and rejects modules outside the current workspace.
+func TestGoLintFilterModulesByDirKeepsMatchingModule(t *testing.T) {
+	root := t.TempDir()
+	coreDir := filepath.Join(root, "apps", "lina-core")
+	toolDir := filepath.Join(root, "hack", "tools", "linactl")
+	pluginDir := filepath.Join(root, "apps", "lina-plugins", "demo", "backend")
+	writeFile(t, filepath.Join(coreDir, "go.mod"), "module lina-core\n")
+	writeFile(t, filepath.Join(toolDir, "go.mod"), "module linactl\n")
+	writeFile(t, filepath.Join(pluginDir, "go.mod"), "module demo\n")
+
+	filtered, err := goLintFilterModulesByDir([]string{coreDir, toolDir}, coreDir)
+	if err != nil {
+		t.Fatalf("filter modules: %v", err)
+	}
+	if len(filtered) != 1 || !samePath(t, filtered[0], coreDir) {
+		t.Fatalf("unexpected filtered modules: %#v", filtered)
+	}
+
+	if _, err := goLintFilterModulesByDir([]string{coreDir, toolDir}, pluginDir); err == nil {
+		t.Fatalf("expected out-of-workspace module to fail")
+	}
+}
+
+// TestRunLintGoDirScopesToSingleModule verifies dir= only dispatches lint for
+// the resolved module instead of the full workspace list.
+func TestRunLintGoDirScopesToSingleModule(t *testing.T) {
+	var (
+		root    = t.TempDir()
+		coreDir = filepath.Join(root, "apps", "lina-core")
+		toolDir = filepath.Join(root, "hack", "tools", "linactl")
+	)
+	writeFile(t, filepath.Join(root, ".golangci-lint-version"), "v2.12.2\n")
+	writeFile(t, filepath.Join(root, ".staticcheck-version"), "v0.7.0\n")
+	writeFile(t, filepath.Join(coreDir, "go.mod"), "module lina-core\n")
+	writeFile(t, filepath.Join(toolDir, "go.mod"), "module linactl\n")
+
+	var calls []capturedCommand
+	application := newApp(ioDiscard{}, ioDiscard{}, strings.NewReader(""))
+	application.root = root
+	application.lookPath = func(name string) (string, error) {
+		return name, nil
+	}
+	application.execCommand = func(_ context.Context, name string, args ...string) *exec.Cmd {
+		cmd := exec.Command(os.Args[0], "-test.run=TestHelperCommandSuccess", "--")
+		switch {
+		case name == "go" && strings.Join(args, " ") == "list -m -f {{.Dir}}":
+			cmd = exec.Command(os.Args[0], "-test.run=TestHelperPrintWorkspaceModules", "--", coreDir, toolDir)
+		case name == "go" && strings.Join(args, " ") == "list -f {{.Dir}} ./...":
+			cmd = exec.Command(os.Args[0], "-test.run=TestHelperPrintLines", "--", coreDir)
+		case name == "golangci-lint" && strings.Join(args, " ") == "--version":
+			cmd = exec.Command(os.Args[0], "-test.run=TestHelperPrintLines", "--", "golangci-lint has version 2.12.2")
+		case name == "staticcheck" && strings.Join(args, " ") == "-version":
+			cmd = exec.Command(os.Args[0], "-test.run=TestHelperPrintLines", "--", "staticcheck v0.7.0")
+		}
+		calls = append(calls, capturedCommand{
+			name: name,
+			args: append([]string(nil), args...),
+			cmd:  cmd,
+		})
+		return cmd
+	}
+
+	if err := runLintGo(context.Background(), application, commandInput{Params: map[string]string{
+		"plugins": "0",
+		"dir":     "apps/lina-core",
+	}}); err != nil {
+		t.Fatalf("runLintGo returned error: %v", err)
+	}
+
+	expectedConfig := filepath.Join(root, ".golangci.yml")
+	expected := []string{
+		"go list -m -f {{.Dir}}",
+		"go list -f {{.Dir}} ./...",
+		"golangci-lint --version",
+		"staticcheck -version",
+		"golangci-lint run --config " + expectedConfig + " ./...",
+		"staticcheck -checks=U1000 -tests=false .",
+	}
+	if got := commandLines(calls); strings.Join(got, "\n") != strings.Join(expected, "\n") {
+		t.Fatalf("unexpected lint command sequence:\ngot:\n%s\nexpected:\n%s", strings.Join(got, "\n"), strings.Join(expected, "\n"))
+	}
+	for _, call := range calls {
+		if call.name == "golangci-lint" && strings.Join(call.args, " ") != "--version" {
+			if !samePath(t, call.cmd.Dir, coreDir) {
+				t.Fatalf("expected golangci-lint to run in %s, got %s", coreDir, call.cmd.Dir)
+			}
+		}
 	}
 }
 

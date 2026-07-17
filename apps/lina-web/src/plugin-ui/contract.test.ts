@@ -17,9 +17,10 @@ function slot(key: string): PluginSlotDefinition {
 }
 
 describe("source-plugin UI contract", () => {
-  it("publishes the frozen eight host slots", () => {
+  it("publishes the frozen nine host slots", () => {
     expect(pluginSlotKeys).toEqual([
       "auth.login.after",
+      "auth.login.social",
       "crud.table.after",
       "crud.toolbar.after",
       "dashboard.workspace.before",

@@ -2,16 +2,55 @@
   "error": {
     "multi": {
       "tenant": {
+        "code": {
+          "exists": "租户编码已存在",
+          "invalid": "租户编码无效",
+          "reserved": "租户编码已保留"
+        },
         "delete": {
           "precondition": {
             "vetoed": "租户删除被生命周期前置条件阻断"
           }
-        }
-      },
-      "platform": {
-        "permission": {
-          "required": "需要平台上下文权限"
-        }
+        },
+        "forbidden": "当前用户无权访问该租户",
+        "impersonation": {
+          "permission": { "denied": "只有平台管理员可以开始租户模拟" },
+          "tenant": { "unavailable": "目标租户不可模拟" },
+          "token": { "invalid": "租户模拟令牌无效", "unavailable": "租户模拟令牌签发不可用" }
+        },
+        "invalid": { "tenant": { "status": "租户状态无效" } },
+        "membership": {
+          "exists": "用户已是该租户成员",
+          "not": { "found": "租户成员关系不存在" }
+        },
+        "not": { "found": "租户不存在" },
+        "override": { "invalid": "租户覆盖参数无效" },
+        "platform": {
+          "membership": { "forbidden": "平台用户不能加入租户成员关系" },
+          "permission": { "required": "需要平台上下文权限" }
+        },
+        "plugin": {
+          "not": { "found": "插件不存在" },
+          "runtime": { "revision": { "unavailable": "插件运行时修订不可用" } },
+          "tenant": { "required": "需要插件租户上下文" }
+        },
+        "tenant": {
+          "code": {
+            "exists": "租户编码已存在",
+            "invalid": "租户编码无效",
+            "reserved": "租户编码已保留"
+          },
+          "forbidden": "当前用户无权访问该租户",
+          "not": { "found": "租户不存在" },
+          "override": { "invalid": "租户覆盖参数无效" },
+          "required": "需要选择租户",
+          "status": { "transition": { "invalid": "租户状态迁移无效" } },
+          "unavailable": "租户不可用"
+        },
+        "required": "需要选择租户",
+        "single": { "cardinality": { "violation": "用户已属于另一个租户" } },
+        "status": { "transition": { "invalid": "租户状态迁移无效" } },
+        "unavailable": "租户不可用"
       }
     }
   }

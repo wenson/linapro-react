@@ -43,6 +43,11 @@
           },
           "protocol": {
             "required": "Provider requires an enabled endpoint for the selected protocol"
+          },
+          "operation": {
+            "not": {
+              "found": "AI provider operation does not exist"
+            }
           }
         },
         "providerOperation": {

@@ -93,6 +93,12 @@ export class AuthRuntime {
     return this.tenantStore;
   }
 
+  // getAnonymousPluginRuntimeStates returns public plugin states for anonymous UI slots.
+  // The API only projects installation and runtime readiness; it does not expose user context.
+  async getAnonymousPluginRuntimeStates() {
+    return this.apis.plugins.getRuntimeStates();
+  }
+
   setTransitionEffects(effects: TenantTransitionEffects): void {
     this.transitionEffects = effects;
   }
@@ -101,32 +107,24 @@ export class AuthRuntime {
     this.sessionStore.getState().beginAuthentication();
     try {
       const result = await this.apis.auth.login(params);
-      const tenants = activeTenants(result.tenants);
-      if (!result.accessToken && result.preToken && tenants.length > 0) {
-        this.tenantStore.getState().setContext({
-          currentTenant: null,
-          enabled: true,
-          tenants,
-        });
-        this.sessionStore.getState().requireTenantSelection(result.preToken);
-        return { requiresTenantSelection: true, tenants };
-      }
-      if (!result.accessToken) {
-        throw new Error("Authentication response did not include an access token");
-      }
+      return await this.completeLoginResult(result);
+    } catch (error) {
+      await this.clearLocalSession();
+      throw error;
+    }
+  }
 
-      const currentTenant = tenants.length === 1 ? (tenants[0] ?? null) : null;
-      this.tenantStore.getState().setContext({
-        enabled: tenants.length > 0,
-        tenants,
-      });
-      this.commitIdentity({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-      }, currentTenant);
-      const context = await this.loadAuthenticatedContext(true);
-      this.sessionStore.getState().completeAuthentication();
-      return { context, requiresTenantSelection: false, tenants };
+  async completeExternalLoginFromHandoff(handoff: string): Promise<LoginOutcome> {
+    const code = handoff.trim();
+    if (!code) {
+      throw new Error("External login handoff is missing");
+    }
+    if (!this.apis.auth.exchangeExternalHandoff) {
+      throw new Error("External login is not available");
+    }
+    this.sessionStore.getState().beginAuthentication();
+    try {
+      return await this.completeLoginResult(await this.apis.auth.exchangeExternalHandoff(code));
     } catch (error) {
       await this.clearLocalSession();
       throw error;
@@ -345,6 +343,35 @@ export class AuthRuntime {
 
   private async cancelTenantSensitiveQueries(): Promise<void> {
     await this.queryClient.cancelQueries({ predicate: isTenantSensitiveQuery });
+  }
+
+  private async completeLoginResult(result: Awaited<ReturnType<AuthApi["login"]>>): Promise<LoginOutcome> {
+    const tenants = activeTenants(result.tenants);
+    if (!result.accessToken && result.preToken && tenants.length > 0) {
+      this.tenantStore.getState().setContext({
+        currentTenant: null,
+        enabled: true,
+        tenants,
+      });
+      this.sessionStore.getState().requireTenantSelection(result.preToken);
+      return { requiresTenantSelection: true, tenants };
+    }
+    if (!result.accessToken) {
+      throw new Error("Authentication response did not include an access token");
+    }
+
+    const currentTenant = tenants.length === 1 ? (tenants[0] ?? null) : null;
+    this.tenantStore.getState().setContext({
+      enabled: tenants.length > 0,
+      tenants,
+    });
+    this.commitIdentity({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    }, currentTenant);
+    const context = await this.loadAuthenticatedContext(true);
+    this.sessionStore.getState().completeAuthentication();
+    return { context, requiresTenantSelection: false, tenants };
   }
 
   private async removeAuthContextQueries(): Promise<void> {

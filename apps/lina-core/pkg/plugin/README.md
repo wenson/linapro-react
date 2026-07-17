@@ -27,13 +27,13 @@ Dynamic plugins may use only the concrete methods that are registered in the dyn
 | Domain capability | Responsibility boundary | Runtime and validation path |
 | --- | --- | --- |
 | `APIDoc` | Resolves route text and title operation keys in localized API documentation. | Served through the capability directory or `apidoc` host calls; validation focuses on route and operation-key payloads. |
-| `Auth` | Handles tenant token selection or switching, impersonation tokens, permission projections, single permission checks, and batch permission checks through `Token()` and `Authz()` sub-capabilities. | Runtime checks use current user, tenant, permission keys, and method-level authorization. |
+| `Auth` | Handles tenant token selection/switch, impersonation, authz, and external-identity login via `Token()`, `Authz()`, and `ExternalLogin()`. **Installed dynamic and source plugins share the same trust and rights model**: the host stamps caller plugin ID; source ownership uses `ProvideExternalIdentity`; dynamic ownership uses `auth` hostService `resources.ref` (provider ID); wire method `external_login.login_by_verified_identity`. Token/session minting stays host-owned. SPA handoff is closed over `linapro-extlogin-core`. | Runtime checks enablement, method authorization, and provider ownership. External-identity engine is `linapro-extlogin-core`; without it, external login fails closed. |
 | `AI` | Plugin-owned by `linapro-ai-core`; aggregates typed AI sub-capabilities for text, image, embedding, audio, vision, document, safety, and video, including method-level status projections. | Source plugins import `linapro-ai-core/backend/cap/aicap`; dynamic plugins declare `owner: linapro-ai-core`, `service: ai`, and `version: v1`. `lina-core` governs descriptor discovery, dependency checks, authorization snapshots, owner-aware routing, audit, and cache invalidation. |
-| `Users` | Provides base user reads, bounded user listing, visibility enforcement, governed user writes, status and credential actions, and user-role assignments under `Users().Assignment()`. | Host implementations must keep user existence and visibility checks scoped to the caller. User-role assignment methods remain source/Go contract methods unless separately registered as dynamic `hostServices`; the current dynamic `users` service publishes only projection, batch, resolution, list, and visibility methods. |
+| `Users` | Provides base user reads, bounded listing, visibility, governed writes, credentials, role assignment, and `CreateFromExternal` (least-privilege mint from external identity). Dynamic `users` publishes `users.create_from_external` among other authorized methods. | Host keeps visibility boundaries. `CreateFromExternal` is operator-less and least-privilege; dynamic callers must declare and be authorized for the method. |
 | `BizCtx` | Projects the current business request context. | Used as a read-only runtime context bridge for request user, tenant, locale, and request metadata. |
 | `Dict` | Resolves dictionary value labels, lists bounded value candidates, and validates typed value visibility. | Host validation stays within visible dictionary types and values. |
 | `Files` | Provides host file-center projections, bounded search, visibility enforcement, content reads, governed uploads, and creation from plugin storage into `sys_file`. | Host validation prevents plugins from probing or using file IDs outside their visible boundary. Uploads create host file-center metadata while plugin-private objects remain owned by `Storage()`. |
-| `HostConfig` | Reads host configuration values through the host priority chain and exposes governed `SysConfig()` projections and writes for `sys_config` rows. | Dynamic declarations must list `resources.keys` for `get` and single-key `sys_config` methods. This capability is separate from plugin-scoped business config. |
+| `HostConfig` | Reads host configuration values through the host priority chain and exposes governed `SysConfig()` projections and writes for `sys_config` rows. `SetValue(ctx, key, value, options)` writes one key; `BatchSetValue(ctx, items, options)` writes many keys in one transaction and one runtime-config revision (prefer batch for multi-field settings saves). `options.SystemManageable` nil on insert defaults to false / plugin closed-loop. | Dynamic declarations must list `resources.keys` for `get` and single-key `sys_config` methods. This capability is separate from plugin-scoped business config. Plugin-owned settings MUST pass `options.SystemManageable: gconv.PtrBool(false)`. |
 | `I18n` | Reads locale and translates messages for source plugins. | Source plugins receive this through `capability.Services` from `pluginhost` inputs; dynamic plugins do not receive an `i18n` host service because their i18n resources are host-managed. |
 | `Jobs` | Reads scheduled-job metadata, searches bounded job candidates, validates job visibility, and performs governed runtime job actions. | Declaration-time job contracts are submitted through `pluginbridge.Declarations.Jobs().Register(...)`; runtime services do not expose `Register`. |
 | `Notifications` | Lists and reads typed notification message projections, batch-loads messages by business source, validates visibility, deletes messages, updates read state, and sends governed notifications. | Actor-scoped read, delete, and read-state calls do not require resource declarations; `messages.send` requires a `resources[].ref` boundary. |
@@ -73,11 +73,19 @@ New capabilities should enter `capability.Services` only when source plugins and
 | A plugin command accepts host file IDs from a request. | `Files().EnsureVisible` / `files.visible.ensure` | The command checks all IDs before mutation. Missing and invisible files share the same rejection semantics to avoid existence probing. |
 | A plugin needs to upload content and register it in the host file center. | `Files().Upload` / `files.upload` | The host writes through the file owner so `sys_file` receives tenant, uploader, scene, hash, and storage metadata. Dynamic direct upload is bounded; larger dynamic payloads should use `Storage().Put` first. |
 | A plugin has already written an object to its private storage and needs a host file-center record. | `Files().CreateFromStorage` / `files.create_from_storage` | The host copies from the plugin-scoped `Storage()` object into file-center storage. Dynamic plugins must also declare `storage.get` for the source path. The operation does not move or delete the source object and does not expose provider keys or local paths. |
+| A browser/client needs to transfer cloud object bytes without host proxying. | File-center `direct-upload/*` and `direct-download` HTTP APIs; plugin `Storage().CreateDirectPut` / `ConfirmDirectPut` / `CreateDirectGet` | The host issues a neutral `DirectAccess` payload (`presigned_url` / `form_post` / `temporary_credentials` / `proxy`). Permanent credentials are never returned. Object keys are host-assigned with tenant/plugin scope. Local or unsupported backends return `mode=proxy` and keep host-mediated transfer. File-center metadata is written only after successful `complete`. |
+| Large object upload needs cloud multipart or host-chunked transfer. | File-center auto strategy on `direct-upload/init` plus `direct-upload/part-url` / `upload/chunked/*`; optional `storagecap.MultipartUploadProvider` on active cloud providers | Init returns neutral `strategy.channel` (`direct`/`proxy`) and `strategy.encoding` (`single`/`multipart`) from size thresholds and capability probes. Direct multipart uses part-level short-lived access; proxy chunked assembles on the host or uploads parts through the provider. Source plugins may call Service multipart methods when the provider supports them; dynamic guests keep `Put` (chunked transport) without a public Multipart API in phase one. |
 
 `Storage()` provider selection is configuration-free. The host uses the only
 enabled storage provider plugin when exactly one is serviceable, falls back to
 the built-in local provider when none is serviceable, and rejects storage calls
-when multiple provider plugins are serviceable.
+when multiple provider plugins are serviceable. File-center object content
+(upload/download/delete) uses the same provider selection rules; list and search
+remain on `sys_file`. Client direct access follows the same selection rules and
+never exposes long-lived access keys to the frontend. Official cloud backends
+(`linapro-storage-cos`, `linapro-storage-oss`, `linapro-storage-aws`, `linapro-storage-s3`, and related plugins) register via
+`storagecap.Provide` and expose credentials under the host stable **System Settings**
+menu (`menu_key=setting`).
 
 ## Plugin Configuration Sources
 
@@ -130,6 +138,13 @@ new `Provide<Domain>` facades, such as `ProvideAIText`, for non-core domains.
 
 `apps/lina-core/internal/service/plugin` is the host-side plugin domain component. The root package exposes a unified facade covering plugin discovery, management lists, install, enable, disable, uninstall, runtime upgrades, source upgrades, runtime route dispatch, frontend asset serving, dependency checks, and capability wiring.
 
+Hard `dependencies.plugins` checks use two lifecycle axes:
+
+- **Install axis** (install / uninstall / upgrade version contracts): forward checks require dependencies to be installed and version-compatible; reverse checks protect all **installed** downstream dependents.
+- **Runtime axis** (enable / disable): forward enable requires dependencies to be installed, **enabled**, and version-compatible; reverse disable is blocked only by **enabled** downstream dependents. Installed-but-disabled dependents do not block disable, but still block uninstall.
+
+The host never auto-installs, auto-enables, auto-disables, or auto-uninstalls dependency chains.
+
 ## Declaration-Time and Runtime Capabilities
 
 ### Declaration-Time Capabilities
@@ -137,6 +152,31 @@ new `Provide<Domain>` facades, such as `ProvideAIText`, for non-core domains.
 Declaration-time capabilities are the plugin's static declarations and registration output. The host uses them before business execution to build governance state.
 
 Source plugins express declaration-time contracts through `pluginhost.Declarations`, including `Assets()`, `Lifecycle()`, `Hooks()`, `HTTP()`, `Jobs()`, and `Access()`.
+
+### Route registration: bind controller objects with `group.Bind`
+
+When registering source-plugin or host HTTP routes, `group.Bind` **defaults to controller objects** (for example `group.Bind(controller.NewV1(svc))` or `group.Bind(ctrl)`). GoFrame discovers route methods with metadata on the bound object.
+
+Within one middleware group, avoid listing individual methods unless necessary.
+
+When methods on the same logical controller must sit in **different middleware groups** (for example public login vs authenticated management APIs), the host keeps the original split-registration design: bind the public methods on the public group and the protected methods on the protected group, instead of adding Public/Protected controller wrapper types.
+
+### Lifecycle preconditions (target vs global)
+
+`Lifecycle()` supports two precondition styles:
+
+| Kind | Registration | Input | Semantics |
+|------|--------------|-------|-----------|
+| Target | `RegisterBeforeInstallHandler` / `RegisterBeforeEnableHandler`, etc. | `SourcePluginLifecycleInput` | Invoked only when **this** plugin is installed/enabled/disabled/uninstalled; may veto self |
+| Global | `RegisterGlobalBeforeInstallHandler` / `RegisterGlobalBeforeEnableHandler` / `RegisterGlobalBeforeDisableHandler` / `RegisterGlobalBeforeUninstallHandler` | `SourcePluginGlobalLifecycleInput` (includes `TargetPluginID`) | Invoked when **another** plugin is installed/enabled/disabled/uninstalled; owners implement cross-plugin governance (for example singleton kind slots) |
+
+Orchestration:
+
+- Install, enable, disable, and uninstall aggregate **target Before\*** plus explicitly registered **GlobalBefore\*** before state writes.
+- Enable exposes `BeforeEnable` / `AfterEnable`; `AfterEnable` is best-effort and does not roll back a successful enable.
+- Global participant lists include only plugins that registered that global hook (no empty fan-out).
+- The host never hard-codes domain rules (such as mail transport kinds); owners implement conflict logic inside global hooks.
+- Do not simulate global intercept by broadcasting self-scoped `BeforeInstall` to every plugin.
 
 Dynamic plugins express declaration-time contracts through `plugin.yaml`, WASM custom sections, `pluginbridge.Declarations.Routes().Group(...)`, `pluginbridge.Declarations.Jobs().Register(...)`, and embedded `protocol` contracts, such as routes, jobs, lifecycle handlers, backend resources, frontend assets, SQL, i18n resources, and `hostServices`.
 
@@ -249,8 +289,8 @@ catalog implementation and only lists core-owned services.
 | `hostconfig` | `resources.keys` | `host:hostconfig` | `get`<br/>`sys_config.get`<br/>`sys_config.value.set`<br/>`sys_config.reset` |
 | `manifest` | `resources.paths` | `host:manifest` | `get`<br/>`get_many`<br/>`list` |
 | `apidoc` | None | `host:apidoc` | `route_text.resolve`<br/>`route_texts.resolve`<br/>`route_title_operation_keys.find` |
-| `auth` | None | `host:auth:token`<br/>`host:auth:authz` | `token.tenant.select`<br/>`token.tenant.switch`<br/>`token.impersonation_token.issue`<br/>`token.impersonation_token.revoke`<br/>`authz.permissions.batch_get`<br/>`authz.permissions.batch_has`<br/>`authz.permissions.has`<br/>`authz.users.platform_admin.check`<br/>`authz.role_permissions.replace` |
-| `users` | None | `host:users` | `users.current.get`<br/>`users.batch_get`<br/>`users.resolve.batch`<br/>`users.list`<br/>`users.visible.ensure`<br/>`users.create`<br/>`users.update`<br/>`users.delete`<br/>`users.status.set`<br/>`users.password.reset`<br/>`users.assignment.roles.replace` |
+| `auth` | None | `host:auth:token`<br/>`host:auth:external_login`<br/>`host:auth:authz` | `token.tenant.select`<br/>`token.tenant.switch`<br/>`token.impersonation_token.issue`<br/>`token.impersonation_token.revoke`<br/>`external_login.login_by_verified_identity`<br/>`authz.permissions.batch_get`<br/>`authz.permissions.batch_has`<br/>`authz.permissions.has`<br/>`authz.users.platform_admin.check`<br/>`authz.role_permissions.replace` |
+| `users` | None | `host:users` | `users.current.get`<br/>`users.batch_get`<br/>`users.resolve.batch`<br/>`users.list`<br/>`users.visible.ensure`<br/>`users.create`<br/>`users.create_from_external`<br/>`users.update`<br/>`users.delete`<br/>`users.status.set`<br/>`users.password.reset`<br/>`users.assignment.roles.replace` |
 | `bizctx` | None | `host:bizctx` | `current.get` |
 | `dict` | None | `host:dict` | `dict.refresh`<br/>`dict.type.get`<br/>`dict.type.batch_get`<br/>`dict.type.list`<br/>`dict.type.visible.ensure`<br/>`dict.type.keys.visible.ensure`<br/>`dict.type.create`<br/>`dict.type.update`<br/>`dict.type.delete`<br/>`dict.value.get`<br/>`dict.value.batch_get`<br/>`dict.value.labels.resolve`<br/>`dict.value.list`<br/>`dict.value.visible.ensure`<br/>`dict.value.values.visible.ensure`<br/>`dict.value.create`<br/>`dict.value.update`<br/>`dict.value.delete`<br/>`dict.value.by_type.delete` |
 | `files` | None | `host:files` | `files.batch_get`<br/>`files.list`<br/>`files.visible.ensure`<br/>`files.upload`<br/>`files.create_from_storage`<br/>`files.metadata.update`<br/>`files.delete`<br/>`files.delete_many` |

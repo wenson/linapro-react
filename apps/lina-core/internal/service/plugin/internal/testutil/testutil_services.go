@@ -472,12 +472,13 @@ func newTestCapabilities(bizCtxSvc bizctxcap.Service) capability.Services {
 // APIDoc returns a fallback apidoc service for plugin integration tests.
 func (s *testCapabilities) APIDoc() apidoccap.Service { return testNoopAPIDoc{} }
 
-// Auth returns a no-op auth namespace for plugin integration tests.
+// Auth returns a no-op auth namespace for plugin integration tests, including a
+// non-nil ExternalLogin sub-capability so external-login plugins can register routes.
 func (s *testCapabilities) Auth() authcap.Service {
 	if s == nil {
-		return authcap.New(testNoopAuth{}, nil)
+		return authcap.New(testNoopAuth{}, nil, testNoopExternalLogin{})
 	}
-	return authcap.New(testNoopAuth{}, s.authz)
+	return authcap.New(testNoopAuth{}, s.authz, testNoopExternalLogin{})
 }
 
 // Users returns an empty user-domain service for plugin integration tests.
@@ -962,6 +963,62 @@ func (*testStorageService) ProviderStatuses(context.Context) ([]*storagecap.Prov
 	return []*storagecap.ProviderStatus{}, nil
 }
 
+// CreateDirectPut returns proxy mode for registration-only tests.
+func (*testStorageService) CreateDirectPut(_ context.Context, in storagecap.DirectPutInput) (*storagecap.DirectPutOutput, error) {
+	return &storagecap.DirectPutOutput{
+		Access: &storagecap.DirectAccess{Mode: storagecap.DirectAccessModeProxy, Operation: storagecap.DirectAccessOpPut},
+		Path:   in.Path,
+	}, nil
+}
+
+// ConfirmDirectPut confirms via Stat for registration-only tests.
+func (s *testStorageService) ConfirmDirectPut(ctx context.Context, in storagecap.ConfirmDirectPutInput) (*storagecap.ConfirmDirectPutOutput, error) {
+	stat, err := s.Stat(ctx, storagecap.StatInput{Path: in.Path})
+	if err != nil {
+		return nil, err
+	}
+	if stat == nil || !stat.Found {
+		return nil, nil
+	}
+	return &storagecap.ConfirmDirectPutOutput{Object: stat.Object}, nil
+}
+
+// CreateDirectGet returns proxy mode for registration-only tests.
+func (*testStorageService) CreateDirectGet(_ context.Context, in storagecap.DirectGetInput) (*storagecap.DirectGetOutput, error) {
+	return &storagecap.DirectGetOutput{
+		Access: &storagecap.DirectAccess{Mode: storagecap.DirectAccessModeProxy, Operation: storagecap.DirectAccessOpGet},
+		Path:   in.Path,
+	}, nil
+}
+
+// SupportsMultipart reports unsupported for registration-only tests.
+func (*testStorageService) SupportsMultipart(context.Context) (bool, error) { return false, nil }
+
+// CreateMultipart is unsupported in registration-only tests.
+func (*testStorageService) CreateMultipart(context.Context, storagecap.MultipartCreateInput) (*storagecap.MultipartCreateOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+
+// UploadPart is unsupported in registration-only tests.
+func (*testStorageService) UploadPart(context.Context, storagecap.MultipartPartInput) (*storagecap.MultipartPartOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+
+// CompleteMultipart is unsupported in registration-only tests.
+func (*testStorageService) CompleteMultipart(context.Context, storagecap.MultipartCompleteInput) (*storagecap.MultipartCompleteOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+
+// AbortMultipart is unsupported in registration-only tests.
+func (*testStorageService) AbortMultipart(context.Context, storagecap.MultipartAbortInput) error {
+	return storagecap.NewMultipartUnsupportedError()
+}
+
+// CreateMultipartPartAccess is unsupported in registration-only tests.
+func (*testStorageService) CreateMultipartPartAccess(context.Context, storagecap.MultipartPartAccessInput) (*storagecap.MultipartPartAccessOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+
 func (s *testStorageService) ensureObjects() {
 	if s.objects == nil {
 		s.objects = make(map[string]*testStorageObject)
@@ -1267,6 +1324,11 @@ func (testUsersService) EnsureVisible(context.Context, []capabilityusercap.UserI
 
 // Create accepts user creation without mutating test state.
 func (testUsersService) Create(context.Context, capabilityusercap.CreateInput) (capabilityusercap.UserID, error) {
+	return "", nil
+}
+
+// CreateFromExternal accepts external-identity provisioning without mutating test state.
+func (testUsersService) CreateFromExternal(context.Context, capabilityusercap.CreateFromExternalInput) (capabilityusercap.UserID, error) {
 	return "", nil
 }
 

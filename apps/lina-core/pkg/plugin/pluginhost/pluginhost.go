@@ -6,6 +6,7 @@ package pluginhost
 import (
 	"io/fs"
 
+	"lina-core/pkg/plugin/capability/authcap/extlogin/extidspi"
 	"lina-core/pkg/plugin/capability/capregistry"
 	"lina-core/pkg/plugin/capability/orgcap/orgspi"
 	"lina-core/pkg/plugin/capability/tenantcap/tenantspi"
@@ -81,6 +82,28 @@ type LifecycleDeclarations interface {
 	// reconciliation. A failure is logged by the host and does not roll back the
 	// already-effective installation.
 	RegisterAfterInstallHandler(handler SourcePluginAfterLifecycleHandler) error
+	// RegisterBeforeEnableHandler registers a pre-enable lifecycle callback for
+	// the source plugin. The host invokes this callback before changing the
+	// plugin from disabled (or newly installed) to enabled. Return ok=false to
+	// veto enable with a stable reason key.
+	RegisterBeforeEnableHandler(handler SourcePluginBeforeLifecycleHandler) error
+	// RegisterAfterEnableHandler registers a post-enable lifecycle callback for
+	// the source plugin. The host invokes this callback after enable succeeds.
+	// A failure is logged and does not roll back enable.
+	RegisterAfterEnableHandler(handler SourcePluginAfterLifecycleHandler) error
+	// RegisterGlobalBeforeInstallHandler registers a global pre-install veto
+	// that observes another plugin's install. The handler receives the target
+	// plugin ID and must not assume self-install semantics.
+	RegisterGlobalBeforeInstallHandler(handler SourcePluginGlobalLifecycleHandler) error
+	// RegisterGlobalBeforeEnableHandler registers a global pre-enable veto that
+	// observes another plugin's enable action.
+	RegisterGlobalBeforeEnableHandler(handler SourcePluginGlobalLifecycleHandler) error
+	// RegisterGlobalBeforeDisableHandler registers a global pre-disable veto that
+	// observes another plugin's disable action.
+	RegisterGlobalBeforeDisableHandler(handler SourcePluginGlobalLifecycleHandler) error
+	// RegisterGlobalBeforeUninstallHandler registers a global pre-uninstall veto
+	// that observes another plugin's uninstall action.
+	RegisterGlobalBeforeUninstallHandler(handler SourcePluginGlobalLifecycleHandler) error
 	// RegisterBeforeUpgradeHandler registers a pre-upgrade lifecycle callback
 	// for the source plugin. The host invokes this callback after it has built
 	// the upgrade plan and before it runs the plugin's custom upgrade handler,
@@ -235,6 +258,20 @@ type ProviderDeclarations interface {
 	ProvideOrg(factory orgspi.ProviderFactory) error
 	// ProvideCapability declares one plugin-owned capability descriptor published by this source plugin.
 	ProvideCapability(descriptor capregistry.Descriptor) error
+	// ProvideExternalIdentity declares one external-identity provider ID owned
+	// by this source plugin. The host uses the declared ownership set to reject
+	// external-login requests that claim a provider the calling plugin did not
+	// declare, preventing one plugin from minting sessions through another
+	// plugin's provider. A plugin may declare more than one provider ID;
+	// duplicate declarations of the same ID are rejected.
+	ProvideExternalIdentity(providerID string) error
+	// ProvideExternalIdentityProvider declares this source plugin's
+	// external-identity provider engine factory (resolve/provision/link). It is
+	// orthogonal to ProvideExternalIdentity ownership stamping: the engine
+	// plugin (linapro-extlogin-core) supplies resolution and provisioning, while
+	// calling plugins (google/discord) still declare provider-ID ownership. Only
+	// one engine factory may be declared per plugin.
+	ProvideExternalIdentityProvider(factory extidspi.ProviderFactory) error
 }
 
 // SourcePluginDefinition exposes the host-side read model restored from one
@@ -259,10 +296,29 @@ type SourcePluginDefinition interface {
 	GetOrgProviderFactory() orgspi.ProviderFactory
 	// GetCapabilityDescriptors returns plugin-owned capability descriptors declared by this source plugin.
 	GetCapabilityDescriptors() []capregistry.Descriptor
+	// GetExternalIdentityProviderIDs returns the external-identity provider IDs
+	// declared by this source plugin. The host consults this ownership set to
+	// authorize external-login requests.
+	GetExternalIdentityProviderIDs() []string
+	// GetExternalIdentityProviderFactory returns the declared external-identity
+	// provider engine factory, or nil when this plugin declares none.
+	GetExternalIdentityProviderFactory() extidspi.ProviderFactory
 	// GetBeforeInstallHandler returns the registered pre-install veto callback.
 	GetBeforeInstallHandler() SourcePluginBeforeLifecycleHandler
 	// GetAfterInstallHandler returns the registered post-install callback.
 	GetAfterInstallHandler() SourcePluginAfterLifecycleHandler
+	// GetBeforeEnableHandler returns the registered pre-enable veto callback.
+	GetBeforeEnableHandler() SourcePluginBeforeLifecycleHandler
+	// GetAfterEnableHandler returns the registered post-enable callback.
+	GetAfterEnableHandler() SourcePluginAfterLifecycleHandler
+	// GetGlobalBeforeInstallHandler returns the registered global pre-install veto.
+	GetGlobalBeforeInstallHandler() SourcePluginGlobalLifecycleHandler
+	// GetGlobalBeforeEnableHandler returns the registered global pre-enable veto.
+	GetGlobalBeforeEnableHandler() SourcePluginGlobalLifecycleHandler
+	// GetGlobalBeforeDisableHandler returns the registered global pre-disable veto.
+	GetGlobalBeforeDisableHandler() SourcePluginGlobalLifecycleHandler
+	// GetGlobalBeforeUninstallHandler returns the registered global pre-uninstall veto.
+	GetGlobalBeforeUninstallHandler() SourcePluginGlobalLifecycleHandler
 	// GetBeforeUpgradeHandler returns the registered pre-upgrade veto callback.
 	GetBeforeUpgradeHandler() SourcePluginBeforeUpgradeHandler
 	// GetUpgradeHandler returns the registered source-plugin custom upgrade callback.

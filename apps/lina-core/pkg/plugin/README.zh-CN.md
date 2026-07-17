@@ -27,13 +27,13 @@ plugin-owned 非核心能力不归属`capability.Services`。owner 插件在`app
 | 领域能力 | 职责边界 | 运行期与校验路径 |
 | --- | --- | --- |
 | `APIDoc` | 解析本地化 API 文档中的路由文本和标题 operation key。 | 通过能力目录或`apidoc`host call 提供；校验关注路由和 operation key 载荷。 |
-| `Auth` | 通过`Token()`和`Authz()`子能力处理租户 token 选择或切换、代用户 token、权限投影、单权限判断和批量权限判断。 | 运行期检查当前用户、租户、权限 key 和方法级授权。 |
+| `Auth` | 通过`Token()`、`Authz()`和`ExternalLogin()`子能力处理租户 token 选择或切换、代用户 token、权限投影与外部身份登录。**安装授权后源码与动态插件同权同信**：宿主盖章调用方 pluginID；源码 ownership 用`ProvideExternalIdentity`，动态用`hostServices`下`auth`的`resources.ref`（provider ID）；方法 wire 为`external_login.login_by_verified_identity`。token/session 铸造仍在宿主。SPA handoff 由`linapro-extlogin-core`闭环。 | 运行期检查启用、方法授权与 provider ownership。外部身份引擎为`linapro-extlogin-core`；未装引擎时登录 fail-closed。 |
 | `AI` | 由`linapro-ai-core`以 plugin-owned 方式拥有；聚合文本、图片、向量、音频、视觉、文档、安全审核和视频等类型化 AI 子能力，并提供方法级状态投影。 | 源码插件 import `linapro-ai-core/backend/cap/aicap`；动态插件声明`owner: linapro-ai-core`、`service: ai`和`version: v1`。`lina-core`只治理 descriptor 发现、依赖检查、授权快照、owner-aware 路由、审计和缓存失效。 |
-| `Users` | 提供用户基础读取、有界用户列表、可见性确认、受治理用户写入、状态与凭证动作，并通过`Users().Assignment()`聚合用户角色关联关系。 | 宿主实现必须让用户存在性和可见性检查保持在调用方边界内。用户角色关联方法默认仅属于源码/Go 契约，除非单独注册为动态`hostServices`；当前动态`users`服务只发布投影、批量、解析、列表和可见性方法。 |
+| `Users` | 提供用户基础读取、有界列表、可见性、受治理写入、状态与凭证，以及`CreateFromExternal`（从外部身份最小权限建号）。动态`users`含`users.create_from_external`等已发布方法。 | 宿主保持可见性边界。`CreateFromExternal`无操作员、最小权限；需在`hostServices`中声明授权后可用。 |
 | `BizCtx` | 投影当前业务请求上下文。 | 作为只读运行期上下文桥接当前用户、租户、语言和请求元数据。 |
 | `Dict` | 解析字典值标签、列出有界字典候选，并校验类型化值可见性。 | 宿主校验保持在可见字典类型和值范围内。 |
 | `Files` | 提供宿主文件中心投影、有界搜索、可见性确认、内容读取、受治理上传，以及从插件存储创建`sys_file`记录。 | 宿主校验避免插件探测或使用可见边界之外的文件 ID。上传会创建宿主文件中心元数据，插件私有对象仍由`Storage()`持有。 |
-| `HostConfig` | 按宿主优先级链读取宿主配置值，并通过`SysConfig()`提供受治理的`sys_config`投影和写入方法。 | 动态`get`和单 key `sys_config`方法声明必须列出`resources.keys`。该能力独立于插件作用域业务配置。 |
+| `HostConfig` | 按宿主优先级链读取宿主配置值，并通过`SysConfig()`提供受治理的`sys_config`投影和写入。`SetValue(ctx, key, value, options)`写单键；`BatchSetValue(ctx, items, options)`在一次事务与一次 runtime-config revision 中写多键（多字段 settings 保存应优先批量）。`options.SystemManageable` 首次插入且为 nil 时默认 false/插件闭环。 | 动态`get`和单 key `sys_config`方法声明必须列出`resources.keys`。该能力独立于插件作用域业务配置。仅在插件入口维护的业务配置 MUST 传`options.SystemManageable: gconv.PtrBool(false)`。 |
 | `I18n` | 为源码插件读取`locale`并翻译消息。 | 源码插件通过`pluginhost`输入中的`capability.Services`接收该能力；动态插件不接收`i18n`host service，因为其 i18n 资源由宿主管理。 |
 | `Jobs` | 读取定时任务元数据、搜索有界任务候选、校验任务可见性，并执行受治理的运行期任务动作。 | 声明期任务契约通过`pluginbridge.Declarations.Jobs().Register(...)`提交；运行期服务不暴露`Register`。 |
 | `Notifications` | 列表和读取类型化通知消息投影、按业务来源批量读取消息、校验可见性、删除消息、更新已读状态并发送受治理通知。 | actor 作用域的读取、删除和已读状态调用不需要资源声明；`messages.send`需要`resources[].ref`边界。 |
@@ -73,8 +73,10 @@ plugin-owned 非核心能力不归属`capability.Services`。owner 插件在`app
 | 插件命令从请求中接收宿主文件 ID。 | `Files().EnsureVisible` / `files.visible.ensure` | 命令执行写入前必须先校验全部 ID。不存在和不可见使用相同拒绝语义，避免泄露资源存在性。 |
 | 插件需要上传内容并登记到宿主文件中心。 | `Files().Upload` / `files.upload` | 宿主通过文件 owner 写入，让`sys_file`记录租户、上传人、场景、hash 和存储元数据。动态直传有大小上限；更大的动态 payload 应先使用`Storage().Put`。 |
 | 插件已经把对象写入私有存储，并需要宿主文件中心记录。 | `Files().CreateFromStorage` / `files.create_from_storage` | 宿主从插件作用域`Storage()`对象复制到文件中心存储。动态插件还必须为源路径声明`storage.get`。该操作不会移动或删除源对象，也不会暴露 provider key 或本地路径。 |
+| 浏览器/客户端需要绕过宿主中转上传或下载云对象。 | 文件中心`direct-upload/*`与`direct-download` HTTP API；插件侧`Storage().CreateDirectPut` / `ConfirmDirectPut` / `CreateDirectGet` | 宿主签发中立`DirectAccess`（`presigned_url` / `form_post` / `temporary_credentials` / `proxy`），密钥永不下发；object key 由宿主按租户/插件作用域分配；local 或不支持时 mode=`proxy` 回退中转。文件中心仍须`complete`后才写`sys_file`。 |
+| 大对象需要云 Multipart 或宿主分片中转。 | 文件中心`direct-upload/init` 自动策略 + `direct-upload/part-url` / `upload/chunked/*`；云 Provider 可选实现`storagecap.MultipartUploadProvider` | init 按大小阈值与能力探测返回中立`strategy.channel`（`direct`/`proxy`）与`strategy.encoding`（`single`/`multipart`）。直传分片使用 part 级短时访问；中转分片由宿主拼装或经 Provider UploadPart。源码插件可在 Provider 支持时调用 Service Multipart 方法；动态插件一期仍用`Put`（guest 传输分片），不暴露公共 Multipart API。 |
 
-`Storage()`provider 选择不依赖主配置项。宿主在恰好一个 storage provider 插件可服务时使用该插件，没有可服务 provider 时回退到内置本地 provider，多个 provider 插件同时可服务时拒绝 storage 调用。
+`Storage()`provider 选择不依赖主配置项。宿主在恰好一个 storage provider 插件可服务时使用该插件，没有可服务 provider 时回退到内置本地 provider，多个 provider 插件同时可服务时拒绝 storage 调用。官方云后端（`linapro-storage-cos`、`linapro-storage-oss`、`linapro-storage-aws`、`linapro-storage-s3`等）通过`storagecap.Provide`注册，并在宿主稳定目录**系统设置**（`menu_key=setting`）下提供凭证配置页。文件中心对象内容写入/读取/删除与插件`Storage()`共用同一套 provider 选择规则（0→local，1→云，≥2→冲突）；列表与检索仍基于`sys_file`。客户端直连同样遵守该选择规则，且永不把永久 AK/SK 暴露给前端。
 
 ## 插件配置来源
 
@@ -109,6 +111,13 @@ Core-owned provider factory 声明归属`pluginhost.Declarations.Providers()`。
 
 `apps/lina-core/internal/service/plugin`是宿主侧插件领域组件。根包提供统一门面，覆盖插件发现、管理列表、安装、启用、停用、卸载、运行期升级、源码插件升级、运行期路由分发、前端资源托管、依赖检查和能力装配。
 
+硬依赖`dependencies.plugins`检查按两条生命周期轴执行：
+
+- **安装轴**（安装/卸载/升级版本契约）：正向检查要求依赖已安装且版本满足；反向检查保护所有**已安装**下游依赖方。
+- **运行轴**（启用/禁用）：启用正向检查要求依赖已安装、**已启用**且版本满足；禁用反向仅由**已启用**下游依赖方阻断。已安装但已禁用的下游不会阻断禁用，但仍会阻断卸载。
+
+宿主不会自动安装、启用、禁用或卸载依赖链。
+
 ## 声明期能力与运行期能力
 
 ### 声明期能力
@@ -116,6 +125,31 @@ Core-owned provider factory 声明归属`pluginhost.Declarations.Providers()`。
 声明期能力是插件的静态声明和注册输出。宿主在业务执行前使用这些内容构建治理状态。
 
 源码插件通过`pluginhost.Declarations`表达声明期契约，包括`Assets()`、`Lifecycle()`、`Hooks()`、`HTTP()`、`Jobs()`和`Access()`。
+
+### 路由注册：`group.Bind` 绑定控制器对象
+
+源码插件与宿主 HTTP 路由注册时，`group.Bind` **默认传入控制器对象**（例如`group.Bind(controller.NewV1(svc))` 或 `group.Bind(ctrl)`），由 GoFrame 自动发现对象上带路由元数据的方法。
+
+同一中间件组内应避免无必要地罗列`ctrl.Method1, ctrl.Method2, ...`。
+
+当**同一控制器的方法必须落在不同中间件组**（例如公开登录 vs 鉴权后管理接口）时，宿主沿用拆分注册：公开组与受保护组分别`Bind`对应方法，而不是再套一层 Public/Protected 控制器封装。
+
+### 生命周期前置 Hook（目标 vs 全局）
+
+源码插件`Lifecycle()`支持两类前置回调：
+
+| 类型 | 注册示例 | 输入 | 语义 |
+|------|----------|------|------|
+| 目标插件 | `RegisterBeforeInstallHandler` / `RegisterBeforeEnableHandler` 等 | `SourcePluginLifecycleInput` | 仅当**本插件**被装/启/禁/卸时调用，可否决自身操作 |
+| 全局前置 | `RegisterGlobalBeforeInstallHandler` / `RegisterGlobalBeforeEnableHandler` / `RegisterGlobalBeforeDisableHandler` / `RegisterGlobalBeforeUninstallHandler` | `SourcePluginGlobalLifecycleInput`（含`TargetPluginID`） | 当**其他插件**被装/启/禁/卸时调用，由 owner 做跨插件治理（例如同 kind 单例） |
+
+编排规则：
+
+- 安装、启用、禁用、卸载在写状态前会聚合**目标 Before\*** 与已显式注册的**全局 GlobalBefore\***。
+- 启用路径提供`BeforeEnable`/`AfterEnable`；`AfterEnable` 为 best-effort，不回滚已成功启用。
+- 全局参与者列表只包含注册了对应全局 Hook 的插件，未注册者不参与、无空调用。
+- 宿主不识别业务领域（如邮件 kind）；领域冲突逻辑由 owner 插件在全局 Hook 内实现。
+- 不得通过“向所有插件广播自管 `BeforeInstall`”模拟全局拦截，以免误触发自身安装语义。
 
 动态插件通过`plugin.yaml`、WASM 自定义 section、`pluginbridge.Declarations.Routes().Group(...)`、`pluginbridge.Declarations.Jobs().Register(...)`以及嵌入的`protocol`契约表达声明期契约，例如路由、任务、生命周期处理器、后端资源、前端资源、SQL、i18n 资源和`hostServices`。
 
@@ -224,8 +258,8 @@ hostServices:
 | `hostconfig` | `resources.keys` | `host:hostconfig` | `get`<br/>`sys_config.get`<br/>`sys_config.value.set`<br/>`sys_config.reset` |
 | `manifest` | `resources.paths` | `host:manifest` | `get`<br/>`get_many`<br/>`list` |
 | `apidoc` | 无 | `host:apidoc` | `route_text.resolve`<br/>`route_texts.resolve`<br/>`route_title_operation_keys.find` |
-| `auth` | 无 | `host:auth:token`<br/>`host:auth:authz` | `token.tenant.select`<br/>`token.tenant.switch`<br/>`token.impersonation_token.issue`<br/>`token.impersonation_token.revoke`<br/>`authz.permissions.batch_get`<br/>`authz.permissions.batch_has`<br/>`authz.permissions.has`<br/>`authz.users.platform_admin.check`<br/>`authz.role_permissions.replace` |
-| `users` | 无 | `host:users` | `users.current.get`<br/>`users.batch_get`<br/>`users.resolve.batch`<br/>`users.list`<br/>`users.visible.ensure`<br/>`users.create`<br/>`users.update`<br/>`users.delete`<br/>`users.status.set`<br/>`users.password.reset`<br/>`users.assignment.roles.replace` |
+| `auth` | 无 | `host:auth:token`<br/>`host:auth:external_login`<br/>`host:auth:authz` | `token.tenant.select`<br/>`token.tenant.switch`<br/>`token.impersonation_token.issue`<br/>`token.impersonation_token.revoke`<br/>`external_login.login_by_verified_identity`<br/>`authz.permissions.batch_get`<br/>`authz.permissions.batch_has`<br/>`authz.permissions.has`<br/>`authz.users.platform_admin.check`<br/>`authz.role_permissions.replace` |
+| `users` | 无 | `host:users` | `users.current.get`<br/>`users.batch_get`<br/>`users.resolve.batch`<br/>`users.list`<br/>`users.visible.ensure`<br/>`users.create`<br/>`users.create_from_external`<br/>`users.update`<br/>`users.delete`<br/>`users.status.set`<br/>`users.password.reset`<br/>`users.assignment.roles.replace` |
 | `bizctx` | 无 | `host:bizctx` | `current.get` |
 | `dict` | 无 | `host:dict` | `dict.refresh`<br/>`dict.type.get`<br/>`dict.type.batch_get`<br/>`dict.type.list`<br/>`dict.type.visible.ensure`<br/>`dict.type.keys.visible.ensure`<br/>`dict.type.create`<br/>`dict.type.update`<br/>`dict.type.delete`<br/>`dict.value.get`<br/>`dict.value.batch_get`<br/>`dict.value.labels.resolve`<br/>`dict.value.list`<br/>`dict.value.visible.ensure`<br/>`dict.value.values.visible.ensure`<br/>`dict.value.create`<br/>`dict.value.update`<br/>`dict.value.delete`<br/>`dict.value.by_type.delete` |
 | `files` | 无 | `host:files` | `files.batch_get`<br/>`files.list`<br/>`files.visible.ensure`<br/>`files.upload`<br/>`files.create_from_storage`<br/>`files.metadata.update`<br/>`files.delete`<br/>`files.delete_many` |

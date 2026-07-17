@@ -18,7 +18,11 @@ const (
 	defaultRuntimeLocale = "zh-CN"
 )
 
-// validateRuntimeI18NMessages validates all host and plugin runtime i18n scopes.
+// validateRuntimeI18NMessages validates all host and plugin runtime i18n scopes
+// (locale key parity), bizerr messageKey coverage for the host plus every
+// plugin with i18n.enabled=true, plugin management display metadata keys
+// (plugin.<id>.name / plugin.<id>.description), and config-management display
+// metadata keys (config.<sys_config.key>.name / .remark).
 func validateRuntimeI18NMessages(repoRoot string) ([]string, error) {
 	scopes, err := iterRuntimeI18NScopes(repoRoot)
 	if err != nil {
@@ -33,6 +37,31 @@ func validateRuntimeI18NMessages(repoRoot string) ([]string, error) {
 		}
 		errors = append(errors, scopeErrors...)
 	}
+
+	// Every bizerr.MustDefine messageKey (derived from errorCode) must exist in the
+	// owning module's runtime i18n catalogs (host always; plugins when i18n is on).
+	bizerrErrors, bizerrErr := validateBizerrMessageKeys(repoRoot)
+	if bizerrErr != nil {
+		return nil, bizerrErr
+	}
+	errors = append(errors, bizerrErrors...)
+
+	// Plugin management list localizes name/description via plugin.<id>.* keys.
+	// Locale parity alone cannot catch bare name/description JSON mistakes.
+	metadataErrors, metadataErr := validatePluginDisplayMetadataKeys(repoRoot)
+	if metadataErr != nil {
+		return nil, metadataErr
+	}
+	errors = append(errors, metadataErrors...)
+
+	// Config management list projects name/remark via config.<key>.* keys derived
+	// from SQL seeds and SysConfigKey constants. Locale parity alone cannot catch
+	// a missing key that is absent from every locale.
+	configErrors, configErr := validateConfigDisplayMetadataKeys(repoRoot)
+	if configErr != nil {
+		return nil, configErr
+	}
+	errors = append(errors, configErrors...)
 	return errors, nil
 }
 

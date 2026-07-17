@@ -1,6 +1,12 @@
 // Package jobmeta defines shared scheduled-job domain types, input value
 // objects, and JSON payload helpers used by job management, scheduling, and
 // handler execution.
+//
+// Execution delivery is at-least-once: handlers may observe the same logical
+// work more than once after failures or restarts. Use ExecutionLogID from the
+// invocation context as a stable execution id when side effects must be
+// de-duplicated. The scheduler does not catch up missed cron ticks on restart;
+// it only reclaims orphan running logs on the current node.
 package jobmeta
 
 import (
@@ -96,7 +102,7 @@ type Owner interface {
 	// UpdateJob mutates one governed scheduled job and updates scheduler state.
 	UpdateJob(ctx context.Context, in UpdateJobInput) error
 	// DeleteJobs removes governed scheduled jobs and unregisters scheduler entries.
-	DeleteJobs(ctx context.Context, ids string) error
+	DeleteJobs(ctx context.Context, ids []int64) error
 	// UpdateJobStatus toggles one scheduled job and updates scheduler state.
 	UpdateJobStatus(ctx context.Context, id int64, status jobv1.Status) error
 	// TriggerJob starts one manual execution through the scheduler.

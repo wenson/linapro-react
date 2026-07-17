@@ -59,7 +59,7 @@ it("renders the equivalent analytics overview, tabs and chart cards", () => {
 
 it("renders workspace plugin slots before and after host content", async () => {
   const slots = {
-    "auth.login.after": [], "crud.table.after": [], "crud.toolbar.after": [],
+    "auth.login.after": [], "auth.login.social": [], "crud.table.after": [], "crud.toolbar.after": [],
     "dashboard.workspace.before": [slot("before", "Before plugin", 1)],
     "dashboard.workspace.after": [slot("after", "After plugin", 2)],
     "layout.header.actions.before": [], "layout.header.actions.after": [], "layout.user-dropdown.after": [],

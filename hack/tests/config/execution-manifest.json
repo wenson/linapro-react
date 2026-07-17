@@ -40,6 +40,7 @@
     "e2e/about/TC001-api-docs-page.ts",
     "e2e/auth/TC003-logout.ts",
     "e2e/auth/TC006-login-page-presentation.ts",
+    "e2e/auth/TC009-forgot-password-and-register.ts",
     "e2e/extension/plugin",
     "plugins",
     "e2e/iam/menu",
@@ -79,6 +80,11 @@
       "entry": "e2e/auth/TC006-login-page-presentation.ts",
       "categories": ["systemConfig"],
       "reason": "The login presentation assertions mutate the global login panel layout config."
+    },
+    {
+      "entry": "e2e/auth/TC009-forgot-password-and-register.ts",
+      "categories": ["systemConfig"],
+      "reason": "Public authentication checks toggle global registration and password-recovery settings."
     },
     {
       "entry": "plugins",
@@ -211,5 +217,47 @@
       "reason": "Settings-owned user tests validate user labels and batch edits against shared user and role data."
     }
   ],
-  "parallelIsolationAllowlist": []
+  "parallelIsolationAllowlist": [],
+  "ciShards": {
+    "defaults": {
+      "parallelWorkers": 2
+    },
+    "host": [
+      {
+        "name": "core",
+        "entries": ["e2e/auth", "e2e/dashboard", "e2e/about"]
+      },
+      {
+        "name": "iam",
+        "entries": ["e2e/iam"]
+      },
+      {
+        "name": "settings",
+        "entries": ["e2e/settings"]
+      },
+      {
+        "name": "scheduler",
+        "entries": ["e2e/scheduler"]
+      },
+      {
+        "name": "i18n",
+        "entries": ["e2e/i18n"]
+      },
+      {
+        "name": "extension-plugin",
+        "entries": ["e2e/extension/plugin"]
+      }
+    ],
+    "plugin": {
+      "targetShardCount": 8,
+      "packing": "file-count-binpack",
+      "weightOverrides": {}
+    },
+    "pluginFullExtra": [
+      {
+        "name": "extension-plugin",
+        "scope": "extension:plugin"
+      }
+    ]
+  }
 }

@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { AuthGate } from "#/auth/auth-gate";
+import { RegisterPage, ForgetPasswordPage, ResetPasswordPage } from "#/auth/public-auth-pages";
+import { createAuthApi } from "#/api/auth";
 import type { AuthRuntime } from "#/auth/auth-runtime";
 import type { ApiClient } from "#/api/client";
 import { WorkbenchApp } from "#/layout/workbench-app";
@@ -14,12 +16,15 @@ export function createRuntimeRouter(
 ) {
   const logoUrl = resolveWorkspaceAssetUrl(config.app.logo, config.workspace.basePath);
   const gateProps = {
+    apiClient,
     appName: config.app.name,
+    forgetPasswordEnabled: config.auth.forgetPasswordEnabled,
     loginSubtitle: config.auth.loginSubtitle,
     logoUrl,
     pageDescription: config.auth.pageDesc,
     pageTitle: config.auth.pageTitle,
     panelLayout: config.auth.panelLayout,
+    registerEnabled: config.auth.registerEnabled,
     runtime: authRuntime,
   };
 
@@ -31,6 +36,9 @@ export function createRuntimeRouter(
         ),
         path: "/auth/login",
       },
+      { element: <RegisterPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.registerEnabled} privacyPolicy={config.auth.privacyPolicy} termsOfService={config.auth.termsOfService} />, path: "/auth/register" },
+      { element: <ForgetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.forgetPasswordEnabled} />, path: "/auth/forget-password" },
+      { element: <ResetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.forgetPasswordEnabled} />, path: "/auth/reset-password" },
       {
         element: <Navigate replace to="/auth/login" />,
         path: "/auth/*",

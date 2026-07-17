@@ -22,23 +22,22 @@ test.describe("TC-2 登录页展示收口与布局", () => {
     await api.dispose();
   });
 
-  test("TC-2a: 登录页隐藏未实现入口并回退未实现认证子路由", async ({
+  test("TC-2a: 登录页展示已实现的公开认证入口并回退未知子路由", async ({
     loginPage,
     page,
   }) => {
     await loginPage.goto();
 
-    await expect(loginPage.forgotPasswordEntry).toBeHidden();
-    await expect(loginPage.createAccountEntry).toBeHidden();
+    await expect(loginPage.forgotPasswordEntry).toBeVisible();
+    await expect(loginPage.createAccountEntry).toBeVisible();
     await expect(loginPage.mobileLoginButton).toBeHidden();
     await expect(loginPage.qrCodeLoginButton).toBeHidden();
-    await expect(loginPage.thirdPartyLoginTitle).toBeHidden();
+    await expect(loginPage.externalAuthRegion).toBeHidden();
+    await expect(loginPage.socialAuthRegion).toBeHidden();
 
     for (const path of [
       "/auth/code-login",
       "/auth/qrcode-login",
-      "/auth/forget-password",
-      "/auth/register",
     ]) {
       await page.goto(workspacePath(path));
       await page.waitForURL(/\/auth\/login$/, { timeout: 10000 });

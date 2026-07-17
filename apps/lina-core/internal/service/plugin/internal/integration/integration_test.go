@@ -24,6 +24,7 @@ import (
 	"lina-core/pkg/plugin/capability/apidoccap"
 	"lina-core/pkg/plugin/capability/authcap"
 	capabilityauthz "lina-core/pkg/plugin/capability/authcap/authz"
+	"lina-core/pkg/plugin/capability/authcap/extlogin"
 	"lina-core/pkg/plugin/capability/authcap/token"
 	"lina-core/pkg/plugin/capability/bizctxcap"
 	"lina-core/pkg/plugin/capability/cachecap"
@@ -119,9 +120,10 @@ func (d *scopedSourceServicesDirectory) APIDoc() apidoccap.Service {
 	return scopedCapabilityAPIDoc{}
 }
 
-// Auth returns a no-op auth namespace required by tenant-core route registration.
+// Auth returns a no-op auth namespace required by tenant-core and external-login
+// route registration (LDAP/OIDC plugins require ExternalLogin at register time).
 func (d *scopedSourceServicesDirectory) Auth() authcap.Service {
-	return authcap.New(scopedCapabilityAuth{}, scopedCapabilityAuthz{})
+	return authcap.New(scopedCapabilityAuth{}, scopedCapabilityAuthz{}, scopedCapabilityExternalLogin{})
 }
 
 // BizCtx returns a minimal non-nil business context service required by source
@@ -230,6 +232,19 @@ func (scopedCapabilityAuth) IssueImpersonationToken(context.Context, token.Imper
 // RevokeImpersonationToken performs no revocation in registration-only tests.
 func (scopedCapabilityAuth) RevokeImpersonationToken(context.Context, token.ImpersonationTokenRevokeInput) error {
 	return nil
+}
+
+// scopedCapabilityExternalLogin is a no-op external-login fixture for registration-only
+// tests. OIDC/LDAP plugins only require a non-nil sub-capability while wiring routes.
+type scopedCapabilityExternalLogin struct{}
+
+// LoginByVerifiedIdentity returns an empty outcome because registration-only tests
+// never complete an external-identity login exchange.
+func (scopedCapabilityExternalLogin) LoginByVerifiedIdentity(
+	context.Context,
+	extlogin.LoginInput,
+) (*extlogin.LoginOutput, error) {
+	return &extlogin.LoginOutput{}, nil
 }
 
 // scopedCapabilityAuthz is an empty authorization fixture for registration-only tests.
@@ -347,7 +362,11 @@ func (scopedCapabilitySysConfig) List(context.Context, hostconfigcap.ListSysConf
 }
 
 // SetValue accepts sys_config writes without mutating state.
-func (scopedCapabilitySysConfig) SetValue(context.Context, hostconfigcap.SysConfigKey, string) error {
+func (scopedCapabilitySysConfig) SetValue(context.Context, hostconfigcap.SysConfigKey, string, *hostconfigcap.SetSysConfigValueOptions) error {
+	return nil
+}
+
+func (scopedCapabilitySysConfig) BatchSetValue(context.Context, []hostconfigcap.SetSysConfigValueItem, *hostconfigcap.SetSysConfigValueOptions) error {
 	return nil
 }
 
@@ -617,6 +636,44 @@ func (scopedCapabilityStorage) ProviderStatuses(context.Context) ([]*storagecap.
 		Active:     true,
 		Available:  true,
 	}}, nil
+}
+
+// CreateDirectPut returns proxy mode for registration-only tests.
+func (scopedCapabilityStorage) CreateDirectPut(_ context.Context, in storagecap.DirectPutInput) (*storagecap.DirectPutOutput, error) {
+	return &storagecap.DirectPutOutput{
+		Access: &storagecap.DirectAccess{Mode: storagecap.DirectAccessModeProxy, Operation: storagecap.DirectAccessOpPut},
+		Path:   in.Path,
+	}, nil
+}
+
+// ConfirmDirectPut reports missing objects because registration-only tests do not persist content.
+func (scopedCapabilityStorage) ConfirmDirectPut(context.Context, storagecap.ConfirmDirectPutInput) (*storagecap.ConfirmDirectPutOutput, error) {
+	return nil, nil
+}
+
+// CreateDirectGet returns proxy mode for registration-only tests.
+func (scopedCapabilityStorage) CreateDirectGet(_ context.Context, in storagecap.DirectGetInput) (*storagecap.DirectGetOutput, error) {
+	return &storagecap.DirectGetOutput{
+		Access: &storagecap.DirectAccess{Mode: storagecap.DirectAccessModeProxy, Operation: storagecap.DirectAccessOpGet},
+		Path:   in.Path,
+	}, nil
+}
+
+func (scopedCapabilityStorage) SupportsMultipart(context.Context) (bool, error) { return false, nil }
+func (scopedCapabilityStorage) CreateMultipart(context.Context, storagecap.MultipartCreateInput) (*storagecap.MultipartCreateOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+func (scopedCapabilityStorage) UploadPart(context.Context, storagecap.MultipartPartInput) (*storagecap.MultipartPartOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+func (scopedCapabilityStorage) CompleteMultipart(context.Context, storagecap.MultipartCompleteInput) (*storagecap.MultipartCompleteOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
+}
+func (scopedCapabilityStorage) AbortMultipart(context.Context, storagecap.MultipartAbortInput) error {
+	return storagecap.NewMultipartUnsupportedError()
+}
+func (scopedCapabilityStorage) CreateMultipartPartAccess(context.Context, storagecap.MultipartPartAccessInput) (*storagecap.MultipartPartAccessOutput, error) {
+	return nil, storagecap.NewMultipartUnsupportedError()
 }
 
 // scopedCapabilityI18n is a fallback translator fixture for registration-only tests.
@@ -908,6 +965,10 @@ func (scopedCapabilityUsers) EnsureVisible(context.Context, []capabilityusercap.
 
 // Create accepts user creation without mutating state.
 func (scopedCapabilityUsers) Create(context.Context, capabilityusercap.CreateInput) (capabilityusercap.UserID, error) {
+	return "", nil
+}
+
+func (scopedCapabilityUsers) CreateFromExternal(context.Context, capabilityusercap.CreateFromExternalInput) (capabilityusercap.UserID, error) {
 	return "", nil
 }
 
