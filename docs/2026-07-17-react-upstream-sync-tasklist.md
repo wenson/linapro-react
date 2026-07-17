@@ -9,10 +9,10 @@
 | 字段 | 值 |
 | --- | --- |
 | 版本 | `v1.5` |
-| 状态 | `In Progress` |
+| 状态 | `Passed` |
 | React 基线 | `07d85b33` |
 | 合并头 | `1f16d645` |
-| 运行分支 | `main`（合并进行中） |
+| 运行分支 | `main`（合并完成） |
 | 执行记录 | `docs/2026-07-17-react-upstream-sync-execution-record.md` |
 | 提交授权 | 已授权创建一次完整本地合并提交；未授权推送或创建 PR |
 
@@ -46,7 +46,7 @@ git diff --check
 - [x] `US-DONE-002``apps/lina-vben`不存在，且 React、插件和工具链不重新引入 Vue/Vben/Ant Design Vue 依赖。
 - [x] `US-DONE-003`上游新增的认证、配置、上传、插件治理、IAM、任务和 i18n 行为在 React 中具有等价实现与测试。
 - [x] `US-DONE-004`Go、React、工具、i18n 与受影响的 E2E 验证完成；无法运行的项在执行记录中包含原因、替代验证和剩余风险。
-- [ ] `US-DONE-005`当前工作区仅包含本清单授权的合并结果，并创建一次语义明确的本地 merge commit。
+- [x] `US-DONE-005`当前工作区仅包含本清单授权的合并结果，并创建一次语义明确的本地 merge commit。
 
 ## 阶段一：合并现场与结构冲突
 
@@ -183,9 +183,9 @@ git status --short --branch
 
 目标：仅在阶段一至六全部通过后创建一次本地提交。
 
-- [ ] `US-060`复查`git status --short --branch`，确认变更均属于本清单且无未解决冲突。
-- [ ] `US-061`以`feat(upstream): sync post-react-migration capabilities`创建一次完整本地 merge commit。
-- [ ] `US-062`记录提交 SHA、提交内容摘要和未运行验证；不执行`push`、PR、rebase 或历史重写。
+- [x] `US-060`复查`git status --short --branch`，确认变更均属于本清单且无未解决冲突。
+- [x] `US-061`以`feat(upstream): sync post-react-migration capabilities`创建一次完整本地 merge commit。
+- [x] `US-062`记录提交 SHA、提交内容摘要和未运行验证；不执行`push`、PR、rebase 或历史重写。
 
 验收：本地提交存在，工作区干净，远端未变更。
 
@@ -204,5 +204,6 @@ git commit -m "feat(upstream): sync post-react-migration capabilities"
 
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
+| `v1.6` | `2026-07-17` | 记录最终 merge commit `b87a80e5`，完成阶段七与全部完成定义状态。 |
 | `v1.5` | `2026-07-17` | 补充阶段依赖、可复制验证命令和唯一提交门禁；依据已有执行证据同步阶段一状态。 |
 | `v1.0` | `2026-07-17` | 创建合并、React 迁移和验证的初始冻结清单。 |

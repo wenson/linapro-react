@@ -81,7 +81,7 @@
 | 阶段四 | `Passed` | 配置值类型、直传/代理分片上传和下载回退完成，专项单测通过。 |
 | 阶段五 | `Passed` | 插件治理、IAM、任务与共享组件契约已审查；builtin 继续按产品规则完全隐藏。 |
 | 阶段六 | `Passed` | React/Semi POM 与 E2E 静态治理、i18n、类型、单测、lint、构建及残留扫描通过。 |
-| 阶段七 | `In Progress` | 等待最终工作区复查后创建唯一的本地 merge commit。 |
+| 阶段七 | `Passed` | 已创建唯一的本地 merge commit`b87a80e5`；未推送、未创建 PR。 |
 
 ## 审查结论与剩余风险
 
@@ -94,8 +94,17 @@
 - E2E：`test:validate`通过。真实浏览器 E2E 与截图未运行，因为本机未启动核心服务、数据库和 Playwright 依赖栈；截图目录`temp/20260717/`未产生文件。静态测试治理和 React/Semi 选择器审查是替代覆盖，剩余风险是未对运行中的完整服务执行视觉与跨服务工作流验证。
 - Go：`internal/cmd`和本次文件、认证定向包测试通过；`auth`、`file`、`plugin`全量集成测试均会在本机缺失 GoFrame 配置/数据库时 panic，故未将该外部环境故障归因于本次实现。
 
+## 交付提交
+
+| 字段 | 值 |
+| --- | --- |
+| Merge commit | `b87a80e579152c3c62992115a033b4db2304d71d` |
+| 提交信息 | `feat(upstream): sync post-react-migration capabilities` |
+| 提交范围 | 上游后端/工具/测试同步，以及认证、配置、文件上传下载、匿名插件 slot 和 React/Semi E2E 迁移。 |
+| Git 状态 | 本地`main`已包含该提交；未执行`push`、PR、rebase 或历史重写。 |
+
 ## 本轮文档治理结论
 
 - 已读取`.agents/rules/documentation.md`、`.agents/rules/workflow.md`和 Markdown 格式指引。
 - 本轮只更新 Tasklist 与执行记录，不涉及目录级`README`镜像。
-- `v1.5`补充执行顺序和命令门禁，属于冻结清单的可执行性增强；尚未改变功能范围、提交边界或验收定义。
+- `v1.6`记录最终提交和阶段七状态，不改变功能范围；该状态提交不属于新的 merge commit。
