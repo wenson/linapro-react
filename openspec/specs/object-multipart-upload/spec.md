@@ -1,5 +1,8 @@
-## ADDED Requirements
+# object-multipart-upload Specification
 
+## Purpose
+TBD - created by archiving change storage-multipart-auto-upload. Update Purpose after archive.
+## Requirements
 ### Requirement: 系统必须提供可探测的对象 Multipart 上传契约
 
 系统 SHALL 在对象存储扩展契约上提供可选的 Multipart 上传能力探测与会话操作。实现 MUST 以中立方式表达 CreateMultipart、UploadPart、CompleteMultipart、AbortMultipart，MUST NOT 要求调用方按云厂商 ID 分支业务逻辑。未实现该可选能力的 provider（含内置 local）MUST 报告不支持云 Multipart，且 MUST NOT 假装已完成云端 Multipart 会话。
