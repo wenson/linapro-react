@@ -4,9 +4,7 @@
 
 本文定义使用`apps/lina-web`替换`apps/lina-vben`的详细设计。目标读者是 LinaPro 宿主、工作台、官方源码插件、构建工具和测试维护者。读者应了解 React、Vite、LinaPro 菜单权限模型和源码插件目录约定。
 
-本文只设计 LinaPro 通用工作台及其插件 UI 接缝，不迁移 TapCanvas 领域页面，不实现`FlowMutation`、生成任务或 Agents Bridge。TapCanvas 前端将在工作台和插件 UI 契约稳定后，由`linapro-tapcanvas-studio`迁移计划接入。
-
-上位约束来自`docs/2026-07-11-tapcanvas-react-platform-migration-design.md`：工作台、内建页面和官方源码插件统一使用 React；LinaPro 继续拥有认证、用户、租户、RBAC、数据权限和插件治理；迁移完成后删除 Vue/Vben 路径，不保留兼容层。
+本文只设计 LinaPro 通用工作台及其插件 UI 接缝，不迁移具体业务领域页面、业务 API 或外部服务编排。工作台、内建页面和官方源码插件统一使用 React；LinaPro 继续拥有认证、用户、租户、RBAC、数据权限和插件治理；迁移完成后删除 Vue/Vben 路径，不保留兼容层。
 
 本设计的执行顺序由已冻结的`docs/2026-07-12-react-workbench-replacement-tasklist.md` `v1.2`控制。代码库对照证据和修订记录见`docs/2026-07-12-react-workbench-tasklist-v1-executability-review.md`。
 
@@ -19,7 +17,7 @@
 - 后端认证、菜单、用户、租户和业务 API 保持现有 LinaPro 契约，前端通过新的类型化适配层消费。
 - 宿主内建页面统一使用 Semi Design，以`Table`、`Form`、`SideSheet`和`Modal`承载管理工作台交互。
 - 宿主生产依赖不得包含`antd`、`@ant-design/icons`或其他 Ant Design React 包，不建立 Semi/Ant 双组件层。
-- TapCanvas 等源码插件可继续使用自己的 React 组件库，但不得引入第二份 React 运行时。
+- 源码插件可继续使用自己的 React 组件库，但不得引入第二份 React 运行时。
 - 源码插件通过`frontend/plugin-ui.ts`贡献 React 懒加载页面和插槽。
 - 源码插件 React 页面发现完全归`apps/lina-web`构建期负责，`lina-core`不扫描`.tsx`、不解析 React 模块，也不感知 Semi Design。
 - 动态插件只允许`iframe`或新标签页隔离运行，不再允许 ESM `embedded-mount`注入宿主运行时；需要受保护 API 的 iframe 通过宿主受限消息桥接访问，不能获得 LinaPro Token。
@@ -42,7 +40,7 @@
 
 - 不修改 LinaPro 用户、角色、菜单、租户和数据权限的业务语义。
 - 不为了前端展示重塑`lina-core`领域模型或数据库表。
-- 不迁移 TapCanvas 业务 API、画布状态和 Hono 逻辑。
+- 不迁移具体业务 API、业务状态和外部服务逻辑。
 - 不引入微前端框架、Module Federation、Vue/React 适配器或双运行时桥接。
 - 不复刻 Vben 内部抽象，例如 schema 驱动的通用表格、表单、Modal 和 Drawer 框架。
 - 不继续支持动态插件的`embedded-mount`模式。
@@ -309,7 +307,7 @@ stateDiagram-v2
     Authenticated --> Anonymous: "退出登录"
 ```
 
-登录后并行请求`/user/info`、`/menus/all`和插件动态状态，避免串行瀑布。登录表单只提供 LinaPro 用户名和密码，不增加 TapCanvas 登录、GitHub OAuth、短信、邮箱或访客入口。
+登录后并行请求`/user/info`、`/menus/all`和插件动态状态，避免串行瀑布。登录表单只提供 LinaPro 用户名和密码，不增加额外的领域登录入口、GitHub OAuth、短信、邮箱或访客入口。
 
 ### 租户状态
 
@@ -412,7 +410,7 @@ export default definePluginUI({
 });
 ```
 
-Vite 插件只扫描`apps/lina-plugins/*/frontend/plugin-ui.ts`，并生成`virtual:linapro-plugin-ui`。页面与插槽模块通过显式`load()`懒加载，避免读取元数据时把 TapCanvas 画布打入首屏 chunk。该发现链完全位于`apps/lina-web`，不调用`lina-core`文件扫描器。
+Vite 插件只扫描`apps/lina-plugins/*/frontend/plugin-ui.ts`，并生成`virtual:linapro-plugin-ui`。页面与插槽模块通过显式`load()`懒加载，避免读取元数据时把插件页面打入首屏 chunk。该发现链完全位于`apps/lina-web`，不调用`lina-core`文件扫描器。
 
 `vite.config.ts`必须把`apps/lina-plugins`加入受控的`server.fs.allow`，并校验每个清单只能引用所属插件`frontend/`内的文件。React、React DOM、Router 和 TanStack Query 通过`resolve.dedupe`和插件源码依赖解析固定到`apps/lina-web/node_modules`，开发服务器和生产构建使用同一解析规则。
 
@@ -470,7 +468,7 @@ export interface PluginHostContextValue {
 
 官方源码插件把`react`、`react-dom`、`react-router-dom`和`@tanstack/react-query`视为宿主提供的 peer dependency。Vite 对从`apps/lina-plugins`加载的源码强制解析到`apps/lina-web/node_modules`，构建治理检查 lockfile 中不存在第二份 React 主版本。
 
-TapCanvas 可以保留 Mantine 和`@xyflow/react`，但其 package manifest 不得安装独立 React 副本。插件 CSS 根选择器使用`[data-plugin-id="linapro-tapcanvas-studio"]`或 CSS Modules，禁止覆盖`body`、`.semi-*`和宿主 token。
+源码插件可以使用自身所需的 React 组件库，但其 package manifest 不得安装独立 React 副本。插件 CSS 根选择器使用插件自身的`data-plugin-id`或 CSS Modules，禁止覆盖`body`、`.semi-*`和宿主 token。
 
 ## 动态插件隔离
 
@@ -751,7 +749,7 @@ React 工作台替换完成必须同时满足：
 - 当前全部宿主管理页面具备原有核心工作流，不存在 Vue 页面回退。
 - 宿主页面、依赖清单和构建产物只使用 Semi Design，不包含 Ant Design React 运行时代码。
 - 源码插件页面和插槽只使用 React，并按插件状态和权限装配。
-- TapCanvas 类工作区可以使用`workspace`表面占满内容区，不被宿主页面滚动破坏。
+- 工作区类插件页面可以使用`workspace`表面占满内容区，不被宿主页面滚动破坏。
 - 动态插件只能使用 iframe 或新标签页，不能向宿主 bundle 注入任意框架运行时；iframe 不获得 LinaPro Token，并通过受限消息桥接保持原有受保护 API 能力。
 - `en-US`和`zh-CN`切换后页面、菜单、面包屑、标签和插件文案一致更新。
 - `make dev`、`make build`、host-only build、前端测试、Go 插件扫描测试和 E2E 全部通过。

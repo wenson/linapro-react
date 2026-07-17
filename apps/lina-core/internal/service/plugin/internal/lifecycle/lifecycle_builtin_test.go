@@ -11,33 +11,33 @@ import (
 	"lina-core/internal/service/plugin/internal/plugintypes"
 )
 
-// TestOrderBuiltinManifestsPlacesDependenciesFirst verifies the Studio plugin
-// is reconciled only after its built-in AI Core dependency.
+// TestOrderBuiltinManifestsPlacesDependenciesFirst verifies a dependent
+// built-in plugin is reconciled only after its built-in dependency.
 func TestOrderBuiltinManifestsPlacesDependenciesFirst(t *testing.T) {
-	aiCore := &catalog.Manifest{
-		ID:           "linapro-ai-core",
+	dependency := &catalog.Manifest{
+		ID:           "linapro-example-dependency",
 		Type:         pluginv1.PluginTypeSource.String(),
 		Distribution: pluginv1.PluginDistributionBuiltin.String(),
 	}
-	studio := &catalog.Manifest{
-		ID:           "linapro-tapcanvas-studio",
+	dependent := &catalog.Manifest{
+		ID:           "linapro-example-dependent",
 		Type:         pluginv1.PluginTypeSource.String(),
 		Distribution: pluginv1.PluginDistributionBuiltin.String(),
 		Dependencies: &plugintypes.DependencySpec{
 			Plugins: []*plugintypes.PluginDependencySpec{
-				{ID: aiCore.ID, Version: ">=0.1.0 <0.2.0"},
+				{ID: dependency.ID, Version: ">=0.1.0 <0.2.0"},
 			},
 		},
 	}
 
-	ordered, err := orderBuiltinManifests([]*catalog.Manifest{studio, aiCore})
+	ordered, err := orderBuiltinManifests([]*catalog.Manifest{dependent, dependency})
 	if err != nil {
 		t.Fatalf("expected builtin dependency ordering to succeed, got %v", err)
 	}
 	if len(ordered) != 2 {
 		t.Fatalf("expected two ordered builtin manifests, got %d", len(ordered))
 	}
-	if ordered[0].ID != aiCore.ID || ordered[1].ID != studio.ID {
-		t.Fatalf("expected AI Core before Studio, got %s before %s", ordered[0].ID, ordered[1].ID)
+	if ordered[0].ID != dependency.ID || ordered[1].ID != dependent.ID {
+		t.Fatalf("expected dependency before dependent plugin, got %s before %s", ordered[0].ID, ordered[1].ID)
 	}
 }

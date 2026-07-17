@@ -77,52 +77,8 @@ export default defineConfig(({ mode }) => {
           onlyExplicitManualChunks: true,
           manualChunks(moduleId) {
             const normalizedId = moduleId.replaceAll("\\", "/");
-            if (
-              normalizedId.includes(
-                "/linapro-tapcanvas-studio/frontend/tapcanvas/ui/chat/",
-              )
-            ) {
-              return "tapcanvas-agent";
-            }
-            if (
-              normalizedId.includes(
-                "/linapro-tapcanvas-studio/frontend/tapcanvas/ui/WebCut",
-              )
-            ) {
-              return "tapcanvas-media";
-            }
             if (!normalizedId.includes("/node_modules/")) {
               return undefined;
-            }
-            if (
-              normalizedId.includes("/node_modules/three/") ||
-              normalizedId.includes("/three@")
-            ) {
-              return "tapcanvas-three-vendor";
-            }
-            if (
-              normalizedId.includes("/node_modules/@webav/") ||
-              normalizedId.includes("/@webav+")
-            ) {
-              return "tapcanvas-webav-vendor";
-            }
-            if (
-              normalizedId.includes("/node_modules/@mantine/") ||
-              normalizedId.includes("/@mantine+")
-            ) {
-              return "tapcanvas-mantine-vendor";
-            }
-            if (
-              normalizedId.includes("/node_modules/@xyflow/") ||
-              normalizedId.includes("/@xyflow+")
-            ) {
-              return "tapcanvas-flow-vendor";
-            }
-            if (
-              normalizedId.includes("/node_modules/framer-motion/") ||
-              normalizedId.includes("/framer-motion@")
-            ) {
-              return "tapcanvas-motion-vendor";
             }
             if (
               normalizedId.includes("/node_modules/echarts/") ||
@@ -208,57 +164,15 @@ export default defineConfig(({ mode }) => {
         "@douyinfe/semi-ui": fileURLToPath(
           new URL("./node_modules/@douyinfe/semi-ui", import.meta.url),
         ),
-        "@tapcanvas/canvas-plan-protocol": fileURLToPath(
-          new URL(
-            "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas/protocols/canvas-plan-protocol.ts",
-            import.meta.url,
-          ),
-        ),
-        "@tapcanvas/flow-anchor-bindings": fileURLToPath(
-          new URL(
-            "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas/protocols/flow-anchor-bindings.ts",
-            import.meta.url,
-          ),
-        ),
-        "@tapcanvas/image-prompt-spec": fileURLToPath(
-          new URL(
-            "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas/protocols/image-prompt-spec/index.js",
-            import.meta.url,
-          ),
-        ),
-        "@tapcanvas/image-view-controls": fileURLToPath(
-          new URL(
-            "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas/protocols/image-view-controls/index.mjs",
-            import.meta.url,
-          ),
-        ),
-        "@tapcanvas/storyboard-selection-protocol": fileURLToPath(
-          new URL(
-            "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas/protocols/storyboard-selection-protocol.ts",
-            import.meta.url,
-          ),
-        ),
       },
       dedupe: [
-        "@hookform/resolvers",
-        "@mantine/core",
-        "@mantine/notifications",
-        "@tabler/icons-react",
         "@testing-library/react",
-        "@webav/av-cliper",
-        "@xyflow/react",
-        "framer-motion",
-        "nanoid",
         "react",
         "react-dom",
-        "react-hook-form",
-        "react-markdown",
         "react-router",
         "react-router-dom",
         "@tanstack/react-query",
-        "three",
         "zustand",
-        "zod",
       ],
     },
     server: {

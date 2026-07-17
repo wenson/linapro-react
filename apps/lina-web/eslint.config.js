@@ -46,23 +46,4 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
     },
   },
-  {
-    // The copied TapCanvas closure is checked as migration input. Keep hook ordering and
-    // TypeScript correctness active, but do not manufacture a clean migration by bulk
-    // rewriting its existing `any` boundary or dead Hono-era branches in Phase 2.
-    basePath: "../lina-plugins/linapro-tapcanvas-studio/frontend/tapcanvas",
-    files: ["**/*.{ts,tsx}"],
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "no-useless-assignment": "off",
-      "react-hooks/immutability": "off",
-      "react-hooks/preserve-manual-memoization": "off",
-      "react-hooks/purity": "off",
-      "react-hooks/refs": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/use-memo": "off",
-      "react-refresh/only-export-components": "off",
-    },
-  },
 );
