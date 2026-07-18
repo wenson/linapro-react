@@ -56,6 +56,13 @@ export class MainLayout {
     return this.sidebar.getByText(label, { exact: true }).first();
   }
 
+  sidebarMenuIcon(label: SidebarMenuLabel) {
+    return this.sidebarMenuItem(label)
+      .locator("xpath=ancestor::li[contains(@class, 'semi-navigation-item')][1]")
+      .getByRole("img")
+      .first();
+  }
+
   private sidebarSubmenuTitle(label: SidebarMenuLabel) {
     return this.sidebar.getByText(label).first();
   }
