@@ -48,6 +48,7 @@ func runDev(ctx context.Context, a *app, input commandInput) error {
 	if err != nil {
 		return err
 	}
+	env = hostFrontendBuildEnv(env)
 	skipWasm, err := input.Bool("skip_wasm", !pluginsEnabled)
 	if err != nil {
 		return err
@@ -58,6 +59,11 @@ func runDev(ctx context.Context, a *app, input commandInput) error {
 		"frontend_port": strconv.Itoa(frontendPort),
 	}}
 	services := devservice.Services(a.root, backendPort, frontendPort)
+	services[1].Env = toolutil.SetEnvValue(
+		services[1].Env,
+		"LINA_WEB_BASE_PATH",
+		toolutil.EnvValue(env, "LINA_WEB_BASE_PATH"),
+	)
 	stoppedPorts, err := stopServices(a, stopInput)
 	if err != nil {
 		return err

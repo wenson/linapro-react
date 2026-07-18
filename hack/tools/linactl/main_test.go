@@ -2072,6 +2072,9 @@ func TestRunDevStartsServicesAsAsyncProcessesAndPrintsFinalStatus(t *testing.T) 
 			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_BACKEND_PROXY_TARGET"); got != "http://127.0.0.1:9120" {
 				t.Fatalf("frontend process must receive backend proxy target, got %q", got)
 			}
+			if got := toolutil.EnvValue(serviceEnv, "LINA_WEB_BASE_PATH"); got != defaultHostFrontendBasePath {
+				t.Fatalf("frontend process must receive workspace base path, got %q", got)
+			}
 		} else {
 			serviceEnv, _ := runCtx.Value(devservice.RunnerContextServiceEnvKey).([]string)
 			if got := toolutil.EnvValue(serviceEnv, "LINAPRO_FRONTEND_DEV_SERVER_URL"); got != "http://127.0.0.1:5666" {
