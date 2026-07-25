@@ -1,6 +1,7 @@
 import Badge from "@douyinfe/semi-ui/lib/es/badge";
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
+import Empty from "@douyinfe/semi-ui/lib/es/empty";
 import List from "@douyinfe/semi-ui/lib/es/list";
 import Modal from "@douyinfe/semi-ui/lib/es/modal";
 import Pagination from "@douyinfe/semi-ui/lib/es/pagination";
@@ -97,17 +98,12 @@ export default function MessagePage() {
           <Badge count={count.data ?? 0} />
         </span>
       </div>
-      {list.isError ? (
-        <Typography.Text role="alert" type="danger">
-          {list.error.message || t("pages.common.loadFailed")}
-        </Typography.Text>
-      ) : null}
       <Card>
         <div className="iam-toolbar">
-          <Space>
+          {list.data?.list.length ? <Space>
             <Button
               data-testid="message-read-all"
-              disabled={!list.data?.list.length || !count.data}
+              disabled={!count.data}
               onClick={() => void markAllRead()}
             >
               {t("pages.settings.message.readAll")}
@@ -120,12 +116,14 @@ export default function MessagePage() {
             >
               {t("pages.settings.message.clear")}
             </Button>
-          </Space>
+          </Space> : null}
         </div>
         <div data-testid="message-list">
-          <List<UserMessage>
+          {list.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : null}
+          {list.isError ? <div role="alert"><Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>{list.error.message ? <Typography.Text type="tertiary">{list.error.message}</Typography.Text> : null}<Button onClick={() => void list.refetch()}>{t("fallback.retry")}</Button></div> : null}
+          {!list.isPending && !list.isError && !list.data?.list.length ? <Empty description={t("pages.settings.message.empty")} image={null}><Typography.Text type="tertiary">{t("pages.settings.message.emptyDescription")}</Typography.Text></Empty> : null}
+          {!list.isPending && !list.isError && list.data?.list.length ? <List<UserMessage>
             dataSource={list.data?.list ?? []}
-            loading={list.isPending}
             renderItem={(item) => (
               <List.Item
                 extra={(
@@ -174,7 +172,7 @@ export default function MessagePage() {
                 )}
               />
             )}
-          />
+          /> : null}
         </div>
         {list.data?.total ? (
           <div className="message-pagination" data-testid="message-pagination">

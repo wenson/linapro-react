@@ -280,9 +280,11 @@ export default function FilePage() {
     <section className="feature-page" data-testid="file-page">
       <Typography.Title heading={3}>{t("pages.settings.file.title")}</Typography.Title>
       {list.isError ? (
-        <Typography.Text role="alert" type="danger">
-          {list.error.message || t("pages.common.loadFailed")}
-        </Typography.Text>
+        <div role="alert">
+          <Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>
+          {list.error.message ? <Typography.Text type="tertiary">{list.error.message}</Typography.Text> : null}
+          <Button onClick={() => void list.refetch()}>{t("fallback.retry")}</Button>
+        </div>
       ) : null}
       <Card>
         <Form<FileListParams>
@@ -336,10 +338,9 @@ export default function FilePage() {
           </Space>
         </div>
         <div data-testid="file-table">
-          <Table<FileInfo>
+          {list.isError ? null : list.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : <Table<FileInfo>
             columns={columns}
             dataSource={list.data?.list ?? []}
-            loading={list.isPending}
             onChange={({ pagination, sorter }) => setParams((current) => ({
               ...current,
               orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined,
@@ -357,7 +358,7 @@ export default function FilePage() {
               selectedRowKeys: selected,
             }}
             scroll={{ x: 1318 }}
-          />
+          />}
         </div>
       </Card>
       <Modal

@@ -12,6 +12,10 @@ import {
 export class FilePage {
   constructor(private page: Page) {}
 
+  get root() {
+    return this.page.getByTestId('file-page');
+  }
+
   get table() {
     return this.page.getByTestId('file-table');
   }
@@ -42,6 +46,11 @@ export class FilePage {
   async goto() {
     await this.page.goto('/system/file');
     await waitForTableReady(this.page, '[data-testid="file-table"]');
+  }
+
+  async gotoForListFeedback() {
+    await this.page.goto('/system/file', { waitUntil: 'domcontentloaded' });
+    await this.root.waitFor({ state: 'visible', timeout: 10000 });
   }
 
   /** Get the count of rows in the file list table */

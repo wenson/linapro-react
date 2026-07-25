@@ -44,6 +44,10 @@ export class ConfigPage {
     return this.page.locator('[data-testid="config-page"] .iam-search-form').first();
   }
 
+  get listFeedback() {
+    return this.page.getByTestId("config-table");
+  }
+
   private async fillInputAndWaitForStableValue(input: Locator, value: string) {
     const deadline = Date.now() + 5000;
     while (Date.now() < deadline) {
@@ -105,6 +109,18 @@ export class ConfigPage {
   async goto() {
     await this.page.goto("/system/config");
     await waitForTableReady(this.page);
+  }
+
+  async gotoForListFeedback() {
+    await this.page.goto("/system/config", { waitUntil: "domcontentloaded" });
+    await this.page.getByTestId("config-page").waitFor({ state: "visible" });
+  }
+
+  async refreshListForFeedback() {
+    await this.searchForm
+      .getByRole("button", { name: /搜\s*索|Search/i })
+      .first()
+      .click();
   }
 
   // ========== CRUD operations ==========

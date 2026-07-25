@@ -40,6 +40,13 @@ export class MessagePage {
     await waitForBusyIndicatorsToClear(this.root, 10000);
   }
 
+  async gotoForListFeedback() {
+    await this.page.goto(workspacePath('/system/message'), {
+      waitUntil: 'domcontentloaded',
+    });
+    await this.root.waitFor({ state: 'visible', timeout: 10000 });
+  }
+
   itemByTitle(title: string) {
     const exactTitle = new RegExp(`^\\s*${this.escapeRegex(title)}\\s*$`);
     return this.list
