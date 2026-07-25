@@ -64,6 +64,7 @@ export default function UserPage() {
   const [resetUserId, setResetUserId] = useState<number>();
   const [importOpen, setImportOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [departmentFilterOpen, setDepartmentFilterOpen] = useState(false);
   const query = useQuery({ queryFn: () => api.list(params), queryKey: ["iam", "users", params] });
   const statusOptionsQuery = useDictOptions("sys_normal_disable");
   const departmentsQuery = useQuery({
@@ -113,9 +114,9 @@ export default function UserPage() {
     </Space>, title: t("pages.common.actions"), width: 280 },
   ];
   return <section className="feature-page iam-page" data-testid="user-page">
-    <header className="feature-page-header"><Typography.Title heading={3}>{t("pages.iam.user.title")}</Typography.Title></header>
-    <div className={capabilities.organizationEnabled ? "iam-user-layout" : "iam-user-layout iam-user-layout-single"}>
-      {capabilities.organizationEnabled ? <Card className="iam-user-dept-card" title={t("pages.iam.user.fields.department")}>
+    <header className="feature-page-header"><Typography.Title heading={3}>{t("pages.iam.user.title")}</Typography.Title>{capabilities.organizationEnabled ? <Button aria-expanded={departmentFilterOpen} data-testid="user-department-filter-toggle" onClick={() => setDepartmentFilterOpen((value) => !value)}>{t(departmentFilterOpen ? "pages.common.collapse" : "pages.common.expand")} {t("pages.iam.user.fields.department")}</Button> : null}</header>
+    <div className={capabilities.organizationEnabled && departmentFilterOpen ? "iam-user-layout" : "iam-user-layout iam-user-layout-single"}>
+      {capabilities.organizationEnabled && departmentFilterOpen ? <Card className="iam-user-dept-card" title={t("pages.iam.user.fields.department")}>
         <div data-testid="user-dept-tree">
           <Tree
             aria-label={t("pages.iam.user.fields.department")}

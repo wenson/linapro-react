@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Page, Route } from '@playwright/test';
 
 import { test, expect } from '../../../fixtures/auth';
@@ -5,6 +7,7 @@ import { PluginPage } from '../../../pages/PluginPage';
 
 const layoutPluginID = 'plugin-management-table-layout-e2e';
 const installLayoutPluginID = 'plugin-management-install-layout-e2e';
+const remediationScreenshotDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../temp/20260725/ui-audit-remediation');
 
 function apiEnvelope(data: unknown) {
   return {
@@ -137,7 +140,7 @@ async function mockPluginListApis(
 }
 
 test.describe('TC-13 插件管理列表布局', () => {
-  test('TC-13a: 插件管理列表按基础信息顺序展示并补充运行时状态说明', async ({
+  test('TC-13a: 插件管理列表在首屏只保留治理所需字段', async ({
     adminPage,
   }) => {
     await mockPluginListApis(adminPage);
@@ -147,57 +150,30 @@ test.describe('TC-13 插件管理列表布局', () => {
     await pluginPage.searchByPluginId(layoutPluginID);
 
     await pluginPage.expectTableColumnOrder([
-      '插件标识',
-      '插件名称',
-      '插件描述',
-      '版本号',
-      '插件类型',
-    ]);
-    await pluginPage.expectTableColumnCentered('插件标识');
-    await pluginPage.expectTableColumnCentered('插件名称');
-    await pluginPage.expectTableColumnCentered('插件描述');
-    await pluginPage.expectTableColumnCentered('版本号');
-    await pluginPage.expectTableColumnCentered('插件类型');
-    await pluginPage.expectTableColumnLeftAligned('插件标识');
-    await pluginPage.expectTableColumnLeftAligned('插件名称');
-    await pluginPage.expectTableColumnLeftAligned('插件描述');
-    await pluginPage.expectTableColumnAfter('运行时状态', '状态');
-    await pluginPage.expectTableColumnWiderThan('插件标识', [
       '插件名称',
       '版本号',
-      '运行时状态',
-    ]);
-    await pluginPage.expectTableColumnWiderThan('插件描述', [
-      '插件名称',
-      '版本号',
-    ]);
-    await pluginPage.expectTableColumnWiderThan('版本号', [
-      '插件类型',
       '状态',
       '运行时状态',
-      '示例数据',
-      '支持多租户',
-      '新租户启用',
     ]);
-    await pluginPage.expectTableColumnWidthAtMost('插件类型', 112);
-    await pluginPage.expectTableColumnWidthAtMost('状态', 100);
-    await pluginPage.expectTableColumnWidthAtMost('运行时状态', 116);
-    await pluginPage.expectTableColumnWidthAtMost('示例数据', 108);
-    await pluginPage.expectTableColumnWidthAtMost('支持多租户', 126);
-    await pluginPage.expectTableColumnWidthAtMost('新租户启用', 130);
-    // Action column: detail + manage + one lifecycle button, single non-wrapping row.
+    await pluginPage.expectTableColumnAfter('运行时状态', '状态');
+    await pluginPage.expectTableColumnWiderThan('版本号', [
+      '状态',
+      '运行时状态',
+    ]);
+    await pluginPage.expectTableColumnWidthAtMost('状态', 120);
+    await pluginPage.expectTableColumnWidthAtMost('运行时状态', 140);
+    // Action column: detail + lifecycle actions, single non-wrapping row.
     // Fixed-right header cells are not visible in the main header table.
-    await pluginPage.expectPluginActionColumnWidthAtMost(layoutPluginID, 210);
+    await pluginPage.expectPluginActionColumnWidthAtMost(layoutPluginID, 260);
     await pluginPage.expectPluginActionButtonsSingleLine(layoutPluginID);
     await expect(pluginPage.pluginVersionValue(layoutPluginID)).toContainText(
       /v0\.1\.0\s*->\s*v0\.2\.0/u,
     );
     await pluginPage.expectPluginVersionNotClipped(layoutPluginID);
-    await expect(pluginPage.pluginColumnHelpIcon('runtimeState')).toBeVisible();
-    await pluginPage.expectColumnHelpTooltip(
-      'runtimeState',
-      /运行时状态表示插件文件发现版本与数据库有效版本.*状态列表示插件当前是否启用/u,
-    );
+    await expect(pluginPage.pluginRow(layoutPluginID)).toContainText(layoutPluginID);
+    await adminPage.screenshot({
+      path: resolve(remediationScreenshotDirectory, `${new Date().toISOString().replace(/[:.]/gu, '-').slice(0, 19)}-plugin-management-table.png`),
+    });
   });
 
   test('TC-13b: 插件详情页最左标签列保持单行不换行', async ({ adminPage }) => {
@@ -212,46 +188,32 @@ test.describe('TC-13 插件管理列表布局', () => {
     await expect(pluginPage.pluginDetailDescriptions()).toBeVisible();
     // Multi-character / multi-word field names are the ones that used to wrap.
     await expect(pluginPage.pluginDetailModal()).toContainText('启动管理');
-    // Detail no longer surfaces host-service authorization snapshot status.
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
-      '授权状态',
-    );
-    // Detail collapses installed / enabled / runtimeState into one primary status.
+    // Low-frequency governance facts remain available in the detail dialog.
     await expect(pluginPage.pluginDetailDescriptions()).toContainText(
-      '插件状态',
-    );
-    await expect(
-      pluginPage.pluginDetailModal().getByTestId('plugin-detail-plugin-status'),
-    ).toContainText('待升级');
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
       '安装状态',
     );
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
+    await expect(pluginPage.pluginDetailDescriptions()).toContainText(
       '运行时状态',
     );
-    // scopeNature + installMode collapse into one operator-facing scope label.
     await expect(pluginPage.pluginDetailDescriptions()).toContainText(
-      '插件作用域',
-    );
-    await expect(
-      pluginPage.pluginDetailModal().getByTestId('plugin-detail-plugin-scope'),
-    ).toContainText('全局');
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
       '作用域性质',
     );
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
+    await expect(
+      pluginPage.pluginDetailDescriptions(),
+    ).toContainText('全局');
+    await expect(pluginPage.pluginDetailDescriptions()).toContainText(
       '安装模式',
     );
-    // Version dual-model: keep effective + discovered only; drop redundant 版本号.
+    // The current and discovered versions stay accessible without first-screen crowding.
     await expect(pluginPage.pluginDetailDescriptions()).toContainText(
-      '有效版本',
+      '生效版本',
     );
     await expect(pluginPage.pluginDetailDescriptions()).toContainText(
       '发现版本',
     );
     await expect(pluginPage.pluginDetailDescriptions()).toContainText('v0.1.0');
     await expect(pluginPage.pluginDetailDescriptions()).toContainText('v0.2.0');
-    await expect(pluginPage.pluginDetailDescriptions()).not.toContainText(
+    await expect(pluginPage.pluginDetailDescriptions()).toContainText(
       '版本号',
     );
     await pluginPage.expectPluginDetailLabelsNoWrap();

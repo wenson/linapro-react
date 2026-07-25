@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
@@ -24,13 +24,18 @@ describe("user capability projection", () => {
     expect(fetch.mock.calls.some((call) => String(call[0]).includes("/user/dept-tree"))).toBe(false);
   });
 
-  it("renders the organization-owned department filter only while the capability is enabled", async () => {
+  it("keeps the organization-owned department filter collapsed until the user opens it", async () => {
     const fetch = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/user/dept-tree")) return response({ list: [{ id: 8, label: "Engineering", userCount: 3 }] });
       return response({ list: [], total: 0 });
     });
     render(<Providers queryClient={new QueryClient()}><WorkbenchRuntimeProvider value={{ apiClient: new ApiClient({ fetch }), config, tenantStore: createTenantStore({ storage: null }) }}><AuthContextProvider value={auth({ organizationEnabled: true, tenantEnabled: false })}><UserPage /></AuthContextProvider></WorkbenchRuntimeProvider></Providers>);
+    const toggle = await screen.findByTestId("user-department-filter-toggle");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("user-dept-tree")).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(await screen.findByTestId("user-dept-tree")).toBeVisible();
     expect(await screen.findByText("Engineering (3)")).toBeVisible();
     expect(fetch.mock.calls.some((call) => String(call[0]).includes("/user/dept-tree"))).toBe(true);

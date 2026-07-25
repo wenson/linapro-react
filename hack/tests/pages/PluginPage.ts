@@ -281,12 +281,6 @@ export class PluginPage {
     return this.page.getByTestId("plugin-install-descriptions").last();
   }
 
-  pluginInstallDescriptionLabels(): Locator {
-    return this.pluginInstallDescriptions().locator(
-      ".ant-descriptions-item-label",
-    );
-  }
-
   hostServiceAuthDialog(): Locator {
     return this.page
       .getByRole("dialog", {
@@ -505,12 +499,6 @@ export class PluginPage {
 
   pluginDetailDescriptions(): Locator {
     return this.page.getByTestId("plugin-detail-descriptions").last();
-  }
-
-  pluginDetailDescriptionLabels(): Locator {
-    return this.pluginDetailDescriptions().locator(
-      ".ant-descriptions-item-label",
-    );
   }
 
   pluginRouteReviewToggle(): Locator {
@@ -945,19 +933,13 @@ export class PluginPage {
    * (no multi-line wrap of field names such as "Authorization Status").
    */
   private async expectDescriptionsLabelsNoWrap(
-    labels: Locator,
+    descriptions: Locator,
+    labels: string[],
     contextLabel: string,
   ) {
-    await expect(labels.first()).toBeVisible();
-    const count = await labels.count();
-    expect(count, `${contextLabel}标签列应至少包含一个字段`).toBeGreaterThan(0);
-
-    for (let index = 0; index < count; index += 1) {
-      const label = labels.nth(index);
-      await expect(
-        label,
-        `${contextLabel}第 ${index + 1} 个标签应禁止换行`,
-      ).toHaveCSS("white-space", "nowrap");
+    for (const [index, text] of labels.entries()) {
+      const label = descriptions.getByText(text, { exact: true }).first();
+      await expect(label, `${contextLabel}缺少标签：${text}`).toBeVisible();
       await expect
         .poll(
           async () =>
@@ -966,7 +948,7 @@ export class PluginPage {
               return element.scrollHeight <= element.clientHeight + 1;
             }),
           {
-            message: `${contextLabel}第 ${index + 1} 个标签内容应保持单行`,
+            message: `${contextLabel}第 ${index + 1} 个标签“${text}”应保持单行`,
           },
         )
         .toBe(true);
@@ -975,14 +957,16 @@ export class PluginPage {
 
   async expectPluginDetailLabelsNoWrap() {
     await this.expectDescriptionsLabelsNoWrap(
-      this.pluginDetailDescriptionLabels(),
+      this.pluginDetailDescriptions(),
+      ["插件标识", "运行时状态", "授权状态", "作用域性质", "安装模式"],
       "插件详情",
     );
   }
 
   async expectPluginInstallLabelsNoWrap() {
     await this.expectDescriptionsLabelsNoWrap(
-      this.pluginInstallDescriptionLabels(),
+      this.pluginInstallDescriptions(),
+      ["插件名称", "插件标识", "版本号", "插件类型", "插件描述"],
       "插件安装",
     );
   }
@@ -1542,10 +1526,7 @@ export class PluginPage {
     );
   }
 
-  /**
-   * Measures the fixed action column via a body cell (header cells for
-   * fixed-right columns are marked fixed--hidden in the main header table).
-   */
+  /** Measures the fixed action column through its visible Semi table cell. */
   async expectPluginActionColumnWidthAtMost(
     pluginId: string,
     maxWidth: number,
@@ -1553,7 +1534,7 @@ export class PluginPage {
     const detail = this.pluginDetailAction(pluginId);
     await expect(detail).toBeVisible();
     const width = await detail.evaluate((element) => {
-      const cell = element.closest(".vxe-body--column");
+      const cell = element.closest(".semi-table-row-cell");
       return cell instanceof HTMLElement
         ? cell.getBoundingClientRect().width
         : 0;
@@ -1566,31 +1547,23 @@ export class PluginPage {
 
   /**
    * Asserts the action-column buttons for a plugin row stay on a single line
-   * by comparing vertical baselines of the always-visible detail/manage
-   * buttons and any sibling ghost buttons in the same cell.
+   * by comparing vertical baselines of the detail button and its lifecycle
+   * action siblings in the same Semi table cell.
    */
   async expectPluginActionButtonsSingleLine(pluginId: string) {
     const detail = this.pluginDetailAction(pluginId);
-    const manage = this.pluginManageAction(pluginId);
     await expect(detail).toBeVisible();
-    await expect(manage).toBeVisible();
 
     await expect
       .poll(
         async () =>
-          await detail.evaluate((detailNode, manageTestId) => {
-            const cell = detailNode.closest(".vxe-body--column");
+          await detail.evaluate((detailNode) => {
+            const cell = detailNode.closest(".semi-table-row-cell");
             if (!(cell instanceof HTMLElement)) {
               return false;
             }
-            const manageNode = cell.querySelector(
-              `[data-testid="${manageTestId}"]`,
-            );
-            if (!(manageNode instanceof HTMLElement)) {
-              return false;
-            }
             const buttons = Array.from(
-              cell.querySelectorAll("button.ant-btn"),
+              cell.querySelectorAll("button"),
             ).filter((node): node is HTMLElement => node instanceof HTMLElement);
             if (buttons.length < 2) {
               return false;
@@ -1599,7 +1572,7 @@ export class PluginPage {
             const baseTop = tops[0] ?? 0;
             // Wrapped buttons jump by roughly a full control height (~24px+).
             return tops.every((top) => Math.abs(top - baseTop) <= 2);
-          }, `plugin-manage-button-${pluginId}`),
+          }),
         {
           message: `插件 ${pluginId} 操作列按钮应保持单行不换行`,
         },

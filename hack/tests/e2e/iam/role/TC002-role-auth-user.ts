@@ -1,5 +1,13 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { expect, test } from "../../../fixtures/auth";
 import { RolePage } from "../../../pages/RolePage";
+
+const remediationScreenshotDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../../temp/20260725/ui-audit-remediation",
+);
 
 test.describe("TC002 角色授权用户管理", () => {
   test("TC002a: 授权用户页面正常加载", async ({ adminPage }) => {
@@ -11,6 +19,12 @@ test.describe("TC002 角色授权用户管理", () => {
     await expect(
       adminPage.getByRole("button", { name: /取消授权|Remove assignment/i }).first(),
     ).toBeVisible();
+    await adminPage.screenshot({
+      path: resolve(
+        remediationScreenshotDirectory,
+        `${new Date().toISOString().replace(/[:.]/gu, "-").slice(0, 19)}-role-authorize-users.png`,
+      ),
+    });
   });
 
   test("TC002b: 授权用户列表包含邮箱列", async ({ adminPage }) => {

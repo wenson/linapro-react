@@ -1,4 +1,3 @@
-import { IconHelpCircle } from "@douyinfe/semi-icons";
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
 import { Form } from "@douyinfe/semi-ui/lib/es/form";
@@ -19,7 +18,6 @@ import { createSystemPluginApi, type PluginItem } from "#/api/system/plugin";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext, useAuthContextRefresh } from "#/auth/auth-context";
 import type { GovernanceMode } from "#/features/plugins/plugin-governance-dialog";
-import { formatTimestamp } from "#/shared/format";
 
 const PluginGovernanceDialog = lazy(() => import("#/features/plugins/plugin-governance-dialog"));
 
@@ -31,21 +29,12 @@ interface Filters {
   type?: string;
 }
 
-type HelpColumn = "mockData" | "runtimeState" | "supportsMultiTenant" | "tenantProvisioning" | "type";
-
 function can(values: readonly string[], permission: string) {
   return values.includes("*") || values.includes(permission);
 }
 
 function isBuiltin(row: PluginItem) {
   return row.distribution === "builtin";
-}
-
-function isTenantPolicySupported(row: PluginItem) {
-  return !isBuiltin(row)
-    && row.supportsMultiTenant === true
-    && row.scopeNature === "tenant_aware"
-    && row.installMode === "tenant_scoped";
 }
 
 function effectiveVersion(row: PluginItem) {
@@ -56,23 +45,12 @@ function discoveredVersion(row: PluginItem) {
   return row.discoveredVersion || row.version || "-";
 }
 
-function ColumnHeader({ help, label, testId }: { help: string; label: string; testId: string }) {
-  return (
-    <span className="plugin-column-heading">
-      {label}
-      <Tooltip content={help}>
-        <IconHelpCircle aria-label={`${label} help`} data-testid={testId} />
-      </Tooltip>
-    </span>
-  );
-}
-
 export default function PluginPage() {
   const { apiClient } = useWorkbenchRuntime();
   const auth = useAuthContext();
   const refreshAuth = useAuthContextRefresh();
   const queryClient = useQueryClient();
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const api = useMemo(() => createSystemPluginApi(apiClient), [apiClient]);
   const permissions = auth?.user.permissions ?? [];
   const [page, setPage] = useState(1);
@@ -165,24 +143,10 @@ export default function PluginPage() {
     }
   }
 
-  async function updatePolicy(row: PluginItem, enabled: boolean) {
-    try {
-      await api.policy(row.id, enabled);
-      Toast.success(t("pages.plugins.tenantPolicyUpdated"));
-      await refresh();
-    } catch (error) {
-      Toast.error(error instanceof Error ? error.message : t("pages.plugins.actionFailed"));
-    }
-  }
-
   async function sync() {
     const result = await api.sync();
     Toast.success(t("pages.plugins.synced", { total: result.total }));
     await refresh();
-  }
-
-  function typeLabel(type: string) {
-    return type === "dynamic" ? t("pages.plugins.dynamic") : t("pages.plugins.source");
   }
 
   function runtimeLabel(state: string | undefined) {
@@ -196,41 +160,22 @@ export default function PluginPage() {
     return labels[state || "normal"] ?? state ?? "-";
   }
 
-  function help(name: HelpColumn) {
-    return t(`pages.plugins.columnHelp.${name}`);
-  }
-
   const columns: ColumnProps<PluginItem>[] = [
-    {
-      dataIndex: "id",
-      render: (value, row) => <span data-testid={`plugin-id-${row.id}`}>{String(value)}</span>,
-      title: t("pages.plugins.id"),
-      width: 220,
-    },
     {
       dataIndex: "name",
       render: (value, row) => (
         <span className="plugin-name-cell" data-testid={`plugin-name-cell-${row.id}`}>
-          <span className="plugin-name-label" title={String(value)}>{String(value)}</span>
+          <span className="plugin-name-label" title={`${String(value)} (${row.id})`}>{String(value)}</span>
           {row.autoEnableManaged === 1 ? (
             <Tooltip content={t("pages.plugins.autoEnableManagedHint", { pluginId: row.id })}>
               <Tag color="amber" data-testid={`plugin-auto-enable-tag-${row.id}`}>{t("pages.plugins.autoEnableBadge")}</Tag>
             </Tooltip>
           ) : null}
+          <span className="plugin-id-secondary" title={row.id}>{row.id}</span>
         </span>
       ),
       title: t("pages.plugins.name"),
-      width: 200,
-    },
-    {
-      dataIndex: "description",
-      render: (value, row) => (
-        <span className="plugin-description-cell" data-testid={`plugin-description-${row.id}`} title={String(value || "-")}>
-          {String(value || "-")}
-        </span>
-      ),
-      title: t("pages.plugins.description"),
-      width: 280,
+      width: 300,
     },
     {
       dataIndex: "effectiveVersion",
@@ -241,13 +186,7 @@ export default function PluginPage() {
         </code>
       ),
       title: t("pages.plugins.version"),
-      width: 148,
-    },
-    {
-      dataIndex: "type",
-      render: (value) => <Tag color={value === "dynamic" ? "green" : "blue"}>{typeLabel(String(value))}</Tag>,
-      title: <ColumnHeader help={help("type")} label={t("pages.plugins.type")} testId="plugin-type-column-help-icon" />,
-      width: 108,
+      width: 180,
     },
     {
       dataIndex: "enabled",
@@ -261,9 +200,8 @@ export default function PluginPage() {
         />
       ),
       title: t("pages.common.status"),
-      width: 96,
-    },
-    {
+      width: 116,
+    }, {
       dataIndex: "runtimeState",
       render: (value, row) => (
         <Tooltip content={t("pages.plugins.runtimeHint", { state: runtimeLabel(String(value || "normal")) })}>
@@ -275,48 +213,8 @@ export default function PluginPage() {
           </Tag>
         </Tooltip>
       ),
-      title: <ColumnHeader help={help("runtimeState")} label={t("pages.plugins.runtimeState")} testId="plugin-runtime-state-column-help-icon" />,
-      width: 112,
-    },
-    {
-      dataIndex: "hasMockData",
-      render: (value, row) => <Tag color={value === 1 ? "green" : "grey"} data-testid={`plugin-mock-data-value-${row.id}`}>{value === 1 ? t("pages.common.yes") : t("pages.common.no")}</Tag>,
-      title: <ColumnHeader help={help("mockData")} label={t("pages.plugins.hasMockData")} testId="plugin-mock-data-column-help-icon" />,
-      width: 104,
-    },
-    {
-      dataIndex: "supportsMultiTenant",
-      render: (value, row) => <Tag color={value ? "green" : "grey"} data-testid={`plugin-supports-multi-tenant-${row.id}`}>{value ? t("pages.common.yes") : t("pages.common.no")}</Tag>,
-      title: <ColumnHeader help={help("supportsMultiTenant")} label={t("pages.plugins.supportsMultiTenant")} testId="plugin-supports-multi-tenant-column-help-icon" />,
-      width: 122,
-    },
-    {
-      dataIndex: "autoEnableForNewTenants",
-      render: (value, row) => isBuiltin(row) ? null : (
-        <Tooltip content={t(isTenantPolicySupported(row) ? "pages.plugins.tenantPolicyEffective" : "pages.plugins.tenantPolicyUnsupported")}>
-          <Switch
-            checked={value === true}
-            data-testid={`plugin-tenant-provisioning-${row.id}`}
-            disabled={!isTenantPolicySupported(row) || !can(permissions, "plugin:edit")}
-            onChange={(checked) => void updatePolicy(row, checked)}
-            size="small"
-          />
-        </Tooltip>
-      ),
-      title: <ColumnHeader help={help("tenantProvisioning")} label={t("pages.plugins.tenantPolicy")} testId="plugin-tenant-provisioning-column-help-icon" />,
-      width: 126,
-    },
-    {
-      dataIndex: "installedAt",
-      render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"),
-      title: t("pages.plugins.installedAt"),
-      width: 180,
-    },
-    {
-      dataIndex: "updatedAt",
-      render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"),
-      title: t("pages.common.updatedAt"),
-      width: 180,
+      title: t("pages.plugins.runtimeState"),
+      width: 132,
     },
     {
       fixed: "right",
@@ -352,7 +250,7 @@ export default function PluginPage() {
         </Space>
       ),
       title: t("pages.common.actions"),
-      width: 280,
+      width: 250,
     },
   ];
 
@@ -435,7 +333,7 @@ export default function PluginPage() {
             loading={list.isPending}
             pagination={{ currentPage: page, onChange: setPage, pageSize: 10, total: list.data?.total ?? 0 }}
             rowKey="id"
-            scroll={{ x: 2200 }}
+            scroll={{ x: 980 }}
           />
         </div>
       </Card>

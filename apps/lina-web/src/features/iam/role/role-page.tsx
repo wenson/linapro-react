@@ -1,5 +1,6 @@
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
+import Dropdown from "@douyinfe/semi-ui/lib/es/dropdown";
 import { Form } from "@douyinfe/semi-ui/lib/es/form";
 import Modal from "@douyinfe/semi-ui/lib/es/modal";
 import Popconfirm from "@douyinfe/semi-ui/lib/es/popconfirm";
@@ -31,7 +32,7 @@ export default function RolePage() {
   const { apiClient } = useWorkbenchRuntime(); const auth = useAuthContext(); const { i18n, t } = useTranslation(); const navigate = useNavigate();
   const api = useMemo(() => createSystemRoleApi(apiClient), [apiClient]); const menuApi = useMemo(() => createSystemMenuApi(apiClient), [apiClient]);
   const permissions = auth?.user.permissions ?? []; const capabilities = auth?.capabilities ?? { organizationEnabled: false, tenantEnabled: false };
-  const [params, setParams] = useState<RoleListParams>({ page: 1, size: 10 }); const [searchFormKey, setSearchFormKey] = useState(0); const [selected, setSelected] = useState<number[]>([]); const [drawerId, setDrawerId] = useState<number | "new">();
+  const [params, setParams] = useState<RoleListParams>({ page: 1, size: 10 }); const [searchFormKey, setSearchFormKey] = useState(0); const [selected, setSelected] = useState<number[]>([]); const [drawerId, setDrawerId] = useState<number | "new">(); const [openActionMenuId, setOpenActionMenuId] = useState<number>();
   const query = useQuery({ queryFn: () => api.list(params), queryKey: ["iam", "roles", params] });
   async function refresh() { setSelected([]); await query.refetch(); }
   async function remove(ids: number[]) { if (ids.length === 1) await api.delete(ids[0]!); else await api.batchDelete(ids); Toast.success(t("pages.common.deleteSuccess")); await refresh(); }
@@ -41,7 +42,31 @@ export default function RolePage() {
     { dataIndex: "sort", title: t("pages.common.sort"), width: 80 },
     { dataIndex: "status", render: (value, row) => <Switch checked={value === 1} disabled={row.id === 1 || !hasPermission(permissions, "system:role:edit")} onChange={(checked) => void api.updateStatus(row.id, checked ? 1 : 0).then(refresh)} />, title: t("pages.common.status"), width: 90 },
     { dataIndex: "createdAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), title: t("pages.common.createdAt"), width: 180 },
-    { fixed: "right", render: (_, row) => row.id === 1 ? null : <Space>{hasPermission(permissions, "system:role:edit") ? <><Button onClick={() => setDrawerId(row.id)} theme="borderless">{t("pages.common.edit")}</Button><Button onClick={() => navigate(`/system/role-auth/user/${row.id}`)} theme="borderless">{t("pages.iam.role.actions.authorizeUsers")}</Button></> : null}{hasPermission(permissions, "system:role:remove") ? <Popconfirm content={t("pages.iam.role.messages.deleteConfirm")} onConfirm={() => void remove([row.id])}><Button theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}</Space>, title: t("pages.common.actions"), width: 280 },
+    {
+      fixed: "right",
+      render: (_, row) => row.id === 1 ? null : (
+        <Space>
+          {hasPermission(permissions, "system:role:edit") ? <Button onClick={() => setDrawerId(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}
+          {hasPermission(permissions, "system:role:edit") || hasPermission(permissions, "system:role:remove") ? (
+            <Dropdown
+              onVisibleChange={(visible) => setOpenActionMenuId(visible ? row.id : undefined)}
+              render={(
+                <Dropdown.Menu>
+                  {hasPermission(permissions, "system:role:edit") ? <Dropdown.Item onClick={() => { setOpenActionMenuId(undefined); navigate(`/system/role-auth/user/${row.id}`); }}>{t("pages.iam.role.actions.authorizeUsers")}</Dropdown.Item> : null}
+                  {hasPermission(permissions, "system:role:remove") ? <Dropdown.Item><Popconfirm content={t("pages.iam.role.messages.deleteConfirm")} onConfirm={() => void remove([row.id])}><span>{t("pages.common.delete")}</span></Popconfirm></Dropdown.Item> : null}
+                </Dropdown.Menu>
+              )}
+              trigger="click"
+              visible={openActionMenuId === row.id}
+            >
+              <Button aria-label={t("pages.common.more")} data-testid={`role-more-${row.id}`} theme="borderless">{t("pages.common.more")}</Button>
+            </Dropdown>
+          ) : null}
+        </Space>
+      ),
+      title: t("pages.common.actions"),
+      width: 176,
+    },
   ];
   return <section className="feature-page iam-page" data-testid="role-page"><header><Typography.Title heading={3}>{t("pages.iam.role.title")}</Typography.Title></header>
     <Card><Form<SearchValues> className="iam-search-form" key={searchFormKey} layout="horizontal" onSubmit={(values) => setParams((current) => ({ ...current, ...values, page: 1 }))}><Form.Input data-testid="role-name-search-input" field="name" label={t("pages.iam.role.fields.name")} /><Form.Input field="key" label={t("pages.iam.role.fields.key")} /><Form.Select field="status" label={t("pages.common.status")} optionList={[{ label: t("pages.common.enabled"), value: 1 }, { label: t("pages.common.disabled"), value: 0 }]} /><Button htmlType="reset" onClick={() => { setParams((current) => ({ page: 1, size: current.size })); setSearchFormKey((value) => value + 1); }}>{t("pages.common.reset")}</Button><Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button></Form></Card>

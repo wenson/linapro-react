@@ -186,7 +186,8 @@ export class RolePage {
 
   async deleteRole(roleName: string) {
     const row = this.roleRowByName(roleName);
-    await row.getByRole("button", { name: /^删\s*除$|^Delete$/i }).click();
+    await row.getByRole("button", { name: /^更多操作$|^More actions$/i }).click();
+    await this.page.getByText(/^删\s*除$|^Delete$/i).last().click();
     const popconfirm = this.page.locator(".semi-popover:visible").last();
     await popconfirm.waitFor({ state: "visible", timeout: 5_000 });
     await popconfirm
@@ -247,7 +248,11 @@ export class RolePage {
 
   async clickAssign(roleName: string) {
     await this.roleRowByName(roleName)
-      .getByRole("button", { name: /授权用户|Authorize users/i })
+      .getByRole("button", { name: /^更多操作$|^More actions$/i })
+      .click();
+    await this.page
+      .getByRole("menuitem", { name: /授权用户|Authorize users/i })
+      .last()
       .click();
     await this.page.waitForURL(/\/system\/role-auth\/user\/\d+/, { timeout: 10_000 });
     await waitForTableReady(this.page, '[data-testid="role-auth-table"]');
@@ -255,10 +260,15 @@ export class RolePage {
 
   async clickFirstAssign() {
     const button = this.table
-      .getByRole("button", { name: /授权用户|Authorize users/i })
+      .getByRole("button", { name: /^更多操作$|^More actions$/i })
       .first();
     await expect(button).toBeVisible({ timeout: 10_000 });
     await button.click();
+    const authorize = this.page
+      .getByRole("menuitem", { name: /授权用户|Authorize users/i })
+      .last();
+    await expect(authorize).toBeVisible({ timeout: 5_000 });
+    await authorize.click();
     await this.page.waitForURL(/\/system\/role-auth\/user\/\d+/, { timeout: 10_000 });
     await waitForTableReady(this.page, '[data-testid="role-auth-table"]');
   }

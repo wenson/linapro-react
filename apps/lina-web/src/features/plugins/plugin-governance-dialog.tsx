@@ -302,6 +302,7 @@ export default function PluginGovernanceDialog({
           <div className="plugin-governance-stack" data-testid="plugin-detail-modal">
             <Descriptions
               column={2}
+              data-testid="plugin-detail-descriptions"
               data={[
                 { key: t("pages.plugins.id"), value: plugin.id },
                 { key: t("pages.plugins.name"), value: plugin.name },
@@ -352,6 +353,7 @@ export default function PluginGovernanceDialog({
           <div className="plugin-governance-stack" data-testid="plugin-host-service-auth-modal">
             <Descriptions
               column={2}
+              data-testid="plugin-install-descriptions"
               data={[
                 { key: t("pages.plugins.name"), value: plugin.name },
                 { key: t("pages.plugins.id"), value: plugin.id },

@@ -18,6 +18,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { useAuthContextRefresh } from "#/auth/auth-context";
 import { MenuDrawer } from "#/features/iam/menu/menu-drawer";
+import { workbenchIcon } from "#/layout/icon-map";
 import { DictTag } from "#/features/settings/dict/dict-options";
 import { formatTimestamp } from "#/shared/format";
 import { formatMenuPermissionShortLabel } from "#/shared/permission-display";
@@ -35,7 +36,7 @@ export default function MenuPage() {
     { dataIndex: "name", render: (value) => formatMenuPermissionShortLabel(String(value), t, i18n.resolvedLanguage || "en-US"), title: t("pages.iam.menu.fields.name"), width: 220 },
     { dataIndex: "status", render: (value, row) => <span data-testid={`menu-status-${row.id}`}><DictTag dictType="sys_normal_disable" value={String(value)} /></span>, title: t("pages.common.status"), width: 100 },
     { dataIndex: "visible", render: (value) => t(value === 1 ? "pages.common.yes" : "pages.common.no"), title: t("pages.iam.menu.fields.visible"), width: 100 },
-    { dataIndex: "icon", title: t("pages.iam.menu.fields.icon"), width: 100 }, { dataIndex: "sort", title: t("pages.common.sort"), width: 80 },
+    { dataIndex: "icon", render: (value) => <span aria-label={`${t("pages.iam.menu.fields.icon")}: ${String(value || "default")}`} className="menu-icon-preview" role="img">{workbenchIcon(String(value || ""))}</span>, title: t("pages.iam.menu.fields.icon"), width: 100 }, { dataIndex: "sort", title: t("pages.common.sort"), width: 80 },
     { dataIndex: "type", render: (value) => <Tag>{t(`pages.iam.menu.types.${typeKeys[value as Menu["type"]]}`)}</Tag>, title: t("pages.iam.menu.fields.type"), width: 110 },
     { dataIndex: "perms", title: t("pages.iam.menu.fields.permission"), width: 180 }, { dataIndex: "component", title: t("pages.iam.menu.fields.component"), width: 200 },
     { dataIndex: "createdAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), title: t("pages.common.createdAt"), width: 180 },
