@@ -6,6 +6,7 @@ import Space from "@douyinfe/semi-ui/lib/es/space";
 import Table from "@douyinfe/semi-ui/lib/es/table";
 import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
+import Tooltip from "@douyinfe/semi-ui/lib/es/tooltip";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
 import { useLinaPluginHost } from "@linapro/plugin-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,6 +17,10 @@ import "./online.css";
 
 function can(permissions: ReadonlySet<string>, permission: string): boolean { return permissions.has("*") || permissions.has(permission); }
 function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
+function truncatedCell(value: unknown) {
+  const text = String(value || "-");
+  return <Tooltip content={text}><span className="monitor-online-truncated" title={text}>{text}</span></Tooltip>;
+}
 
 export default function OnlineUserPage() {
   const host = useLinaPluginHost();
@@ -53,8 +58,8 @@ export default function OnlineUserPage() {
     { dataIndex: "username", title: host.t("plugin.linapro-monitor-online.page.fields.loginAccount"), width: 160 },
     { dataIndex: "deptName", title: host.t("plugin.linapro-monitor-online.page.fields.departmentName"), width: 180 },
     { dataIndex: "ip", title: host.t("plugin.linapro-monitor-online.page.fields.ipAddress"), width: 160 },
-    { dataIndex: "browser", title: host.t("plugin.linapro-monitor-online.page.fields.browser"), width: 160 },
-    { dataIndex: "os", title: host.t("plugin.linapro-monitor-online.page.fields.os"), width: 180 },
+    { dataIndex: "browser", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.browser"), width: 180 },
+    { dataIndex: "os", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.os"), width: 200 },
     { dataIndex: "loginTime", render: (value) => formatTimestamp(value as number | null, host.locale), title: host.t("plugin.linapro-monitor-online.page.fields.loginTime"), width: 190 },
     { fixed: "right", render: (_, row) => can(host.permissions, "monitor:online:forceLogout") ? <Popconfirm content={host.t("plugin.linapro-monitor-online.page.messages.forceLogoutConfirm", { username: row.username })} onConfirm={() => void forceLogout(row)}><Button theme="borderless" type="danger">{host.t("plugin.linapro-monitor-online.page.actions.forceLogout")}</Button></Popconfirm> : null, title: host.t("plugin.linapro-monitor-online.page.fields.actions"), width: 130 },
   ];

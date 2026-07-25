@@ -6,6 +6,16 @@
   padding: 20px;
 }
 
+.ai-core-list-feedback {
+  display: flex;
+  min-height: 12rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .ai-core-page-header,
 .ai-core-toolbar,
 .ai-core-form-actions,

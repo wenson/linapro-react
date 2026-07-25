@@ -108,6 +108,17 @@ export class SmartCenterPage {
     await waitForTableReady(this.page, '[data-testid="ai-provider-table"]');
   }
 
+  async gotoProvidersForListFeedback() {
+    await this.page.goto(workspacePath("/ai/providers"), {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(this.providerPage()).toBeVisible();
+  }
+
+  providerListFeedback() {
+    return this.providerTable();
+  }
+
   async gotoModels() {
     await this.page.goto(workspacePath("/ai/models"));
     await waitForRouteReady(this.page);

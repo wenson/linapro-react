@@ -2,4 +2,5 @@
 .monitor-online-page .monitor-online-search { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px 16px; }
 .monitor-online-page .monitor-online-search > * { margin: 0; min-width: 200px; }
 .monitor-online-page h3 strong { color: var(--semi-color-primary); margin: 0 4px; }
+.monitor-online-page .monitor-online-truncated { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 768px) { .monitor-online-page .monitor-online-search > * { width: 100%; } }

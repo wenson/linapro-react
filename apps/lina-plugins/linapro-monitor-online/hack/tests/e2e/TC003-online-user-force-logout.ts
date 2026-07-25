@@ -1,6 +1,14 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { test, expect } from '@host-tests/fixtures/auth';
 import { ensureSourcePluginEnabled } from '@host-tests/fixtures/plugin';
 import { waitForRouteReady } from '@host-tests/support/ui';
+
+const remediationScreenshotDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../../../temp/20260725/ui-audit-remediation',
+);
 
 test.describe('TC003 在线用户强制下线', () => {
   test.beforeEach(async ({ adminPage }) => {
@@ -39,10 +47,10 @@ test.describe('TC003 在线用户强制下线', () => {
     const rowsBefore = await rows.count();
 
     // Click force logout
-    await adminPage
+    const forceLogoutButton = adminPage
       .getByRole('button', { name: /强制下线/ })
-      .first()
-      .click();
+      .first();
+    await forceLogoutButton.click();
 
     // Cancel the popconfirm
     const overlay = adminPage.locator('.semi-popover:visible').first();
@@ -54,5 +62,12 @@ test.describe('TC003 在线用户强制下线', () => {
     // Row count should remain the same
     const rowsAfter = await rows.count();
     expect(rowsAfter).toBe(rowsBefore);
+    await expect(forceLogoutButton).toBeFocused();
+    await adminPage.screenshot({
+      path: resolve(
+        remediationScreenshotDirectory,
+        `${new Date().toISOString().replace(/[:.]/gu, '-').slice(0, 19)}-online-force-logout-cancelled.png`,
+      ),
+    });
   });
 });

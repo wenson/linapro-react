@@ -1,3 +1,6 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { Page } from '@host-tests/support/playwright';
 
 import { test, expect } from '@host-tests/fixtures/auth';
@@ -22,6 +25,11 @@ import {
   type SourcePluginLifecycleCase,
 } from '@host-tests/support/source-plugin-lifecycle';
 
+const remediationScreenshotDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../../../../temp/20260725/ui-audit-remediation',
+);
+
 const contentNoticePluginCase: SourcePluginLifecycleCase = {
   id: 'linapro-content-notice',
   mountedTitles: ['通知公告'],
@@ -29,6 +37,12 @@ const contentNoticePluginCase: SourcePluginLifecycleCase = {
   assertAvailable: async (page: Page) => {
     await expect(page.getByTestId('notice-table')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: /新\s*增/ }).first()).toBeVisible();
+    await page.screenshot({
+      path: resolve(
+        remediationScreenshotDirectory,
+        `${new Date().toISOString().replace(/[:.]/gu, '-').slice(0, 19)}-content-notice-enabled.png`,
+      ),
+    });
   },
 };
 

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createAiCoreApi, type Provider, type ProviderListParams } from "./ai-client";
 import { hasPermission } from "./ai-data";
 import { EndpointSideSheet } from "./endpoint-side-sheet";
+import { ListFeedback } from "./list-feedback";
 import { ModelSideSheet } from "./model-side-sheet";
 import { ProviderSideSheet } from "./provider-side-sheet";
 import "./ai-core.css";
@@ -25,11 +26,12 @@ export default function ProviderManagement() {
   const [rows, setRows] = useState<Provider[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [listError, setListError] = useState<string>();
   const [providerId, setProviderId] = useState<number | "new">();
   const [endpointProvider, setEndpointProvider] = useState<Provider>();
   const [modelProviderId, setModelProviderId] = useState<number>();
   const load = useCallback(async () => {
-    setLoading(true); try { const result = await api.providerList(params); setRows(result.items); setTotal(result.total); } catch (error) { Toast.error(error instanceof Error ? error.message : String(error)); } finally { setLoading(false); }
+    setLoading(true); setListError(undefined); try { const result = await api.providerList(params); setRows(result.items); setTotal(result.total); } catch (error) { setListError(error instanceof Error ? error.message : String(error)); } finally { setLoading(false); }
   }, [api, params]);
   useEffect(() => { queueMicrotask(() => void load()); }, [load]);
   async function remove(row: Provider) {
@@ -53,7 +55,7 @@ export default function ProviderManagement() {
   return <section className="ai-core-page" data-testid="ai-provider-management-page">
     <header className="ai-core-page-header"><Typography.Title heading={3}>{host.t("plugin.linapro-ai-core.provider.tableTitle")}</Typography.Title></header>
     <Card><Form<ProviderListParams> className="ai-core-search-form" layout="horizontal" onSubmit={(values) => setParams((current) => ({ ...current, ...values, pageNum: 1 }))}><Form.Input field="keyword" label={host.t("plugin.linapro-ai-core.provider.fields.keyword")} /><Form.Select field="enabled" label={host.t("pages.common.status")} optionList={[{ label: host.t("plugin.linapro-ai-core.common.enabled"), value: 1 }, { label: host.t("plugin.linapro-ai-core.common.disabled"), value: 0 }]} /><Button htmlType="submit" theme="solid" type="primary">{host.t("pages.common.search")}</Button></Form></Card>
-    <Card><div className="ai-core-toolbar"><Space>{hasPermission(host.permissions, "ai:provider:create") ? <><Button onClick={() => setProviderId("new")} theme="solid" type="primary">{host.t("plugin.linapro-ai-core.provider.actions.addProvider")}</Button><Button onClick={() => setModelProviderId(0)}>{host.t("plugin.linapro-ai-core.model.actions.addModel")}</Button></> : null}</Space></div><div data-testid="ai-provider-table"><Table<Provider> columns={columns} dataSource={rows} loading={loading} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" scroll={{ x: 1250 }} /></div></Card>
+    <Card><div className="ai-core-toolbar"><Space>{hasPermission(host.permissions, "ai:provider:create") ? <><Button onClick={() => setProviderId("new")} theme="solid" type="primary">{host.t("plugin.linapro-ai-core.provider.actions.addProvider")}</Button><Button onClick={() => setModelProviderId(0)}>{host.t("plugin.linapro-ai-core.model.actions.addModel")}</Button></> : null}</Space></div><div data-testid="ai-provider-table">{loading || listError || !rows.length ? <ListFeedback empty={!rows.length} error={listError} loading={loading} onRetry={() => void load()} t={host.t} /> : <Table<Provider> columns={columns} dataSource={rows} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" scroll={{ x: 1250 }} />}</div></Card>
     <ProviderSideSheet api={api} onClose={() => setProviderId(undefined)} onSaved={load} open={providerId !== undefined} providerId={providerId === "new" ? undefined : providerId} t={host.t} />
     <EndpointSideSheet api={api} onClose={() => setEndpointProvider(undefined)} onSaved={load} open={Boolean(endpointProvider)} providerId={endpointProvider?.id} providerName={endpointProvider?.name} t={host.t} />
     <ModelSideSheet api={api} initialProviderId={modelProviderId || undefined} onClose={() => setModelProviderId(undefined)} onSaved={load} open={modelProviderId !== undefined} t={host.t} />
