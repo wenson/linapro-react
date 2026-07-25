@@ -20,9 +20,12 @@ function normalizeBuildBase(value: string | undefined): string {
 
 function createBasePathPublicAssetPlugin(base: string): Plugin {
   const contentTypes: Record<string, string> = {
+    ".css": "text/css; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
     ".ico": "image/x-icon",
     ".jpeg": "image/jpeg",
     ".jpg": "image/jpeg",
+    ".js": "text/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
     ".png": "image/png",
     ".svg": "image/svg+xml",
@@ -38,6 +41,12 @@ function createBasePathPublicAssetPlugin(base: string): Plugin {
       const publicDir = path.resolve(server.config.publicDir);
       server.middlewares.use((request, response, next) => {
         const pathname = (request.url ?? "").split("?", 2)[0] ?? "";
+        if (pathname === basePath) {
+          response.statusCode = 307;
+          response.setHeader("Location", `${basePath}/`);
+          response.end();
+          return;
+        }
         if (!pathname.startsWith(`${basePath}/`)) {
           next();
           return;

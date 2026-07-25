@@ -154,7 +154,14 @@
   },
   "pages": {
     "about": {
+      "apiDocsLoading": "正在加载接口文档……",
       "apiDocsTitle": "接口文档",
+      "apiDocsUnavailableDescription": "无法加载接口描述，请检查服务连接后重试。",
+      "apiDocsUnavailableTitle": "接口文档暂不可用",
+      "copy": "复制",
+      "copyFailed": "无法复制版本信息。",
+      "copySuccess": "版本信息已复制。",
+      "copyVersion": "复制版本信息",
       "backendSection": "后端组件",
       "database": "数据库",
       "frameworkName": "框架",
@@ -192,6 +199,7 @@
       "disabled": "禁用",
       "detail": "详情",
       "edit": "编辑",
+      "emptyList": "当前没有可显示的记录。",
       "enabled": "启用",
       "expand": "展开全部",
       "expandSearch": "展开",
@@ -200,6 +208,7 @@
       "exportSuccess": "导出成功",
       "loadFailed": "无法加载所需数据。",
       "loading": "正在加载",
+      "more": "更多操作",
       "none": "无",
       "no": "否",
       "remark": "备注",
@@ -222,7 +231,7 @@
       "analytics": {
         "cards": { "channels": "访问数量", "sales": "商业占比", "sources": "访问来源" },
         "overview": { "downloads": { "title": "下载量" }, "usage": { "title": "使用量" }, "users": { "title": "用户量" }, "visits": { "title": "访问量" } },
-        "tabs": { "trends": "流量趋势", "visits": "月访问量" }
+        "sampleLabel": "示例数据 · 尚未接入实时分析接口", "samplePeriod": "示例时间范围：2026 年 1 月至 12 月", "tabs": { "trends": "流量趋势", "visits": "月访问量" }
       },
       "analyticsDescription": "简洁展示工作台活动与服务健康状态。",
       "analyticsTitle": "分析页",
@@ -235,6 +244,7 @@
         "projects": { "goframe": "使用 GoFrame 构建生产级服务。", "linapro": "让框架承载复杂度。", "react": "使用 React 构建统一工作台。", "semi": "完整使用 Semi Design UI 体系。", "tapcanvas": "将无限画布接入受治理工作台。", "typescript": "保持前端契约类型安全。" },
         "projectsTitle": "项目",
         "quickNav": { "apiDocs": "接口文档", "config": "系统参数", "jobs": "定时任务", "menu": "菜单管理", "plugin": "扩展中心", "user": "用户管理" },
+        "sampleLabel": "开发引导 · 示例内容并非实时项目数据",
         "quickNavTitle": "快捷导航",
         "sunny": "今日晴，从受治理的 LinaPro 工作台继续工作。",
         "todos": { "plugins": "准备插件演示", "review": "检查工作台快捷入口", "verify": "验证运行时消息" },
@@ -322,7 +332,7 @@
     },
     "settings": {
       "builtin": "内置",
-      "config": { "create": "新增配置", "edit": "编辑配置", "importOverwrite": "是否更新/覆盖已存在的参数设置数据", "importTitle": "参数设置导入", "key": "参数键", "name": "参数名称", "options": "选项", "optionsHint": "每行一个选项：标签=值", "optionsInvalid": "选项值必须非空且不能重复。", "optionsRequired": "该值类型至少需要一个选项。", "title": "参数配置", "value": "参数值", "valueType": "值类型", "valueTypes": { "boolean": "布尔值", "multi_select": "多选", "number": "数字", "radio": "单选按钮", "richtext": "富文本", "select": "下拉选择", "text": "单行文本", "textarea": "多行文本" } },
+      "config": { "create": "新增配置", "edit": "编辑配置", "empty": "当前筛选条件下暂无参数。", "importOverwrite": "是否更新/覆盖已存在的参数设置数据", "importTitle": "参数设置导入", "key": "参数键", "name": "参数名称", "options": "选项", "optionsHint": "每行一个选项：标签=值", "optionsInvalid": "选项值必须非空且不能重复。", "optionsRequired": "该值类型至少需要一个选项。", "title": "参数配置", "value": "参数值", "valueType": "值类型", "valueTypes": { "boolean": "布尔值", "multi_select": "多选", "number": "数字", "radio": "单选按钮", "richtext": "富文本", "select": "下拉选择", "text": "单行文本", "textarea": "多行文本" } },
       "deleteConfirm": "确认删除该记录？",
       "dict": { "allowOverride": "允许租户覆盖", "cascadeConfirm": "删除字典类型将同时删除该类型下的所有字典数据，确认删除？", "editData": "编辑字典数据", "editType": "编辑字典类型", "exportAllConfirm": "是否导出全部字典类型和字典数据？", "exportSelectedConfirm": "是否导出选中的字典类型及其关联的字典数据？", "importDataOverwrite": "是否更新/覆盖已存在的字典数据", "importDataTitle": "字典数据导入", "importOverwrite": "是否更新/覆盖已存在的字典类型和字典数据", "importTitle": "字典管理导入", "label": "字典标签", "name": "字典名称", "selectType": "请选择左侧字典类型", "style": "标签样式", "styles": { "cyan": "青色", "danger": "危险", "default": "默认", "green": "绿色", "info": "信息", "orange": "橙色", "pink": "粉色", "primary": "主要", "purple": "紫色", "red": "红色", "success": "成功", "warning": "警告" }, "title": "字典管理", "type": "字典类型", "types": "字典类型", "value": "字典值" },
       "export": "导出",
@@ -330,7 +340,7 @@
       "file": { "deleteSelectedConfirm": "确认删除选中的{{count}}条记录吗？", "detail": "详情", "download": "下载", "downloadFailed": "文件下载失败。", "downloadFallback": "直链下载不可用，已改用受保护下载通道。", "id": "文件 ID", "imageOnly": "只能上传图片文件。", "list": "文件列表", "name": "文件名", "original": "原始文件名", "pdfPreview": "PDF 预览", "preview": "文件预览", "previewImages": "预览图片", "scene": "使用场景", "size": "文件大小", "storedName": "存储文件名", "suffix": "文件类型", "title": "文件管理", "tooLarge": "文件不能超过 20 MB。", "upload": "文件上传", "uploadedAt": "上传时间", "uploader": "上传者", "uploadFailed": "文件上传失败。", "uploadImage": "图片上传", "uploadSuccess": "文件上传成功。", "url": "文件 URL" },
       "import": { "choose": "选择 Excel 文件", "drag": "点击或者拖拽到此处上传文件", "failureTitle": "导入失败", "hint": "允许导入xlsx, xls文件", "overwrite": "覆盖已有数据", "result": "导入结果", "submit": "开始导入", "successTitle": "成功导入", "summary": "成功 {{success}} 条，失败 {{fail}} 条", "template": "下载模板" },
       "importAction": "导入",
-      "message": { "clear": "清空消息", "clearConfirm": "确认清空全部消息？", "clearSuccess": "消息已清空。", "detail": "消息详情", "empty": "暂无消息", "open": "打开我的消息", "panelTitle": "通知", "readAll": "全部已读", "readAllSuccess": "全部消息已标记为已读。", "short": "消息", "title": "我的消息", "viewAll": "查看所有消息" },
+      "message": { "clear": "清空消息", "clearConfirm": "确认清空全部消息？", "clearSuccess": "消息已清空。", "detail": "消息详情", "empty": "暂无消息", "emptyDescription": "工作台和已启用插件的消息会显示在这里。", "open": "打开我的消息", "panelTitle": "通知", "readAll": "全部已读", "readAllSuccess": "全部消息已标记为已读。", "short": "消息", "title": "我的消息", "viewAll": "查看所有消息" },
       "required": "此字段不能为空"
     },
     "scheduler": {
@@ -607,10 +617,12 @@
     }
   },
   "workbench": {
+    "closePage": "关闭{{title}}",
     "empty": { "description": "该宿主页面将在下一工作台阶段迁移。", "title": "React 工作台已就绪" },
     "external": { "opened": "页面已在新的浏览器标签中打开。" },
     "hosted": { "invalid": "动态插件页面路由已被拒绝：{{detail}}", "openAgain": "重新打开", "opened": "插件页面已在新的浏览器标签中打开。", "unavailable": "插件未安装、未启用或尚未就绪。" },
     "loadingPage": "正在加载页面……",
+    "openPages": "已打开页面",
     "navigation": { "mobile": "移动端导航", "open": "打开导航", "title": "导航" },
     "platform": "平台",
     "preferences": { "dark": "深色", "english": "English", "general": "通用", "language": "语言", "layout": "布局", "layoutDescription": "工作台布局跟随 LinaPro 运行时配置。", "light": "浅色", "open": "打开偏好设置", "shortcuts": "快捷键", "shortcutsDescription": "快捷键跟随当前工作台上下文。", "simplifiedChinese": "简体中文", "subtitle": "调整后即时预览", "theme": "主题", "themeDescription": "选择工作台配色主题。", "title": "偏好设置" },

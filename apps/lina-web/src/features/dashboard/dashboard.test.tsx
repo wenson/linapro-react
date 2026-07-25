@@ -52,6 +52,8 @@ it("renders the equivalent analytics overview, tabs and chart cards", () => {
   );
   expect(screen.getByRole("button", { name: "Monthly Visits" })).toBeVisible();
   expect(screen.getByRole("img", { name: "Traffic Trends" })).toBeVisible();
+  expect(screen.getByText("Sample data · no live analytics API is connected")).toBeVisible();
+  expect(screen.getByText("Sample period: January–December 2026")).toBeVisible();
   expect(screen.getByRole("heading", { name: "Visit Channels" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Traffic Sources" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Commercial Mix" })).toBeVisible();
@@ -81,4 +83,11 @@ it("renders workspace plugin slots before and after host content", async () => {
   const after = await screen.findByText("After plugin");
   expect(before.compareDocumentPosition(welcome) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(welcome.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByTestId("dashboard-workspace-description")).toHaveAttribute(
+    "title",
+    "Sunny today. Continue from your governed LinaPro workspace.",
+  );
+  expect(screen.getByTestId("dashboard-workspace-sample-label")).toHaveTextContent(
+    "Development guide · sample content, not live project data",
+  );
 });

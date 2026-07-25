@@ -143,6 +143,18 @@ export class MainLayout {
     return this.page.getByTestId("layout-user-dropdown-name");
   }
 
+  get userDropdownHandle() {
+    return this.page.getByTestId("layout-user-dropdown-tag");
+  }
+
+  get userDropdownEmail() {
+    return this.page.getByTestId("layout-user-dropdown-description");
+  }
+
+  get userDropdownAvatar() {
+    return this.page.getByTestId("layout-user-dropdown-trigger-avatar");
+  }
+
   get preferencesTrigger() {
     return this.page.getByTestId("preferences-trigger").first();
   }
@@ -181,6 +193,12 @@ export class MainLayout {
     await this.page.getByText(menuItem).click();
     await this.page.waitForLoadState("networkidle");
   }
+
+  async openWorkbenchRoute(path: string) {
+    await this.page.goto(path, { waitUntil: "domcontentloaded" });
+    await expect(this.page.getByTestId("workbench-tabs")).toBeVisible();
+  }
+
 
   async switchLanguage(label: "English" | "简体中文") {
     const localeMap = {

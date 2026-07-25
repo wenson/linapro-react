@@ -108,6 +108,8 @@ export default function AnalyticsPage() {
         <Typography.Paragraph type="tertiary">
           {t("pages.dashboard.analyticsDescription")}
         </Typography.Paragraph>
+        <Typography.Text data-testid="dashboard-analytics-sample-label" type="tertiary">{t("pages.dashboard.analytics.sampleLabel")}</Typography.Text>
+        <Typography.Text data-testid="dashboard-analytics-sample-period" type="tertiary">{t("pages.dashboard.analytics.samplePeriod")}</Typography.Text>
       </header>
       <div data-testid="dashboard-analytics-overview">
         <div className="metric-grid">

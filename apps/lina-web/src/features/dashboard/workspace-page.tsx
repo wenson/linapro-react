@@ -46,11 +46,17 @@ export default function WorkspacePage() {
             name: context?.user.realName || context?.user.username || t("pages.common.user"),
           })}
         </Typography.Title>
-        <Typography.Paragraph data-testid="dashboard-workspace-description" type="tertiary">
+        <Typography.Paragraph
+          className="workspace-welcome-description"
+          data-testid="dashboard-workspace-description"
+          title={t("pages.dashboard.workspace.sunny")}
+          type="tertiary"
+        >
           {t("pages.dashboard.workspace.sunny")}
         </Typography.Paragraph>
       </Card>
       <Card title={<Typography.Title heading={4}>{t("pages.dashboard.workspace.projectsTitle")}</Typography.Title>}>
+        <Typography.Text data-testid="dashboard-workspace-sample-label" type="tertiary">{t("pages.dashboard.workspace.sampleLabel")}</Typography.Text>
         <div className="workspace-project-grid" data-testid="dashboard-workspace-projects">
           {projectKeys.map((key) => (
             <article className="workspace-project-card" key={key}>
@@ -82,6 +88,7 @@ export default function WorkspacePage() {
           </div>
         </Card>
         <Card title={<Typography.Title heading={4}>{t("pages.dashboard.workspace.todosTitle")}</Typography.Title>}>
+          <Typography.Text type="tertiary">{t("pages.dashboard.workspace.sampleLabel")}</Typography.Text>
           <div className="workspace-list" data-testid="dashboard-workspace-todos">
             <Typography.Text strong>{t("pages.dashboard.workspace.todos.review")}</Typography.Text>
             <Typography.Text>{t("pages.dashboard.workspace.todos.verify")}</Typography.Text>
@@ -89,6 +96,7 @@ export default function WorkspacePage() {
           </div>
         </Card>
         <Card title={<Typography.Title heading={4}>{t("pages.dashboard.workspace.trendsTitle")}</Typography.Title>}>
+          <Typography.Text type="tertiary">{t("pages.dashboard.workspace.sampleLabel")}</Typography.Text>
           <div className="workspace-list" data-testid="dashboard-workspace-trends">
             <Typography.Text>{t("pages.dashboard.workspace.trends.navigation")}</Typography.Text>
             <Typography.Text>{t("pages.dashboard.workspace.trends.permissions")}</Typography.Text>

@@ -289,6 +289,9 @@ html.dark .workbench-brand img {
 
 .tab-item {
   display: inline-flex;
+  flex: 0 0 clamp(8rem, 16vw, 15rem);
+  min-width: 8rem;
+  max-width: 15rem;
   align-items: center;
   border-right: 1px solid var(--lina-border-color);
 }
@@ -298,12 +301,21 @@ html.dark .workbench-brand img {
 }
 
 .tab-label {
+  min-width: 0;
+  flex: 1;
   min-height: 40px;
   padding: 0 var(--lina-space-2) 0 var(--lina-space-4);
   border: 0;
   background: transparent;
   color: var(--semi-color-text-0);
   cursor: pointer;
+}
+
+.tab-label span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-surface-page {
@@ -402,10 +414,23 @@ html.dark .workbench-brand img {
 }
 
 .workspace-project-description {
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.workspace-welcome-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.workspace-project-card .workspace-project-description {
+  min-height: 2.8em;
 }
 
 .workspace-secondary-grid {
@@ -425,10 +450,29 @@ html.dark .workbench-brand img {
   height: 20rem;
 }
 
+.api-docs-container,
+.api-docs-state {
+  display: flex;
+  min-height: min(68rem, calc(100dvh - 10rem));
+  align-items: center;
+  justify-content: center;
+}
+
+.api-docs-container {
+  width: 100%;
+}
+
+.api-docs-state {
+  flex-direction: column;
+  gap: var(--lina-space-3);
+  padding: var(--lina-space-8);
+  text-align: center;
+}
+
 .api-docs-frame {
   display: block;
   width: 100%;
-  height: 100%;
+  min-height: min(68rem, calc(100dvh - 10rem));
   border: 0;
 }
 
@@ -451,6 +495,32 @@ html.dark .workbench-brand img {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.system-info-version-row {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: var(--lina-space-1);
+}
+
+.system-info-version-row .system-info-component-version {
+  flex: 1;
+}
+
+.system-info-technical-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--lina-space-1);
+  margin-top: var(--lina-space-3);
+}
+
+.system-info-card .semi-descriptions-item-td,
+.system-info-card .semi-descriptions-value {
+  min-width: 0;
 }
 
 .profile-page {
@@ -536,6 +606,12 @@ html.dark .workbench-brand img {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.menu-icon-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .iam-form-actions {

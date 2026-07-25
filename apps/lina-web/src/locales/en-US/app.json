@@ -154,7 +154,14 @@
   },
   "pages": {
     "about": {
+      "apiDocsLoading": "Loading API documentation…",
       "apiDocsTitle": "API documentation",
+      "apiDocsUnavailableDescription": "The API description could not be loaded. Check the service connection and try again.",
+      "apiDocsUnavailableTitle": "API documentation is unavailable",
+      "copy": "Copy",
+      "copyFailed": "Unable to copy the version.",
+      "copySuccess": "Version copied.",
+      "copyVersion": "Copy version",
       "backendSection": "Backend components",
       "database": "Database",
       "frameworkName": "Framework",
@@ -192,6 +199,7 @@
       "disabled": "Disabled",
       "detail": "Detail",
       "edit": "Edit",
+      "emptyList": "No records to display.",
       "enabled": "Enabled",
       "expand": "Expand all",
       "expandSearch": "Expand",
@@ -200,6 +208,7 @@
       "exportSuccess": "Export succeeded",
       "loadFailed": "The requested data could not be loaded.",
       "loading": "Loading",
+      "more": "More actions",
       "none": "None",
       "no": "No",
       "remark": "Remark",
@@ -222,7 +231,7 @@
       "analytics": {
         "cards": { "channels": "Visit Channels", "sales": "Commercial Mix", "sources": "Traffic Sources" },
         "overview": { "downloads": { "title": "Downloads" }, "usage": { "title": "Usage" }, "users": { "title": "Users" }, "visits": { "title": "Visits" } },
-        "tabs": { "trends": "Traffic Trends", "visits": "Monthly Visits" }
+        "sampleLabel": "Sample data · no live analytics API is connected", "samplePeriod": "Sample period: January–December 2026", "tabs": { "trends": "Traffic Trends", "visits": "Monthly Visits" }
       },
       "analyticsDescription": "A concise view of workbench activity and service health.",
       "analyticsTitle": "Analytics",
@@ -235,6 +244,7 @@
         "projects": { "goframe": "Build production services with GoFrame.", "linapro": "Let the framework carry the complexity.", "react": "Build the unified workbench with React.", "semi": "Use Semi Design for the complete UI system.", "tapcanvas": "Bring the infinite canvas into the governed workspace.", "typescript": "Keep frontend contracts type-safe." },
         "projectsTitle": "Projects",
         "quickNav": { "apiDocs": "API Docs", "config": "System Parameters", "jobs": "Scheduled Jobs", "menu": "Menu Management", "plugin": "Extension Center", "user": "User Management" },
+        "sampleLabel": "Development guide · sample content, not live project data",
         "quickNavTitle": "Quick Navigation",
         "sunny": "Sunny today. Continue from your governed LinaPro workspace.",
         "todos": { "plugins": "Prepare Plugin Demo", "review": "Review Workbench Shortcuts", "verify": "Verify Runtime Messages" },
@@ -322,7 +332,7 @@
     },
     "settings": {
       "builtin": "Built-in",
-      "config": { "create": "Create configuration", "edit": "Edit configuration", "importOverwrite": "Update and overwrite existing parameter settings", "importTitle": "Import Parameter Settings", "key": "Parameter Key", "name": "Parameter Name", "options": "Options", "optionsHint": "One option per line: Label=value", "optionsInvalid": "Options must use unique, non-empty values.", "optionsRequired": "This value type requires at least one option.", "title": "Parameter configuration", "value": "Parameter Value", "valueType": "Value Type", "valueTypes": { "boolean": "Boolean", "multi_select": "Multiple select", "number": "Number", "radio": "Radio", "richtext": "Rich text", "select": "Select", "text": "Text", "textarea": "Text area" } },
+      "config": { "create": "Create configuration", "edit": "Edit configuration", "empty": "No parameters match the current filters.", "importOverwrite": "Update and overwrite existing parameter settings", "importTitle": "Import Parameter Settings", "key": "Parameter Key", "name": "Parameter Name", "options": "Options", "optionsHint": "One option per line: Label=value", "optionsInvalid": "Options must use unique, non-empty values.", "optionsRequired": "This value type requires at least one option.", "title": "Parameter configuration", "value": "Parameter Value", "valueType": "Value Type", "valueTypes": { "boolean": "Boolean", "multi_select": "Multiple select", "number": "Number", "radio": "Radio", "richtext": "Rich text", "select": "Select", "text": "Text", "textarea": "Text area" } },
       "deleteConfirm": "Delete this record?",
       "dict": { "allowOverride": "Allow tenant override", "cascadeConfirm": "Deleting this dictionary type also deletes its data. Continue?", "editData": "Edit dictionary data", "editType": "Edit dictionary type", "exportAllConfirm": "Export all dictionary types and dictionary data?", "exportSelectedConfirm": "Export the selected dictionary types and their related dictionary data?", "importDataOverwrite": "Update and overwrite existing dictionary data", "importDataTitle": "Import Dictionary Data", "importOverwrite": "Update and overwrite existing dictionary types and dictionary data", "importTitle": "Import Dictionaries", "label": "Dictionary label", "name": "Dictionary name", "selectType": "Select a dictionary type on the left", "style": "Tag style", "styles": { "cyan": "Cyan", "danger": "Danger", "default": "Default", "green": "Green", "info": "Info", "orange": "Orange", "pink": "Pink", "primary": "Primary", "purple": "Purple", "red": "Red", "success": "Success", "warning": "Warning" }, "title": "Dictionary management", "type": "Dictionary type", "types": "Dictionary types", "value": "Dictionary value" },
       "export": "Export",
@@ -330,7 +340,7 @@
       "file": { "deleteSelectedConfirm": "Delete the selected {{count}} record(s)?", "detail": "Details", "download": "Download", "downloadFailed": "File download failed.", "downloadFallback": "Direct download is unavailable; using the protected download channel.", "id": "File ID", "imageOnly": "Only image files are allowed.", "list": "Files", "name": "File name", "original": "Original name", "pdfPreview": "Preview PDF", "preview": "Preview", "previewImages": "Preview images", "scene": "Usage scene", "size": "File size", "storedName": "Stored name", "suffix": "Suffix", "title": "File management", "tooLarge": "The file must be no larger than 20 MB.", "upload": "Upload File", "uploadedAt": "Uploaded", "uploader": "Uploaded by", "uploadFailed": "File upload failed.", "uploadImage": "Upload Image", "uploadSuccess": "File uploaded successfully.", "url": "File URL" },
       "import": { "choose": "Choose Excel file", "drag": "Click or drag a file here to upload", "failureTitle": "Import failed", "hint": "Supports xlsx and xls files", "overwrite": "Overwrite existing data", "result": "Import result", "submit": "Start import", "successTitle": "Import successful", "summary": "{{success}} succeeded, {{fail}} failed", "template": "Download template" },
       "importAction": "Import",
-      "message": { "clear": "Clear messages", "clearConfirm": "Clear all messages?", "clearSuccess": "Messages cleared.", "detail": "Message details", "empty": "No messages", "open": "Open my messages", "panelTitle": "Notifications", "readAll": "Mark all read", "readAllSuccess": "All messages marked as read.", "short": "Messages", "title": "My messages", "viewAll": "View all messages" },
+      "message": { "clear": "Clear messages", "clearConfirm": "Clear all messages?", "clearSuccess": "Messages cleared.", "detail": "Message details", "empty": "No messages", "emptyDescription": "Messages from the workbench and enabled plugins appear here.", "open": "Open my messages", "panelTitle": "Notifications", "readAll": "Mark all read", "readAllSuccess": "All messages marked as read.", "short": "Messages", "title": "My messages", "viewAll": "View all messages" },
       "required": "This field is required"
     },
     "scheduler": {
@@ -607,10 +617,12 @@
     }
   },
   "workbench": {
+    "closePage": "Close {{title}}",
     "empty": { "description": "This host page will be migrated in the next workbench phase.", "title": "React workbench is ready" },
     "external": { "opened": "The page was opened in a new browser tab." },
     "hosted": { "invalid": "The hosted plugin route was rejected: {{detail}}", "openAgain": "Open again", "opened": "The plugin page was opened in a new browser tab.", "unavailable": "This plugin is not installed, enabled, or ready." },
     "loadingPage": "Loading page…",
+    "openPages": "Open pages",
     "navigation": { "mobile": "Mobile navigation", "open": "Open navigation", "title": "Navigation" },
     "platform": "Platform",
     "preferences": { "dark": "Dark", "english": "English", "general": "General", "language": "Language", "layout": "Layout", "layoutDescription": "Workbench layout follows the LinaPro runtime configuration.", "light": "Light", "open": "Open preferences", "shortcuts": "Shortcuts", "shortcutsDescription": "Keyboard shortcuts follow the active workbench context.", "simplifiedChinese": "简体中文", "subtitle": "Live preview", "theme": "Theme", "themeDescription": "Choose the workbench color theme.", "title": "Preferences" },

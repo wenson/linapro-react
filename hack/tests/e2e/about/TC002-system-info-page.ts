@@ -1,9 +1,18 @@
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { Page, Route } from '@playwright/test';
 
 import { test, expect } from '../../fixtures/auth';
 
 const longPostgresVersion =
   'PostgreSQL 16.8 (Homebrew) on arm64-apple-darwin24.4.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.6), 64-bit';
+const remediationScreenshotDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../temp/20260725/ui-audit-remediation',
+);
+mkdirSync(remediationScreenshotDirectory, { recursive: true });
 
 async function mockLongPostgreSqlVersion(page: Page) {
   await page.route('**/api/v1/system/info**', async (route: Route) => {
@@ -186,6 +195,7 @@ test.describe('TC-2 版本信息页面', () => {
     const mobileVersion = adminPage.getByTestId(
       'system-info-component-version-postgresql',
     );
+    const mobileDatabaseVersion = adminPage.getByTestId('system-info-database-version');
     const mobileLink = postgresqlItem.getByRole('link', { name: '关系型数据库' });
     const mobileVersionBox = await mobileVersion.boundingBox();
     const mobileLinkBox = await mobileLink.boundingBox();
@@ -194,5 +204,16 @@ test.describe('TC-2 版本信息页面', () => {
     expect(
       mobileVersionBox && mobileLinkBox ? mobileLinkBox.y - mobileVersionBox.y : 0,
     ).toBeGreaterThanOrEqual(18);
+    await expect(mobileDatabaseVersion).toHaveAttribute('title', longPostgresVersion);
+    await expect(mobileDatabaseVersion).toHaveCSS('white-space', 'nowrap');
+    expect((await mobileDatabaseVersion.boundingBox())?.height).toBeLessThanOrEqual(24);
+    await adminPage.getByTestId('system-info-database-version-copy').click();
+    await expect(adminPage.getByText('版本信息已复制。')).toBeVisible();
+    await adminPage.screenshot({
+      path: resolve(
+        remediationScreenshotDirectory,
+        `${new Date().toISOString().replace(/[:.]/gu, '-').slice(0, 19)}-system-info-mobile-copy-zh.png`,
+      ),
+    });
   });
 });

@@ -14,6 +14,7 @@ import enMessages from "#/locales/en-US/app.json";
 import { workbenchIcon } from "#/layout/icon-map";
 import { tabStore } from "#/layout/tab-store";
 import { WorkbenchLayout } from "#/layout/workbench-layout";
+import { TabStrip } from "#/layout/tab-strip";
 import { createTenantStore } from "#/tenant/tenant-store";
 
 const i18n = createInstance();
@@ -23,6 +24,25 @@ beforeAll(async () => {
 });
 
 beforeEach(() => tabStore.getState().clear());
+
+it("keeps tabs single-line semantic controls and restores focus after closing the active tab", async () => {
+  const navigate = vi.fn();
+  tabStore.getState().open({ path: "/first", query: "", title: "A deliberately long first tab title" });
+  tabStore.getState().open({ path: "/second", query: "", title: "Second" });
+  render(
+    <Providers i18n={i18n}>
+      <TabStrip activePath="/second" onNavigate={navigate} />
+    </Providers>,
+  );
+
+  const active = screen.getByRole("button", { name: "Second" });
+  expect(active).toHaveAttribute("aria-current", "page");
+  expect(screen.getByTestId("workbench-tabs")).toHaveAccessibleName("Open pages");
+  fireEvent.click(screen.getByRole("button", { name: "Close Second" }));
+  expect(navigate).toHaveBeenCalledWith("/first");
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+  expect(screen.getByRole("button", { name: "A deliberately long first tab title" })).toHaveFocus();
+});
 
 it("renders the desktop shell, mobile SideSheet trigger, header regions and metadata tabs", async () => {
   const apis = {
@@ -94,6 +114,11 @@ it("renders the desktop shell, mobile SideSheet trigger, header regions and meta
   expect(screen.getByTestId("layout-header-plugin-slots-before")).toBeInTheDocument();
   expect(screen.getByTestId("layout-header-plugin-slots")).toBeInTheDocument();
   expect(screen.getByLabelText("User menu")).toBeVisible();
+  fireEvent.click(screen.getByLabelText("User menu"));
+  expect(await screen.findByTestId("layout-user-dropdown-menu")).toBeInTheDocument();
+  expect(screen.getByTestId("layout-user-dropdown-name")).toHaveTextContent("Admin");
+  expect(screen.getByTestId("layout-user-dropdown-tag")).toHaveTextContent("@admin");
+  expect(screen.getByTestId("layout-user-dropdown-description")).toHaveTextContent("a@example.com");
   expect(screen.getByRole("combobox", { name: "Switch tenant" })).toBeVisible();
   expect(screen.getAllByText("Dashboard")).toHaveLength(3);
   expect(screen.getByLabelText("breadcrumb")).toBeVisible();

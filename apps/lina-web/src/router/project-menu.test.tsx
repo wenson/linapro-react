@@ -66,6 +66,16 @@ function TestProviders({ children, context = authContext }: PropsWithChildren<{ 
 }
 
 describe("menu projection", () => {
+  it("keeps the hidden developer-center about page reachable with its access boundary", () => {
+    expect(findWorkbenchRoute(hostSupplementalRoutes, "/about")).toMatchObject({
+      componentKey: "about/index",
+      hidden: true,
+      path: "/about",
+      permission: "system:developer:view",
+      titleKey: "page.about.project.title",
+    });
+  });
+
   it("keeps the authenticated message center reachable without a sidebar menu", () => {
     expect(findWorkbenchRoute(hostSupplementalRoutes, "/system/message")).toMatchObject({
       componentKey: "system/message/index",
@@ -152,6 +162,16 @@ describe("menu projection", () => {
 });
 
 describe("route rendering", () => {
+  it("denies the hidden about route when the developer-center permission is absent", () => {
+    const route = findWorkbenchRoute(hostSupplementalRoutes, "/about");
+    render(
+      <RouteView registry={{ "about/index": { component: () => <p>About content</p>, surface: "page" } }} route={route} />,
+      { wrapper: TestProviders },
+    );
+    expect(screen.getByText("Access denied")).toBeVisible();
+    expect(screen.queryByText("About content")).not.toBeInTheDocument();
+  });
+
   it("renders the translated coming-soon fallback", () => {
     render(<ComingSoonPage />, { wrapper: TestProviders });
     expect(screen.getByText("Coming soon")).toBeVisible();

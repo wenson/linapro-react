@@ -3,6 +3,21 @@ import type { WorkbenchRoute } from "#/router/contracts";
 export const hostSupplementalRoutes: readonly WorkbenchRoute[] = [
   {
     children: [],
+    componentKey: "about/index",
+    hidden: true,
+    hideInBreadcrumb: true,
+    hideInTab: false,
+    id: -4,
+    keepAlive: false,
+    name: "About",
+    path: "/about",
+    permission: "system:developer:view",
+    query: {},
+    title: "About",
+    titleKey: "page.about.project.title",
+  },
+  {
+    children: [],
     componentKey: "system/message/index",
     hidden: true,
     hideInBreadcrumb: true,

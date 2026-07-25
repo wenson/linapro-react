@@ -17,8 +17,8 @@ const navigationIcons = [
   ["开发中心", "beaker"],
 ] as const;
 
-test.describe("TC-6 工作台导航图标", () => {
-  test("TC-6a: 每个宿主目录呈现与功能匹配的图标而非通用四宫格", async ({
+test.describe("TC-7 工作台导航图标", () => {
+  test("TC-7a: 每个宿主目录呈现与功能匹配的图标而非通用四宫格", async ({
     adminPage,
   }) => {
     await adminPage.goto("/about/system-info");

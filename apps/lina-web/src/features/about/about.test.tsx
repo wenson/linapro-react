@@ -30,15 +30,30 @@ function wrapper(client: ApiClient, config = defaultPublicFrontendConfig) {
 
 it("keeps API Docs under basePath with /api.json and the active iframe language", async () => {
   const config = { ...defaultPublicFrontendConfig, workspace: { basePath: "/console" } };
-  const { rerender } = render(<ApiDocsPage />, { wrapper: wrapper(new ApiClient({ fetch: vi.fn() }), config) });
-  expect(screen.getByTitle("API documentation")).toHaveAttribute(
+  const fetch = vi.fn(async () => new Response("{}", { status: 200 }));
+  const { rerender } = render(<ApiDocsPage />, { wrapper: wrapper(new ApiClient({ fetch }), config) });
+  expect(screen.getByTestId("api-docs-loading")).toBeVisible();
+  expect(await screen.findByTitle("API documentation")).toHaveAttribute(
     "src",
     "/console/stoplight/apidocs.html?api=%2Fapi.json&lang=en-US",
   );
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api.json?lang=en-US", expect.anything()));
   await act(async () => i18n.changeLanguage("zh-CN"));
   rerender(<ApiDocsPage />);
   expect(screen.getByTestId("api-docs-frame").getAttribute("src")).toContain("lang=zh-CN");
   await act(async () => i18n.changeLanguage("en-US"));
+});
+
+it("shows a localized retryable failure when the API description preflight fails", async () => {
+  const fetch = vi.fn(async () => new Response("unavailable", { status: 503 }));
+  render(<ApiDocsPage />, { wrapper: wrapper(new ApiClient({ fetch })) });
+
+  expect(await screen.findByTestId("api-docs-failed")).toHaveTextContent("API documentation is unavailable");
+  expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
+
+  fetch.mockResolvedValueOnce(new Response("{}", { status: 200 }));
+  await act(async () => screen.getByRole("button", { name: "Retry" }).click());
+  expect(await screen.findByTestId("api-docs-frame")).toBeVisible();
 });
 
 it("loads and renders framework, backend and frontend system information", async () => {

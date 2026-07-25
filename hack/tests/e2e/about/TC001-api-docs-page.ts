@@ -6,6 +6,7 @@ import { test, expect } from '../../fixtures/auth';
 import { workspacePath } from '../../fixtures/config';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const remediationScreenshotDirectory = resolve(currentDir, '../../../../temp/20260725/ui-audit-remediation');
 const openApiMethods = new Set([
   'connect',
   'delete',
@@ -249,7 +250,7 @@ test.describe('TC001 系统接口页面', () => {
     });
   });
 
-  test('TC001j: 接口文档内容加载期间显示 iframe 内 Loading', async ({
+  test('TC001j: 接口文档预检期间显示宿主加载状态，完成后显示 iframe 内容', async ({
     adminPage,
   }) => {
     let releaseApiResponse!: () => void;
@@ -315,27 +316,58 @@ test.describe('TC001 系统接口页面', () => {
       await Promise.race([
         apiRequestStarted,
         adminPage.waitForTimeout(5_000).then(() => {
-          throw new Error('Expected Stoplight iframe to request /api.json');
+          throw new Error('Expected API documentation preflight to request /api.json');
         }),
       ]);
 
+      await expect(adminPage.getByTestId('api-docs-loading')).toBeVisible();
+      await expect(adminPage.getByText('正在加载接口文档……')).toBeVisible();
+
+      releaseApiResponse();
       const frame = adminPage.frameLocator('iframe.api-docs-frame');
       const loading = frame.locator('#api-docs-loading');
+      await expect(adminPage.locator('iframe.api-docs-frame')).toBeVisible({ timeout: 10_000 });
       await expect(frame.locator('body')).toBeAttached({ timeout: 5_000 });
       await expect(loading).toBeVisible({ timeout: 10_000 });
       await expect(frame.locator('#api-docs-loading-title')).toContainText(
         /接口文档加载中|Loading API documentation/,
       );
 
-      releaseApiResponse();
       await expect(frame.getByText('Overview')).toBeVisible({
         timeout: 15_000,
       });
       await expect(loading).toBeHidden({ timeout: 10_000 });
+      await adminPage.screenshot({ path: resolve(remediationScreenshotDirectory, 'TC001j-api-docs-ready.png'), fullPage: true });
     } finally {
       releaseApiResponse();
       await adminPage.unroute('**/api.json?**');
       await adminPage.unroute('**/stoplight/apidocs.html?**');
+    }
+  });
+
+  test('TC001k: 接口描述预检失败时显示本地化错误并能重试', async ({ adminPage }) => {
+    let shouldFail = true;
+    await adminPage.route('**/api.json?**', async (route) => {
+      if (shouldFail) {
+        await route.fulfill({ status: 503, body: 'unavailable' });
+        return;
+      }
+      await route.continue();
+    });
+
+    try {
+      await adminPage.goto('/about/api-docs');
+      await expect(adminPage.getByTestId('api-docs-failed')).toBeVisible();
+      await expect(adminPage.getByRole('alert')).toContainText('接口文档暂不可用');
+      shouldFail = false;
+      await adminPage.getByRole('button', { name: '重试' }).click();
+      await expect(adminPage.locator('iframe.api-docs-frame')).toBeVisible({ timeout: 15_000 });
+      const frame = adminPage.frameLocator('iframe.api-docs-frame');
+      await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
+      await expect(frame.locator('#api-docs-loading')).toBeHidden({ timeout: 10_000 });
+      await adminPage.screenshot({ path: resolve(remediationScreenshotDirectory, 'TC001k-api-docs-retry.png'), fullPage: true });
+    } finally {
+      await adminPage.unroute('**/api.json?**');
     }
   });
 });

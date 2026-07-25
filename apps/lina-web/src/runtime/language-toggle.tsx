@@ -1,5 +1,6 @@
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Dropdown from "@douyinfe/semi-ui/lib/es/dropdown";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SupportedLocale } from "#/runtime/i18n";
@@ -14,6 +15,7 @@ const localeLabels: Record<SupportedLocale, string> = {
 export function LanguageToggle() {
   const { i18n } = useTranslation();
   const runtime = useRuntimeI18n();
+  const [open, setOpen] = useState(false);
   const state = runtime?.getLocaleState();
   if (state && !state.switcherVisible) {
     return null;
@@ -25,18 +27,20 @@ export function LanguageToggle() {
   async function change(locale: SupportedLocale) {
     if (runtime) {
       await runtime.changeLanguage(locale);
-      return;
+    } else {
+      await i18n.changeLanguage(locale);
+      try {
+        window.localStorage.setItem(localePreferenceStorageKey, JSON.stringify({ value: locale }));
+      } catch {
+        // Locale persistence is best-effort in restricted browser contexts.
+      }
     }
-    await i18n.changeLanguage(locale);
-    try {
-      window.localStorage.setItem(localePreferenceStorageKey, JSON.stringify({ value: locale }));
-    } catch {
-      // Locale persistence is best-effort in restricted browser contexts.
-    }
+    setOpen(false);
   }
 
   return (
     <Dropdown
+      onVisibleChange={setOpen}
       render={(
         <Dropdown.Menu>
           {(Object.keys(localeLabels) as SupportedLocale[]).map((locale) => (
@@ -47,6 +51,7 @@ export function LanguageToggle() {
         </Dropdown.Menu>
       )}
       trigger="click"
+      visible={open}
     >
       <Button data-testid="language-toggle-trigger" theme="borderless">
         {activeLocale === "zh-CN" ? "中文" : "EN"}
