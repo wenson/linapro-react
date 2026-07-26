@@ -1,4 +1,5 @@
-import type { Page } from "@host-tests/support/playwright";
+import { expect, type Page } from "@host-tests/support/playwright";
+import { captureEvidence } from "@host-tests/support/evidence";
 
 import {
   waitForConfirmOverlay,
@@ -190,5 +191,75 @@ export class NoticePage {
     const text = await pager.textContent();
     const match = text?.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
+  }
+
+  async assertResponsiveLayout() {
+    await this.page.setViewportSize({ height: 768, width: 1366 });
+    await waitForTableReady(this.page, '[data-testid="notice-table"]');
+
+    const form = this.page.locator("form.notice-search-form");
+    const searchButton = form.getByRole("button", { name: /搜索|Search/i });
+    const resetButton = form.getByRole("button", { name: /重置|Reset/i });
+    await expect(searchButton).toBeVisible();
+    await expect(resetButton).toBeVisible();
+    const [searchBox, resetBox] = await Promise.all([
+      searchButton.boundingBox(),
+      resetButton.boundingBox(),
+    ]);
+    expect(searchBox).not.toBeNull();
+    expect(resetBox).not.toBeNull();
+    expect(searchBox!.width).toBeLessThan(160);
+    expect(resetBox!.width).toBeLessThan(160);
+    expect(resetBox!.x + resetBox!.width).toBeLessThanOrEqual(searchBox!.x + 1);
+
+    const table = this.page.getByTestId("notice-table");
+    const mobileList = this.page.getByTestId("notice-mobile-list");
+    await expect(table).toBeVisible();
+    await expect(mobileList).toBeHidden();
+    for (const header of [
+      /公告标题|Notice Title/i,
+      /公告类型|Notice Type/i,
+      /状态|Status/i,
+      /创建人|Created By/i,
+      /创建时间|Created At/i,
+      /操作|Actions/i,
+    ]) {
+      await expect(
+        table.locator(".semi-table-row-head, th", { hasText: header }).first(),
+      ).toBeVisible();
+    }
+    await captureEvidence(
+      this.page,
+      "ui-remediation-notice-1366x768-desktop-e2e",
+    );
+
+    await this.page.setViewportSize({ height: 844, width: 390 });
+    await expect(table).toBeHidden();
+    await expect(mobileList).toBeVisible();
+    const card = mobileList.locator(".mobile-record-card").first();
+    await expect(card).toBeVisible();
+    for (const field of [
+      /公告类型|Notice Type/i,
+      /状态|Status/i,
+      /创建人|Created By/i,
+      /创建时间|Created At/i,
+    ]) {
+      await expect(card.getByText(field).first()).toBeVisible();
+    }
+    for (const action of [/预览|Preview/i, /编辑|Edit/i]) {
+      await expect(card.getByRole("button", { name: action })).toBeVisible();
+    }
+    await expect
+      .poll(async () =>
+        this.page.evaluate(() => ({
+          clientWidth: document.documentElement.clientWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+        })),
+      )
+      .toEqual({ clientWidth: 390, scrollWidth: 390 });
+    await captureEvidence(
+      this.page,
+      "ui-remediation-notice-390x844-mobile-e2e",
+    );
   }
 }

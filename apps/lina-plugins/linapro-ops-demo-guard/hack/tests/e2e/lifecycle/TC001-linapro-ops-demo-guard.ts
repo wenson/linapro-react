@@ -8,6 +8,10 @@ import { createAdminApiContext } from '@host-tests/fixtures/plugin';
 import { LoginPage } from '@host-tests/pages/LoginPage';
 import { MainLayout } from '@host-tests/pages/MainLayout';
 import { PluginPage } from '@host-tests/pages/PluginPage';
+import {
+  logoutAccessToken,
+  withLogoutOnDispose,
+} from '@host-tests/support/auth-session';
 
 const apiBaseURL = config.apiBaseURL;
 const publicBaseURL = config.publicBaseURL;
@@ -208,6 +212,9 @@ test.describe("TC-1 linapro-ops-demo-guard 全局只读保护", () => {
     try {
       const login = await loginDemoTenantUser(sessionApi);
       const tenants = login?.tenants ?? [];
+      if (login?.accessToken) {
+        await logoutAccessToken(login.accessToken);
+      }
       test.skip(
         !login?.preToken || tenants.length < 2,
         "requires linapro-tenant-core mock user tenant_alpha_ops with multiple active tenants",
@@ -261,8 +268,9 @@ test.describe("TC-1 linapro-ops-demo-guard 全局只读保护", () => {
           ),
         ) as TenantTokenResult;
         expect(switchPayload.accessToken).toBeTruthy();
+        await logoutAccessToken(switchPayload.accessToken ?? "");
       } finally {
-        await tenantApi.dispose();
+        await withLogoutOnDispose(tenantApi, accessToken).dispose();
       }
     } finally {
       await sessionApi.dispose();

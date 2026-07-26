@@ -8,7 +8,7 @@ import Toast from "@douyinfe/semi-ui/lib/es/toast";
 import { useEffect, useMemo, useState } from "react";
 
 import type { AiCoreApi, Model, Provider, Tier, TierTestResult } from "./ai-client";
-import { formatLatencyMs, modelProtocolGroups, tierDisplayName, type Translate } from "./ai-data";
+import { effortLabel, formatLatencyMs, modelProtocolGroups, tierDisplayName, type Translate } from "./ai-data";
 import "./ai-core.css";
 
 interface TierValues { defaultEffort?: string; enabled?: number; modelId?: number; providerId?: number }
@@ -35,9 +35,9 @@ export function TierSideSheet({ api, onClose, onSaved, open, t, tier }: {
   async function submit(values: TierValues) { if (!tier) return; const next = payload(values); if (!valid(next, false)) return; setSaving(true); try { await api.tierUpdate(tier.code, next); Toast.success(t("pages.common.updateSuccess")); await onSaved(); onClose(); } finally { setSaving(false); } }
   async function test(values: TierValues) { if (!tier) return; const next = payload(values); if (!valid(next, true)) return; setTesting(true); try { const output = await api.tierTest(tier.code, { ...next, maxOutputTokens: 128, thinkingEffort: next.defaultEffort }); setResult(output); const text = output.errorSummary || t(output.status === "success" ? "plugin.linapro-ai-core.tier.messages.testSuccess" : "plugin.linapro-ai-core.tier.messages.testFailed"); (output.status === "success" ? Toast.success : Toast.error)(`${text} (${formatLatencyMs(output.latencyMs)})`); await onSaved(); } finally { setTesting(false); } }
   async function testCurrent() { if (!formApi) return; await formApi.validate(); await test(formApi.getValues()); }
-  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.tier.drawer.editTitle", { name: tierDisplayName(t, tier) })} visible={open} width={720}>{loading ? <Spin aria-label={t("pages.common.loading")} /> : <Form<TierValues> getFormApi={setFormApi} key={tier?.code ?? "none"} initValues={initial} labelPosition="top" onSubmit={submit}>
+  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.tier.drawer.editTitle", { name: tierDisplayName(t, tier) })} visible={open} width="min(720px, 100vw)">{loading ? <Spin aria-label={t("pages.common.loading")} /> : <Form<TierValues> getFormApi={setFormApi} key={tier?.code ?? "none"} initValues={initial} labelPosition="top" onSubmit={submit}>
     <Form.RadioGroup field="enabled" label={t("pages.common.status")} options={[{ label: t("plugin.linapro-ai-core.common.enabled"), value: 1 }, { label: t("plugin.linapro-ai-core.common.disabled"), value: 0 }]} />
-    {tier?.capabilityType === "text" && tier.capabilityMethod === "generate" ? <Form.Select field="defaultEffort" label={t("plugin.linapro-ai-core.tier.fields.defaultEffort")} optionList={[{ label: t("plugin.linapro-ai-core.effort.empty"), value: "" }, { label: "low", value: "low" }, { label: "medium", value: "medium" }, { label: "high", value: "high" }]} /> : null}
+    {tier?.capabilityType === "text" && tier.capabilityMethod === "generate" ? <Form.Select field="defaultEffort" label={t("plugin.linapro-ai-core.tier.fields.defaultEffort")} optionList={["", "low", "medium", "high"].map((value) => ({ label: effortLabel(t, value), value }))} /> : null}
     <Form.Select field="providerId" filter label={t("plugin.linapro-ai-core.tier.fields.provider")} onChange={(value) => void changeProvider(value)} optionList={providers.map((item) => ({ label: item.name, value: item.id }))} />
     <Form.Select field="modelId" filter label={t("plugin.linapro-ai-core.tier.fields.model")}>
       {modelProtocolGroups(models).map((group) => <Form.Select.OptGroup key={group.label} label={group.label}>{group.options.map((option) => <Form.Select.Option key={option.value} value={option.value}>{option.label}</Form.Select.Option>)}</Form.Select.OptGroup>)}

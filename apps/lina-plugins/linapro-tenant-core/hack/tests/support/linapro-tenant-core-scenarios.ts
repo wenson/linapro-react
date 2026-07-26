@@ -23,6 +23,7 @@ import {
   queryPgScalar,
 } from "@host-tests/support/postgres";
 import { waitForRouteReady } from "@host-tests/support/ui";
+import { logoutAccessToken } from "@host-tests/support/auth-session";
 import {
   addTenantMember,
   createTenant,
@@ -864,6 +865,9 @@ export async function scenarioTC0180() {
         );
         const activeLogin = await loginRaw(user.username, password);
         expect(activeLogin.accessToken || activeLogin.preToken).toBeTruthy();
+        if (activeLogin.accessToken) {
+          await logoutAccessToken(activeLogin.accessToken);
+        }
       } finally {
         await cleanupTenantUser(api, user.id, user.memberId);
       }

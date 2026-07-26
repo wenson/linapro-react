@@ -19,5 +19,5 @@ export function NoticePreviewModal({ api, locale, noticeId, onClose, open, t, ty
     { key: t("plugin.linapro-content-notice.fields.createdBy"), value: notice.createdByName || "-" },
     { key: t("pages.common.createdAt"), value: formatTimestamp(notice.createdAt, locale) },
   ] : [];
-  return <Modal footer={null} onCancel={onClose} title={notice?.title || t("plugin.linapro-content-notice.preview.title")} visible={open} width={800}>{loading ? <Spin aria-label={t("pages.common.loading")} /> : notice ? <div data-testid="notice-preview"><Descriptions data={data} size="small" /><div className="notice-content" dangerouslySetInnerHTML={{ __html: html }} /></div> : null}</Modal>;
+  return <Modal footer={null} onCancel={onClose} title={notice?.title || t("plugin.linapro-content-notice.preview.title")} visible={open} width="min(800px, calc(100vw - 24px))">{loading ? <Spin aria-label={t("pages.common.loading")} /> : notice ? <div data-testid="notice-preview"><Descriptions data={data} size="small" /><div className="notice-content" dangerouslySetInnerHTML={{ __html: html }} /></div> : null}</Modal>;
 }

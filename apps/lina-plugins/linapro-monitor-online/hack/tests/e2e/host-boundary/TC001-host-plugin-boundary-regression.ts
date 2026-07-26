@@ -15,6 +15,10 @@ import {
   ensureSourcePluginUninstalled,
 } from '@host-tests/fixtures/plugin';
 import { LoginPage } from '@host-tests/pages/LoginPage';
+import {
+  logoutBrowserContextSession,
+  withLogoutOnDispose,
+} from '@host-tests/support/auth-session';
 import { execPgSQL, pgEscapeLiteral } from '@host-tests/support/postgres';
 
 const apiBaseURL = config.apiBaseURL;
@@ -66,7 +70,7 @@ async function createAdminSessionContext(): Promise<{
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  return { api, tokenId };
+  return { api: withLogoutOnDispose(api, accessToken), tokenId };
 }
 
 function expireOnlineSession(tokenId: string) {
@@ -86,6 +90,7 @@ async function createIsolatedPage(browser: Browser): Promise<{
   const page = await context.newPage();
   return {
     cleanup: async () => {
+      await logoutBrowserContextSession(context);
       await context.close();
     },
     context,
@@ -135,6 +140,7 @@ test.describe('TC-1 宿主与监控插件边界回归', () => {
       }
     } finally {
       if (isolatedContext) {
+        await logoutBrowserContextSession(isolatedContext);
         await isolatedContext.close();
       }
 
@@ -174,6 +180,7 @@ test.describe('TC-1 宿主与监控插件边界回归', () => {
       await expect(table.locator('tbody tr').first()).toBeVisible();
     } finally {
       if (isolatedContext) {
+        await logoutBrowserContextSession(isolatedContext);
         await isolatedContext.close();
       }
 

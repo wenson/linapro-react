@@ -1,10 +1,9 @@
 import type { APIRequestContext, APIResponse } from "@host-tests/support/playwright";
 
-import { request as playwrightRequest } from "@host-tests/support/playwright";
-
 import { test, expect } from '@host-tests/fixtures/auth';
 import { config } from '@host-tests/fixtures/config';
 import { PluginPage } from '@host-tests/pages/PluginPage';
+import { createLoggedInApiContext } from '@host-tests/support/auth-session';
 import {
   execPgSQL,
   pgIdentifier,
@@ -12,7 +11,6 @@ import {
   queryPgScalar,
 } from '@host-tests/support/postgres';
 
-const apiBaseURL = config.apiBaseURL;
 const targetPluginID = "linapro-content-notice";
 const noticeTableName = "plugin_linapro_content_notice";
 // Mock data file 001-linapro-content-notice-mock-data.sql ships these notice titles.
@@ -39,29 +37,7 @@ function assertOk(response: APIResponse, message: string) {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  assertOk(loginResponse, "管理员登录 API 失败");
-
-  const loginResult = unwrapApiData(await loginResponse.json()) as {
-    accessToken?: string;
-  };
-  const accessToken = loginResult?.accessToken;
-  expect(accessToken, "未获取到 accessToken").toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function fetchPlugin(

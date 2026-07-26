@@ -25,5 +25,5 @@ export function LoginLogDetailModal({ locale, onClose, open, record, statuses, t
     { key: t("plugin.linapro-monitor-loginlog.fields.loginTime"), value: formatTimestamp(record.loginTime, locale) },
   ] : [];
 
-  return <Modal footer={null} onCancel={onClose} title={t("plugin.linapro-monitor-loginlog.detail.title")} visible={open} width={560}><div className="monitor-loginlog-detail" data-testid="loginlog-detail-modal"><Descriptions column={1} data={data} size="small" /></div></Modal>;
+  return <Modal footer={null} onCancel={onClose} title={t("plugin.linapro-monitor-loginlog.detail.title")} visible={open} width="min(560px, calc(100vw - 24px))"><div className="monitor-loginlog-detail" data-testid="loginlog-detail-modal"><Descriptions column={1} data={data} size="small" /></div></Modal>;
 }

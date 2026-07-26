@@ -12,7 +12,7 @@ import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
 import Tag from "@douyinfe/semi-ui/lib/es/tag";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
-import { useLinaPluginHost } from "@linapro/plugin-ui";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle, useLinaPluginHost } from "@linapro/plugin-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { dictColor, dictLabel, downloadBlob, formatTimestamp } from "./data";
@@ -128,6 +128,8 @@ export default function LoginLogManagement() {
     }
   }
 
+  function renderActions(row: LoginLog) { return <Button onClick={() => setDetail(row)} theme="borderless">{host.t("pages.common.detail")}</Button>; }
+
   const columns: ColumnProps<LoginLog>[] = [
     { dataIndex: "userName", title: host.t("plugin.linapro-monitor-loginlog.fields.userName"), width: 150 },
     { dataIndex: "ip", title: host.t("plugin.linapro-monitor-loginlog.fields.ipAddress"), width: 150 },
@@ -136,7 +138,7 @@ export default function LoginLogManagement() {
     { dataIndex: "status", render: (value) => <Tag color={dictColor(statuses, Number(value))}>{dictLabel(statuses, Number(value))}</Tag>, title: host.t("plugin.linapro-monitor-loginlog.fields.status"), width: 120 },
     { dataIndex: "msg", ellipsis: true, title: host.t("plugin.linapro-monitor-loginlog.fields.message"), width: 220 },
     { dataIndex: "loginTime", render: (value) => formatTimestamp(value as number | null, host.locale), sorter: true, title: host.t("plugin.linapro-monitor-loginlog.fields.loginDate"), width: 190 },
-    { fixed: "right", render: (_, row) => <Button onClick={() => setDetail(row)} theme="borderless">{host.t("pages.common.detail")}</Button>, title: host.t("pages.common.actions"), width: 100 },
+    { render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
   ];
 
   return <section className="monitor-loginlog-page" data-testid="loginlog-management-page">
@@ -162,9 +164,9 @@ export default function LoginLogManagement() {
       {can(host.permissions, "monitor:loginlog:clear") ? <Button onClick={cleanAll}>{host.t("pages.common.clear")}</Button> : null}
       {can(host.permissions, "monitor:loginlog:export") ? <Button onClick={exportLogs}>{host.t("pages.common.export")}</Button> : null}
       {can(host.permissions, "monitor:loginlog:remove") ? <Button data-testid="loginlog-range-delete" onClick={() => { setBeginTime(""); setEndTime(""); setDeleteAll(false); setDeleteOpen(true); }} theme="solid" type="danger">{host.t("pages.common.delete")}</Button> : null}
-    </Space></div><div data-testid="loginlog-table"><Table<LoginLog> columns={columns} dataSource={rows} loading={loading} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum }))} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" scroll={{ x: 1200 }} /></div></Card>
+    </Space></div><div className="responsive-desktop-table" data-testid="loginlog-table"><Table<LoginLog> columns={columns} dataSource={rows} loading={loading} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum }))} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" scroll={{ x: 1200 }} /></div><MobileRecordList testId="loginlog-mobile-list">{rows.map((row) => <MobileRecordCard key={row.id} testId={`loginlog-mobile-card-${row.id}`}><MobileRecordTitle>{row.userName || "-"}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={host.t("plugin.linapro-monitor-loginlog.fields.status")} value={<Tag color={dictColor(statuses, row.status)}>{dictLabel(statuses, row.status)}</Tag>} /><MobileRecordField label={host.t("plugin.linapro-monitor-loginlog.fields.ipAddress")} value={row.ip || "-"} /><MobileRecordField label={host.t("plugin.linapro-monitor-loginlog.fields.message")} value={row.msg || "-"} /><MobileRecordField label={host.t("plugin.linapro-monitor-loginlog.fields.loginDate")} value={formatTimestamp(row.loginTime, host.locale)} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList></Card>
     <LoginLogDetailModal locale={host.locale} onClose={() => setDetail(undefined)} open={Boolean(detail)} record={detail} statuses={statuses} t={host.t} />
-    <Modal footer={<Space><Button onClick={() => setDeleteOpen(false)}>{host.t("pages.common.cancel")}</Button><Button loading={deleting} onClick={() => void deleteLogs()} theme="solid" type="danger">{host.t("pages.common.confirm")}</Button></Space>} onCancel={() => setDeleteOpen(false)} title={host.t("plugin.linapro-monitor-loginlog.messages.deleteRangeTitle")} visible={deleteOpen}>
+    <Modal footer={<Space><Button onClick={() => setDeleteOpen(false)}>{host.t("pages.common.cancel")}</Button><Button loading={deleting} onClick={() => void deleteLogs()} theme="solid" type="danger">{host.t("pages.common.confirm")}</Button></Space>} onCancel={() => setDeleteOpen(false)} title={host.t("plugin.linapro-monitor-loginlog.messages.deleteRangeTitle")} visible={deleteOpen} width="min(520px, calc(100vw - 24px))">
       <div data-testid="loginlog-delete-alert"><Banner description={host.t("plugin.linapro-monitor-loginlog.messages.deleteRangeDescription")} type="warning" /></div>
       <div className="monitor-loginlog-delete-all" data-testid="loginlog-delete-all-option"><Checkbox checked={deleteAll} onChange={(event) => setDeleteAll(Boolean(event.target.checked))}>{host.t("plugin.linapro-monitor-loginlog.messages.deleteAllLabel")}</Checkbox><Typography.Paragraph type="tertiary">{host.t("plugin.linapro-monitor-loginlog.messages.deleteAllHint")}</Typography.Paragraph></div>
       <div data-testid="loginlog-delete-range-section"><Space vertical><Input aria-label={host.t("plugin.linapro-monitor-loginlog.fields.beginDate")} disabled={deleteAll} onChange={setBeginTime} type="date" value={beginTime} /><Input aria-label={host.t("plugin.linapro-monitor-loginlog.fields.endDate")} disabled={deleteAll} onChange={setEndTime} type="date" value={endTime} /></Space></div>

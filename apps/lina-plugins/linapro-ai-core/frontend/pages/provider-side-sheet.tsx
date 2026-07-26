@@ -68,7 +68,7 @@ export function ProviderSideSheet({ api, onClose, onSaved, open, providerId, t }
     } finally { setSaving(false); }
   }
 
-  return <SideSheet closable onCancel={onClose} title={t(providerId ? "plugin.linapro-ai-core.provider.drawer.editTitle" : "plugin.linapro-ai-core.provider.drawer.createTitle")} visible={open} width={720}>
+  return <SideSheet closable onCancel={onClose} title={t(providerId ? "plugin.linapro-ai-core.provider.drawer.editTitle" : "plugin.linapro-ai-core.provider.drawer.createTitle")} visible={open} width="min(720px, 100vw)">
     {loading ? <Spin aria-label={t("pages.common.loading")} /> : <Form<ProviderFormValues> key={`${providerId ?? "new"}-${detail?.updatedAt ?? 0}`} initValues={initial} labelPosition="top" onSubmit={submit}>
       <Form.Input field="name" label={t("plugin.linapro-ai-core.provider.fields.name")} rules={[{ message: t("plugin.linapro-ai-core.common.required"), required: true }]} />
       <Form.Input field="websiteUrl" label={t("plugin.linapro-ai-core.provider.fields.websiteUrl")} />

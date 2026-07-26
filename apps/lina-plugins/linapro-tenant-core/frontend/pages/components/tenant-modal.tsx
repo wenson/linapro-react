@@ -30,7 +30,7 @@ export function TenantModal({ api, onClose, onSaved, open, record, t }: {
     }
   }
 
-  return <Modal footer={null} onCancel={onClose} title={t(record ? "plugin.linapro-tenant-core.tenant.actions.edit" : "plugin.linapro-tenant-core.tenant.actions.create")} visible={open}>
+  return <Modal footer={null} onCancel={onClose} title={t(record ? "plugin.linapro-tenant-core.tenant.actions.edit" : "plugin.linapro-tenant-core.tenant.actions.create")} visible={open} width="min(520px, calc(100vw - 24px))">
     <div data-testid="tenant-form">
       <Form<PlatformTenantPayload> initValues={{ code: record?.code ?? "", name: record?.name ?? "", remark: record?.remark ?? "" }} key={record?.id ?? "new"} labelPosition="top" onSubmit={submit}>
         <Form.Input data-testid="tenant-code-input" disabled={Boolean(record)} field="code" label={t("plugin.linapro-tenant-core.fields.code")} rules={[{ message: t("plugin.linapro-tenant-core.messages.codeRule"), pattern: /^[a-z0-9-]{2,32}$/, required: true }]} />

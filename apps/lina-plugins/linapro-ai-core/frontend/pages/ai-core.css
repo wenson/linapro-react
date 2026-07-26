@@ -84,15 +84,6 @@
   white-space: normal;
 }
 
-.ai-core-tier-tab-mark {
-  background: currentcolor;
-  border-radius: 50%;
-  display: inline-block;
-  height: 6px;
-  margin-right: 8px;
-  width: 6px;
-}
-
 @media (max-width: 767px) {
   .ai-core-page {
     padding: 12px;

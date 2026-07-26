@@ -170,6 +170,66 @@ export class SmartCenterPage {
     await expect(label).toHaveCSS("white-space", /nowrap|normal/);
   }
 
+  async assertResponsiveList(input: {
+    action: RegExp;
+    evidenceName: string;
+    fields: RegExp[];
+    headers: RegExp[];
+    mobileListTestId: string;
+    recordText: RegExp | string;
+    scrollToEnd?: boolean;
+    tableTestId: string;
+  }) {
+    await this.page.setViewportSize({ height: 768, width: 1366 });
+    await waitForTableReady(this.page, `[data-testid="${input.tableTestId}"]`);
+    const table = this.page.getByTestId(input.tableTestId);
+    const mobileList = this.page.getByTestId(input.mobileListTestId);
+    await expect(table).toBeVisible();
+    await expect(mobileList).toBeHidden();
+    for (const header of input.headers) {
+      await expect(
+        table.locator(".semi-table-row-head, th", { hasText: header }).first(),
+      ).toBeVisible();
+    }
+    const tableBox = await table.boundingBox();
+    expect(tableBox).not.toBeNull();
+    expect(tableBox!.x).toBeGreaterThanOrEqual(0);
+    expect(tableBox!.x + tableBox!.width).toBeLessThanOrEqual(1367);
+    if (input.scrollToEnd) {
+      const scrollBody = table.locator(".semi-table-body").first();
+      await scrollBody.evaluate((node) => {
+        node.scrollLeft = node.scrollWidth;
+      });
+    }
+    await expect(
+      table.getByRole("button", { name: input.action }).first(),
+    ).toBeVisible();
+    await this.captureEvidence(`${input.evidenceName}-1366x768-desktop`);
+
+    await this.page.setViewportSize({ height: 844, width: 390 });
+    await expect(table).toBeHidden();
+    await expect(mobileList).toBeVisible();
+    const card = mobileList
+      .locator(".mobile-record-card")
+      .filter({ hasText: input.recordText })
+      .first();
+    await expect(card).toBeVisible();
+    for (const field of input.fields) {
+      await expect(card.getByText(field).first()).toBeVisible();
+    }
+    await expect(card.getByRole("button", { name: input.action }).first()).toBeVisible();
+    await expect
+      .poll(async () =>
+        this.page.evaluate(() => ({
+          clientWidth: document.documentElement.clientWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+        })),
+      )
+      .toEqual({ clientWidth: 390, scrollWidth: 390 });
+    await this.captureEvidence(`${input.evidenceName}-390x844-mobile`);
+    await this.page.setViewportSize({ height: 768, width: 1366 });
+  }
+
   async openCreateProvider() {
     await this.providerPage()
       .getByRole("button", { name: /新增渠道|Add Provider/i })

@@ -117,7 +117,10 @@
         "sectionTitle": "Endpoint Configuration"
       },
       "effort": {
-        "empty": "Model default"
+        "empty": "Model default",
+        "high": "High",
+        "low": "Low",
+        "medium": "Medium"
       },
       "invocation": {
         "drawer": {
@@ -227,7 +230,63 @@
         "descriptions": {
           "advanced": "High-capability AI tier for complex code generation and cross-file reasoning.",
           "basic": "Low-cost AI capability tier for simple text generation and commit message generation.",
-          "standard": "Default AI capability tier for regular code generation and code optimization."
+          "standard": "Default AI capability tier for regular code generation and code optimization.",
+          "audio": {
+            "synthesize": {
+              "advanced": "High-fidelity audio synthesis for long content, nuanced delivery, and production output.",
+              "basic": "Fast audio synthesis for short prompts and low-cost previews.",
+              "standard": "Balanced audio synthesis for everyday narration and voice content."
+            }
+          },
+          "document": {
+            "analyze": {
+              "advanced": "Deep document analysis for long files, complex tables, and cross-section reasoning.",
+              "basic": "Fast document analysis for short summaries and basic extraction.",
+              "standard": "Balanced document analysis for routine summaries, Q&A, and structured extraction."
+            }
+          },
+          "embedding": {
+            "create": {
+              "advanced": "High-precision embeddings for specialist retrieval and fine-grained semantic matching.",
+              "basic": "Low-cost embeddings for small-scale retrieval and quick validation.",
+              "standard": "Balanced embeddings for regular knowledge search and semantic retrieval."
+            }
+          },
+          "image": {
+            "generate": {
+              "advanced": "High-quality image generation for complex compositions, precise text, and final assets.",
+              "basic": "Fast image generation for sketches, concepts, and low-cost previews.",
+              "standard": "Balanced image generation for everyday illustrations and visual assets."
+            }
+          },
+          "safety": {
+            "moderate": {
+              "advanced": "Strict safety review for high-risk content and fine-grained classification.",
+              "basic": "Fast safety review for basic risk screening.",
+              "standard": "Balanced safety review for routine production content."
+            }
+          },
+          "text": {
+            "generate": {
+              "advanced": "Advanced text generation for complex code, long context, and cross-file reasoning.",
+              "basic": "Fast text generation for simple copy, summaries, and commit messages.",
+              "standard": "Balanced text generation for routine coding, writing, and content refinement."
+            }
+          },
+          "video": {
+            "generate": {
+              "advanced": "High-quality video generation for complex camera work, continuous motion, and final output.",
+              "basic": "Fast video generation for short shot previews and low-cost drafts.",
+              "standard": "Balanced video generation for regular short videos and product demos."
+            }
+          },
+          "vision": {
+            "analyze": {
+              "advanced": "Deep visual understanding for complex scenes, fine detail, and multi-image reasoning.",
+              "basic": "Fast visual understanding for basic recognition and short image descriptions.",
+              "standard": "Balanced visual understanding for regular image Q&A and content extraction."
+            }
+          }
         },
         "drawer": {
           "editTitle": "Configure {name} Tier"

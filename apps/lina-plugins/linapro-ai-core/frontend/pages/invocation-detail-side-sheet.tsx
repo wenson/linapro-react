@@ -26,5 +26,5 @@ export function InvocationDetailSideSheet({ locale, onClose, open, record, t }: 
     { key: t("plugin.linapro-ai-core.invocation.fields.errorSummary"), value: record.errorSummary || "-" },
     { key: t("pages.common.createdAt"), value: formatTimestamp(record.createdAt, locale) },
   ] : [];
-  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.invocation.drawer.detailTitle")} visible={open} width={680}>{record ? <Descriptions column={1} data={data} size="small" /> : null}</SideSheet>;
+  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.invocation.drawer.detailTitle")} visible={open} width="min(680px, 100vw)">{record ? <Descriptions column={1} data={data} size="small" /> : null}</SideSheet>;
 }

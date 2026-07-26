@@ -16,7 +16,6 @@ import type {
 } from "@host-tests/support/playwright";
 
 import {
-  request as playwrightRequest,
   expect,
 } from "@host-tests/support/playwright";
 
@@ -24,6 +23,7 @@ import { test } from "@host-tests/fixtures/auth";
 import { config } from "@host-tests/fixtures/config";
 import { refreshPluginProjection } from "@host-tests/fixtures/plugin";
 import { LoginPage } from "@host-tests/pages/LoginPage";
+import { createLoggedInApiContext } from "@host-tests/support/auth-session";
 import { DemoDynamicPage } from "../../pages/DemoDynamicPage";
 import {
   execPgSQLStatements,
@@ -34,7 +34,6 @@ import {
 import { waitForUploadReady } from "@host-tests/support/ui";
 import { ensureDemoDynamicDependenciesInstalled } from "../../support/plugin-dependencies";
 
-const apiBaseURL = config.apiBaseURL;
 const publicBaseURL = config.publicBaseURL;
 const pluginID = "plugin-dev-dynamic-e2e";
 const pluginName = "Runtime E2E Plugin";
@@ -131,27 +130,7 @@ async function expectApiSuccess<T = unknown>(
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  assertOk(loginResponse, "管理员登录 API 失败");
-
-  const loginResult = unwrapApiData(await loginResponse.json());
-  const accessToken = loginResult?.accessToken;
-  expect(accessToken, "未获取到 accessToken").toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function getConfigByKey(adminApi: APIRequestContext, key: string) {

@@ -64,7 +64,7 @@ export function ModelSideSheet({ api, initialProviderId, model, onClose, onSaved
       Toast.success(t(model ? "pages.common.updateSuccess" : "pages.common.createSuccess")); await onSaved(); onClose();
     } finally { setSaving(false); }
   }
-  return <SideSheet closable onCancel={onClose} title={t(model ? "plugin.linapro-ai-core.model.drawer.editTitle" : "plugin.linapro-ai-core.model.drawer.createTitle")} visible={open} width={760}>
+  return <SideSheet closable onCancel={onClose} title={t(model ? "plugin.linapro-ai-core.model.drawer.editTitle" : "plugin.linapro-ai-core.model.drawer.createTitle")} visible={open} width="min(760px, 100vw)">
     {loading ? <Spin aria-label={t("pages.common.loading")} /> : <Form<ModelFormValues> key={`${model?.id ?? "new"}-${providerId ?? 0}-${endpointOptions.length}`} initValues={initial} labelPosition="top" onSubmit={submit}>
       <Form.Select disabled={Boolean(model || initialProviderId)} field="providerId" filter optionList={providers.map((item) => ({ label: item.name, value: item.id }))} label={t("plugin.linapro-ai-core.model.fields.provider")} onChange={(value) => setProviderId(Number(value))} rules={[{ required: true }]} />
       <Form.Select field="endpointIds" filter label={t("plugin.linapro-ai-core.model.fields.endpoint")} multiple={!model} optionList={endpointOptions} rules={[{ required: true }]} />

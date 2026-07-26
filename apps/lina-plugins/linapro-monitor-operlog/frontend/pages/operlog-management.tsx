@@ -12,7 +12,7 @@ import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
 import Tag from "@douyinfe/semi-ui/lib/es/tag";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
-import { useLinaPluginHost } from "@linapro/plugin-ui";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle, useLinaPluginHost } from "@linapro/plugin-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { dictColor, dictLabel, downloadBlob, formatTimestamp } from "./data";
@@ -155,6 +155,8 @@ export default function OperLogManagement() {
     }
   }
 
+  function renderActions(row: OperLog) { return <Button onClick={() => void openDetail(row)} theme="borderless">{host.t("pages.common.detail")}</Button>; }
+
   const columns: ColumnProps<OperLog>[] = [
     { dataIndex: "id", title: host.t("plugin.linapro-monitor-operlog.fields.logId"), width: 100 },
     { dataIndex: "title", title: host.t("plugin.linapro-monitor-operlog.fields.moduleName"), width: 150 },
@@ -165,7 +167,7 @@ export default function OperLogManagement() {
     { dataIndex: "status", render: (value) => <Tag color={dictColor(statuses, Number(value))}>{dictLabel(statuses, Number(value))}</Tag>, title: host.t("plugin.linapro-monitor-operlog.fields.operResult"), width: 130 },
     { dataIndex: "operTime", render: (value) => formatTimestamp(value as number | null, host.locale), sorter: true, title: host.t("plugin.linapro-monitor-operlog.fields.operDate"), width: 190 },
     { dataIndex: "costTime", render: (value) => `${Number(value)} ms`, sorter: true, title: host.t("plugin.linapro-monitor-operlog.fields.duration"), width: 110 },
-    { fixed: "right", render: (_, row) => <Button onClick={() => void openDetail(row)} theme="borderless">{host.t("pages.common.detail")}</Button>, title: host.t("pages.common.actions"), width: 100 },
+    { render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
   ];
 
   return <section className="monitor-operlog-page" data-testid="operlog-management-page">
@@ -201,9 +203,9 @@ export default function OperLogManagement() {
       {can(host.permissions, "monitor:operlog:clear") ? <Button onClick={cleanAll}>{host.t("pages.common.clear")}</Button> : null}
       {can(host.permissions, "monitor:operlog:export") ? <Button onClick={exportLogs}>{host.t("pages.common.export")}</Button> : null}
       {can(host.permissions, "monitor:operlog:remove") ? <Button data-testid="operlog-range-delete" onClick={() => { setBeginTime(""); setEndTime(""); setDeleteAll(false); setDeleteOpen(true); }} theme="solid" type="danger">{host.t("pages.common.delete")}</Button> : null}
-    </Space></div><div data-testid="operlog-table"><Table<OperLog> columns={columns} dataSource={rows} loading={loading} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum }))} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" rowSelection={{ onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1450 }} /></div></Card>
+    </Space></div><div className="responsive-desktop-table" data-testid="operlog-table"><Table<OperLog> columns={columns} dataSource={rows} loading={loading} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum }))} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="id" rowSelection={{ onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1450 }} /></div><MobileRecordList testId="operlog-mobile-list">{rows.map((row) => <MobileRecordCard key={row.id} testId={`operlog-mobile-card-${row.id}`}><MobileRecordTitle>{row.title || String(row.id)}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={host.t("plugin.linapro-monitor-operlog.fields.operType")} value={<Tag color={dictColor(types, row.operType)}>{dictLabel(types, row.operType)}</Tag>} /><MobileRecordField label={host.t("plugin.linapro-monitor-operlog.fields.operator")} value={row.operName || "-"} /><MobileRecordField label={host.t("plugin.linapro-monitor-operlog.fields.operResult")} value={<Tag color={dictColor(statuses, row.status)}>{dictLabel(statuses, row.status)}</Tag>} /><MobileRecordField label={host.t("plugin.linapro-monitor-operlog.fields.operDate")} value={formatTimestamp(row.operTime, host.locale)} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList></Card>
     <OperLogDetailSideSheet locale={host.locale} onClose={() => setDetail(undefined)} open={Boolean(detail)} record={detail} statuses={statuses} t={host.t} types={types} />
-    <Modal footer={<Space><Button onClick={() => setDeleteOpen(false)}>{host.t("pages.common.cancel")}</Button><Button loading={deleting} onClick={() => void deleteLogs()} theme="solid" type="danger">{host.t("pages.common.confirm")}</Button></Space>} onCancel={() => setDeleteOpen(false)} title={host.t("plugin.linapro-monitor-operlog.messages.deleteRangeTitle")} visible={deleteOpen}>
+    <Modal footer={<Space><Button onClick={() => setDeleteOpen(false)}>{host.t("pages.common.cancel")}</Button><Button loading={deleting} onClick={() => void deleteLogs()} theme="solid" type="danger">{host.t("pages.common.confirm")}</Button></Space>} onCancel={() => setDeleteOpen(false)} title={host.t("plugin.linapro-monitor-operlog.messages.deleteRangeTitle")} visible={deleteOpen} width="min(520px, calc(100vw - 24px))">
       <div data-testid="operlog-delete-alert"><Banner description={host.t("plugin.linapro-monitor-operlog.messages.deleteRangeDescription")} type="warning" /></div>
       <div className="monitor-operlog-delete-all" data-testid="operlog-delete-all-option"><Checkbox checked={deleteAll} onChange={(event) => setDeleteAll(Boolean(event.target.checked))}>{host.t("plugin.linapro-monitor-operlog.messages.deleteAllLabel")}</Checkbox><Typography.Paragraph type="tertiary">{host.t("plugin.linapro-monitor-operlog.messages.deleteAllHint")}</Typography.Paragraph></div>
       <div data-testid="operlog-delete-range-section"><Space vertical><Input aria-label={host.t("plugin.linapro-monitor-operlog.fields.beginDate")} disabled={deleteAll} onChange={setBeginTime} type="date" value={beginTime} /><Input aria-label={host.t("plugin.linapro-monitor-operlog.fields.endDate")} disabled={deleteAll} onChange={setEndTime} type="date" value={endTime} /></Space></div>

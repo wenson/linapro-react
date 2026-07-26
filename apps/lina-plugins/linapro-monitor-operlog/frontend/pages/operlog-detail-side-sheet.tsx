@@ -38,5 +38,5 @@ export function OperLogDetailSideSheet({ locale, onClose, open, record, statuses
     { key: t("plugin.linapro-monitor-operlog.fields.operTime"), value: formatTimestamp(record.operTime, locale) },
   ] : [];
 
-  return <SideSheet className="monitor-operlog-detail" closable onCancel={onClose} title={t("plugin.linapro-monitor-operlog.detail.title")} visible={open} width={680}><div data-testid="operlog-detail-side-sheet"><Descriptions column={1} data={data} size="small" /></div></SideSheet>;
+  return <SideSheet className="monitor-operlog-detail" closable onCancel={onClose} title={t("plugin.linapro-monitor-operlog.detail.title")} visible={open} width="min(680px, 100vw)"><div data-testid="operlog-detail-side-sheet"><Descriptions column={1} data={data} size="small" /></div></SideSheet>;
 }

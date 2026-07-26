@@ -22,9 +22,15 @@
   gap: 12px;
 }
 
-.notice-search-form > * {
+.notice-search-field {
   margin-bottom: 0;
   min-width: 180px;
+}
+
+.notice-search-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
 }
 
 .notice-actions {
@@ -64,5 +70,5 @@
 @media (max-width: 767px) {
   .notice-page { padding: 12px; }
   .notice-form-grid { grid-template-columns: 1fr; }
-  .notice-search-form, .notice-search-form > * { width: 100%; }
+  .notice-search-form, .notice-search-field, .notice-search-actions { width: 100%; }
 }

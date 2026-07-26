@@ -8,7 +8,7 @@ import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
 import Tooltip from "@douyinfe/semi-ui/lib/es/tooltip";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
-import { useLinaPluginHost } from "@linapro/plugin-ui";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle, useLinaPluginHost } from "@linapro/plugin-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { formatTimestamp } from "./data";
@@ -54,6 +54,8 @@ export default function OnlineUserPage() {
     }
   }
 
+  function renderActions(row: OnlineUser) { return can(host.permissions, "monitor:online:forceLogout") ? <Popconfirm content={host.t("plugin.linapro-monitor-online.page.messages.forceLogoutConfirm", { username: row.username })} onConfirm={() => void forceLogout(row)}><Button theme="borderless" type="danger">{host.t("plugin.linapro-monitor-online.page.actions.forceLogout")}</Button></Popconfirm> : null; }
+
   const columns: ColumnProps<OnlineUser>[] = [
     { dataIndex: "username", title: host.t("plugin.linapro-monitor-online.page.fields.loginAccount"), width: 160 },
     { dataIndex: "deptName", title: host.t("plugin.linapro-monitor-online.page.fields.departmentName"), width: 180 },
@@ -61,7 +63,7 @@ export default function OnlineUserPage() {
     { dataIndex: "browser", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.browser"), width: 180 },
     { dataIndex: "os", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.os"), width: 200 },
     { dataIndex: "loginTime", render: (value) => formatTimestamp(value as number | null, host.locale), title: host.t("plugin.linapro-monitor-online.page.fields.loginTime"), width: 190 },
-    { fixed: "right", render: (_, row) => can(host.permissions, "monitor:online:forceLogout") ? <Popconfirm content={host.t("plugin.linapro-monitor-online.page.messages.forceLogoutConfirm", { username: row.username })} onConfirm={() => void forceLogout(row)}><Button theme="borderless" type="danger">{host.t("plugin.linapro-monitor-online.page.actions.forceLogout")}</Button></Popconfirm> : null, title: host.t("plugin.linapro-monitor-online.page.fields.actions"), width: 130 },
+    { render: (_, row) => renderActions(row), title: host.t("plugin.linapro-monitor-online.page.fields.actions"), width: 130 },
   ];
 
   return <section className="monitor-online-page" data-testid="online-user-page">
@@ -71,6 +73,6 @@ export default function OnlineUserPage() {
       <Form.Input field="ip" label={host.t("plugin.linapro-monitor-online.page.fields.ipAddress")} />
       <Space><Button htmlType="submit" theme="solid" type="primary">{host.t("pages.common.search")}</Button><Button htmlType="reset">{host.t("pages.common.reset")}</Button></Space>
     </Form></Card>
-    <Card><div data-testid="online-user-table"><Table<OnlineUser> columns={columns} dataSource={rows} loading={loading} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="tokenId" scroll={{ x: 1050 }} /></div></Card>
+    <Card><div className="responsive-desktop-table" data-testid="online-user-table"><Table<OnlineUser> columns={columns} dataSource={rows} loading={loading} pagination={{ currentPage: params.pageNum, onChange: (pageNum) => setParams((current) => ({ ...current, pageNum })), pageSize: params.pageSize, total }} rowKey="tokenId" scroll={{ x: 1050 }} /></div><MobileRecordList testId="online-user-mobile-list">{rows.map((row) => <MobileRecordCard key={row.tokenId} testId={`online-user-mobile-card-${row.tokenId}`}><MobileRecordTitle>{row.username}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={host.t("plugin.linapro-monitor-online.page.fields.departmentName")} value={row.deptName || "-"} /><MobileRecordField label={host.t("plugin.linapro-monitor-online.page.fields.ipAddress")} value={row.ip || "-"} /><MobileRecordField label={host.t("plugin.linapro-monitor-online.page.fields.browser")} value={`${row.browser || "-"} / ${row.os || "-"}`} /><MobileRecordField label={host.t("plugin.linapro-monitor-online.page.fields.loginTime")} value={formatTimestamp(row.loginTime, host.locale)} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList></Card>
   </section>;
 }

@@ -36,7 +36,7 @@ export function EndpointSideSheet({ api, onClose, onSaved, open, providerId, pro
     if (!providerId) return;
     await api.providerEndpointDelete(providerId, item.id); Toast.success(t("pages.common.deleteSuccess")); await load(); await onSaved();
   }
-  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.endpoint.drawer.title", { name: providerName || "-" })} visible={open} width={760}>
+  return <SideSheet closable onCancel={onClose} title={t("plugin.linapro-ai-core.endpoint.drawer.title", { name: providerName || "-" })} visible={open} width="min(760px, 100vw)">
     <div className="ai-core-endpoint-list">
       {items.length ? items.map((item) => <div className="ai-core-endpoint-row" key={item.id}>
         <div className="ai-core-endpoint-header"><div><Tag color={item.enabled === 1 ? "blue" : "grey"}>{protocolLabel(item.protocol)}</Tag> <span className="ai-core-mono ai-core-muted">{item.secretRef || "-"}</span><div className="ai-core-mono">{item.baseUrl}</div></div><Space><Button onClick={() => setEditing(item)} theme="borderless">{t("pages.common.edit")}</Button><Popconfirm content={t("plugin.linapro-ai-core.common.deleteConfirm")} onConfirm={() => void remove(item)}><Button theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm></Space></div>

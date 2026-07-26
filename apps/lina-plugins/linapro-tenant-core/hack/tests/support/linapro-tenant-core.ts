@@ -17,6 +17,7 @@ import {
   queryPgRows,
   queryPgScalar,
 } from "@host-tests/support/postgres";
+import { withLogoutOnDispose } from "@host-tests/support/auth-session";
 
 export type MultiTenantMode =
   | "linapro-tenant-core-disabled"
@@ -285,12 +286,13 @@ export async function selectTenant(preToken: string, tenantId: number) {
 }
 
 export async function createTenantApiContext(accessToken: string) {
-  return playwrightRequest.newContext({
+  const api = await playwrightRequest.newContext({
     baseURL: apiBaseURL,
     extraHTTPHeaders: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  return withLogoutOnDispose(api, accessToken);
 }
 
 export async function switchTenant(

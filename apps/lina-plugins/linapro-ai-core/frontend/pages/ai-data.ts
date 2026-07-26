@@ -60,6 +60,31 @@ export function tierCodeLabel(t: Translate, code: string): string {
   return t(`plugin.linapro-ai-core.tier.names.${code}`);
 }
 
+export function tierDescription(t: Translate, tier: Tier): string {
+  const keys = [
+    `plugin.linapro-ai-core.tier.descriptions.${tier.capabilityType}.${tier.capabilityMethod}.${tier.code}`,
+    `plugin.linapro-ai-core.tier.descriptions.${tier.capabilityType}.${tier.code}`,
+    `plugin.linapro-ai-core.tier.descriptions.${tier.code}`,
+  ];
+  for (const key of keys) {
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return tier.description || "-";
+}
+
+export function tierTestStatusLabel(t: Translate, status: string): string {
+  if (status === "success") return t("plugin.linapro-ai-core.common.success");
+  if (status === "failed") return t("plugin.linapro-ai-core.common.failed");
+  return status || "-";
+}
+
+export function effortLabel(t: Translate, effort: string): string {
+  const key = `plugin.linapro-ai-core.effort.${effort || "empty"}`;
+  const translated = t(key);
+  return translated === key ? effort || "-" : translated;
+}
+
 export function tierDisplayName(t: Translate, tier?: Tier): string {
   return tier ? tierCodeLabel(t, tier.code) : "-";
 }
