@@ -1,12 +1,17 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { waitForRouteReady } from '../support/ui';
+import { captureEvidence } from '../support/evidence';
 
 export class ProfilePage {
   constructor(private page: Page) {}
 
   get profilePanel(): Locator {
     return this.page.getByTestId('profile-page').locator('.semi-card').first();
+  }
+
+  get loadingSkeleton(): Locator {
+    return this.page.getByTestId('profile-loading-skeleton');
   }
 
   get nicknameInput(): Locator {
@@ -49,6 +54,32 @@ export class ProfilePage {
     await this.page.goto('/profile');
     await waitForRouteReady(this.page);
     await this.nicknameInput.waitFor({ state: 'visible', timeout: 10000 });
+  }
+
+  async gotoAndObserveLoading(delayMs = 800) {
+    let requestCount = 0;
+    await this.page.route('**/api/v1/user/profile', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      requestCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      await route.continue();
+    });
+    await this.page.goto('/profile', { waitUntil: 'domcontentloaded' });
+    await this.loadingSkeleton.waitFor({ state: 'visible', timeout: 10_000 });
+    return {
+      requestCount: () => requestCount,
+      waitForLoaded: async () => {
+        await this.nicknameInput.waitFor({ state: 'visible', timeout: 15_000 });
+        await this.page.unroute('**/api/v1/user/profile');
+      },
+    };
+  }
+
+  async capture(name: string) {
+    return captureEvidence(this.page, name);
   }
 
   async openPasswordTab() {

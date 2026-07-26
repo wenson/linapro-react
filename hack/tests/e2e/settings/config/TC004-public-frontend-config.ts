@@ -7,6 +7,7 @@ import { test, expect } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import { ConfigPage } from "../../../pages/ConfigPage";
 import { LoginPage } from "../../../pages/LoginPage";
+import { logoutAccessToken } from "../../../support/auth-session";
 
 const publicFrontendParams = [
   { key: "sys.app.name", name: "品牌展示-应用名称" },
@@ -327,13 +328,17 @@ test.describe("TC004 公开前端配置系统参数", () => {
         )
         .toBe(true);
     } finally {
-      for (const original of originals) {
-        await updateConfigValue(
-          request,
-          accessToken,
-          original.id,
-          original.value,
-        );
+      try {
+        for (const original of originals) {
+          await updateConfigValue(
+            request,
+            accessToken,
+            original.id,
+            original.value,
+          );
+        }
+      } finally {
+        await logoutAccessToken(accessToken);
       }
     }
   });
@@ -373,12 +378,16 @@ test.describe("TC004 公开前端配置系统参数", () => {
         )
         .toBe(true);
     } finally {
-      await updateConfigValue(
-        request,
-        accessToken,
-        original.id,
-        original.value,
-      );
+      try {
+        await updateConfigValue(
+          request,
+          accessToken,
+          original.id,
+          original.value,
+        );
+      } finally {
+        await logoutAccessToken(accessToken);
+      }
     }
   });
 
@@ -438,12 +447,16 @@ test.describe("TC004 公开前端配置系统参数", () => {
       await loginPage.goto();
       await expect(loginPage.usernameInput).toBeVisible();
     } finally {
-      await updateConfigValue(
-        request,
-        accessToken,
-        original.id,
-        original.value,
-      );
+      try {
+        await updateConfigValue(
+          request,
+          accessToken,
+          original.id,
+          original.value,
+        );
+      } finally {
+        await logoutAccessToken(accessToken);
+      }
     }
   });
 

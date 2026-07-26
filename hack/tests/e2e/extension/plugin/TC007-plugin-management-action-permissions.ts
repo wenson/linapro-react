@@ -10,6 +10,10 @@ import { config } from "../../../fixtures/config";
 import { LoginPage } from "../../../pages/LoginPage";
 import { PluginPage } from "../../../pages/PluginPage";
 import {
+  createLoggedInApiContext,
+  withLogoutOnDispose,
+} from "../../../support/auth-session";
+import {
   execPgSQLStatements,
   pgEscapeLiteral,
   queryPgRows,
@@ -198,27 +202,7 @@ function writeRuntimeArtifact() {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await anonymousApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
-    loginResponse,
-    "管理员登录失败",
-  );
-  await anonymousApi.dispose();
-
-  expect(loginPayload?.accessToken, "管理员登录后应返回 accessToken").toBeTruthy();
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${loginPayload.accessToken as string}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function loginByPassword(username: string, password: string) {
@@ -243,12 +227,13 @@ async function loginByPassword(username: string, password: string) {
 }
 
 async function createApiContext(token: string): Promise<APIRequestContext> {
-  return playwrightRequest.newContext({
+  const api = await playwrightRequest.newContext({
     baseURL: apiBaseURL,
     extraHTTPHeaders: {
       Authorization: `Bearer ${token}`,
     },
   });
+  return withLogoutOnDispose(api, token);
 }
 
 async function listPlugins(

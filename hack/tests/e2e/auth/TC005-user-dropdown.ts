@@ -3,12 +3,9 @@ import path from 'node:path';
 
 import type { APIRequestContext } from '@playwright/test';
 
-import { request as playwrightRequest } from '@playwright/test';
-
 import { test, expect } from '../../fixtures/auth';
 import { config } from '../../fixtures/config';
-
-const apiBaseURL = config.apiBaseURL;
+import { createLoggedInApiContext } from '../../support/auth-session';
 
 type CurrentUserProfile = {
   avatar: string;
@@ -25,30 +22,7 @@ function unwrapApiData(payload: any) {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post('auth/login', {
-    data: {
-      password: config.adminPass,
-      username: config.adminUser,
-      clientType: 'web',
-    },
-  });
-  expect(
-    loginResponse.ok(),
-    `管理员登录 API 失败, status=${loginResponse.status()}`,
-  ).toBeTruthy();
-
-  const loginResult = unwrapApiData(await loginResponse.json());
-  const accessToken = loginResult?.accessToken;
-  expect(accessToken, '未获取到 accessToken').toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function fetchCurrentUserProfile(

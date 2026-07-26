@@ -1,15 +1,13 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { request as playwrightRequest } from "@playwright/test";
 import { LoginPage } from "../../../pages/LoginPage";
 import { test, expect } from "../../../fixtures/auth";
 import { MainLayout } from "../../../pages/MainLayout";
 import { config, workspacePath } from "../../../fixtures/config";
 import { waitForRouteReady } from "../../../support/ui";
+import { createLoggedInApiContext } from "../../../support/auth-session";
 import {
   getMenuIdsByPermsWithAncestors,
 } from "../../../support/api/job";
-
-const apiBaseURL = config.apiBaseURL;
 
 type MenuNode = {
   id: number;
@@ -125,27 +123,7 @@ function findDuplicateIcons(icons: string[]): string[] {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  expect(loginResponse.ok()).toBeTruthy();
-
-  const loginResult = await loginResponse.json();
-  const accessToken = loginResult.data?.accessToken;
-  expect(accessToken).toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function getCurrentUserRouteTree(

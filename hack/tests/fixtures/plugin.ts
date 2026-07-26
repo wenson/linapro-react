@@ -9,6 +9,7 @@ import { request as playwrightRequest } from '@playwright/test';
 import { config, workspacePath } from './config';
 import { execPgSQLFile } from '../support/postgres';
 import { waitForRouteReady } from '../support/ui';
+import { createLoggedInApiContext } from '../support/auth-session';
 
 const apiBaseURL = config.apiBaseURL;
 const repoRoot = path.resolve(
@@ -32,6 +33,7 @@ async function ensurePluginEnabledState(
   adminApi: APIRequestContext,
   pluginId: string,
   installMode?: string,
+  loadMockData = true,
 ) {
   let plugin = await findPlugin(adminApi, pluginId);
   if (!plugin) {
@@ -48,7 +50,9 @@ async function ensurePluginEnabledState(
   if (plugin?.enabled !== 1) {
     await updatePluginStatus(adminApi, pluginId, true);
   }
-  loadSourcePluginMockData(pluginId);
+  if (loadMockData) {
+    loadSourcePluginMockData(pluginId);
+  }
 }
 
 function pluginNeedsRuntimeUpgrade(plugin: PluginListItem) {
@@ -91,38 +95,24 @@ function loadSourcePluginMockData(pluginId: string) {
 }
 
 export async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post('auth/login', {
-    data: {
-      password: config.adminPass,
-      username: config.adminUser,
-      clientType: 'web',
-    },
-  });
-  assertOk(loginResponse, '管理员登录 API 失败');
-
-  const loginResult = unwrapApiData(await loginResponse.json());
-  const accessToken = loginResult?.accessToken;
-  if (!accessToken) {
-    throw new Error('未获取到 accessToken');
-  }
-  await loginApi.dispose();
-
-  return await playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
-export async function prepareSourcePluginsBaseline(pluginIds: readonly string[]) {
+export async function prepareSourcePluginsBaseline(
+  pluginIds: readonly string[],
+  options?: { loadMockData?: boolean },
+) {
   const uniquePluginIds = [...new Set(pluginIds)].sort();
   const adminApi = await createAdminApiContext();
   try {
     await syncPlugins(adminApi);
     for (const pluginId of uniquePluginIds) {
-      await ensurePluginEnabledState(adminApi, pluginId, 'global');
+      await ensurePluginEnabledState(
+        adminApi,
+        pluginId,
+        'global',
+        options?.loadMockData ?? true,
+      );
     }
   } finally {
     await adminApi.dispose();

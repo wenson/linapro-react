@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import { waitForRouteReady } from "../support/ui";
+import { captureEvidence } from "../support/evidence";
 
 type SidebarMenuLabel = RegExp | string;
 
@@ -35,6 +36,24 @@ export class MainLayout {
 
   get sidebar() {
     return this.page.locator('.workbench-sider').first();
+  }
+
+  get header() {
+    return this.page.locator(".workbench-header").first();
+  }
+
+  get mobileNavigationTrigger() {
+    return this.page.locator(".mobile-navigation-trigger").first();
+  }
+
+  get mobileNavigationDrawer() {
+    return this.page.locator('.semi-sidesheet-inner[role="dialog"]').filter({
+      has: this.page.locator('.workbench-navigation'),
+    }).first();
+  }
+
+  get tabs() {
+    return this.page.getByTestId("workbench-tabs");
   }
 
   get languageToggleTrigger() {
@@ -317,6 +336,78 @@ export class MainLayout {
   async openUserDropdown() {
     await this.userDropdownTrigger.click();
     await expect(this.userDropdownMenu).toBeVisible();
+  }
+
+  async openMobileNavigation() {
+    await this.mobileNavigationTrigger.click();
+    await expect(this.mobileNavigationDrawer).toBeVisible();
+  }
+
+  async expectMobileNavigationItem(label: RegExp | string) {
+    await expect(
+      this.mobileNavigationDrawer
+        .getByRole("list")
+        .getByText(label, { exact: typeof label === "string" })
+        .first(),
+    ).toBeVisible();
+  }
+
+  async closeMobileNavigation() {
+    const close = this.mobileNavigationDrawer.locator(".semi-sidesheet-close").first();
+    if (await close.isVisible().catch(() => false)) {
+      await close.click();
+    } else {
+      await this.page.keyboard.press("Escape");
+    }
+    await expect(this.mobileNavigationDrawer).toBeHidden();
+  }
+
+  async navigateDirect(path: string) {
+    await this.page.goto(path);
+    await waitForRouteReady(this.page, 15_000);
+  }
+
+  async expectHeaderWithinViewport() {
+    await expect(this.header).toBeVisible();
+    const overflow = await this.page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(overflow.scrollWidth).toBe(overflow.clientWidth);
+    const box = await this.header.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(overflow.clientWidth + 1);
+  }
+
+  async expectTabsSingleRow() {
+    await expect(this.tabs).toBeVisible();
+    const inspect = () => this.tabs.evaluate((node) => {
+      const items = [...node.querySelectorAll<HTMLElement>('[data-tab-item="true"]')]
+        .filter((item) => item.offsetParent !== null);
+      const rows = new Set(items.map((item) => Math.round(item.getBoundingClientRect().top)));
+      const active = node.querySelector<HTMLElement>('[data-tab-item="true"].is-active');
+      const activeLabel = active?.querySelector<HTMLElement>(".tab-label span[title]");
+      const activeBox = activeLabel?.getBoundingClientRect();
+      const visibleWidth = activeBox
+        ? Math.max(0, Math.min(activeBox.right, window.innerWidth) - Math.max(activeBox.left, 0))
+        : 0;
+      return {
+        activeVisible: Boolean(
+          activeBox && visibleWidth / Math.max(activeBox.width, 1) >= 0.95,
+        ),
+        itemCount: items.length,
+        rowCount: rows.size,
+      };
+    });
+    const result = await inspect();
+    expect(result.itemCount).toBeGreaterThanOrEqual(3);
+    expect(result.rowCount).toBe(1);
+    await expect.poll(async () => (await inspect()).activeVisible).toBe(true);
+  }
+
+  async capture(name: string) {
+    return captureEvidence(this.page, name);
   }
 
   async openPreferences() {

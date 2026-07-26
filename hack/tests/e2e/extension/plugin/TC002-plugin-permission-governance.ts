@@ -8,6 +8,10 @@ import { request as playwrightRequest, expect } from "@playwright/test";
 import { test } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import {
+  createLoggedInApiContext,
+  withLogoutOnDispose,
+} from "../../../support/auth-session";
+import {
   execPgSQLStatements,
   pgEscapeLiteral,
   pgIdentifier,
@@ -294,16 +298,17 @@ async function loginByPassword(
 }
 
 async function createApiContext(accessToken: string): Promise<APIRequestContext> {
-  return playwrightRequest.newContext({
+  const api = await playwrightRequest.newContext({
     baseURL: apiBaseURL,
     extraHTTPHeaders: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  return withLogoutOnDispose(api, accessToken);
 }
 
 async function createAdminApiContext() {
-  return createApiContext(await loginByPassword(config.adminUser, config.adminPass));
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function uploadDynamicPlugin(adminApi: APIRequestContext, artifactPath: string) {

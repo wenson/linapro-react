@@ -3,10 +3,14 @@ import path from "node:path";
 
 import type { APIRequestContext, APIResponse } from "@playwright/test";
 
-import { request as playwrightRequest, expect } from "@playwright/test";
+import { expect, request as playwrightRequest } from "@playwright/test";
 
 import { test } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
+import {
+  createLoggedInApiContext,
+  logoutAccessToken,
+} from "../../../support/auth-session";
 import {
   execPgSQLStatements,
   pgEscapeLiteral,
@@ -14,7 +18,6 @@ import {
   queryPgScalar,
 } from "../../../support/postgres";
 
-const apiBaseURL = config.apiBaseURL;
 const goodPluginID = "plugin-dev-dynamic-hook-good";
 const badPluginID = "plugin-dev-dynamic-hook-bad";
 const goodPluginVersion = "v0.2.0";
@@ -296,27 +299,28 @@ async function loginByPassword(
   username: string,
   password: string,
 ): Promise<string> {
-  const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await anonymousApi.post("auth/login", {
-    data: { username, password, clientType: "web" },
+  const anonymousApi = await playwrightRequest.newContext({
+    baseURL: config.apiBaseURL,
   });
-  const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
-    loginResponse,
-    `登录失败: ${username}`,
-  );
-  await anonymousApi.dispose();
-  expect(loginPayload?.accessToken, "登录后应返回 accessToken").toBeTruthy();
-  return loginPayload.accessToken as string;
+  try {
+    const loginResponse = await anonymousApi.post("auth/login", {
+      data: { clientType: "web", password, username },
+    });
+    const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
+      loginResponse,
+      `登录失败: ${username}`,
+    );
+    const accessToken = loginPayload?.accessToken ?? "";
+    expect(accessToken, "登录后应返回 accessToken").toBeTruthy();
+    await logoutAccessToken(accessToken);
+    return accessToken;
+  } finally {
+    await anonymousApi.dispose();
+  }
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const accessToken = await loginByPassword(config.adminUser, config.adminPass);
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function listPlugins(

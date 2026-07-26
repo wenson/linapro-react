@@ -12,6 +12,8 @@
   "moduleScopes": {
     "auth": ["e2e/auth"],
     "dashboard": ["e2e/dashboard"],
+    "profile": ["e2e/profile"],
+    "responsive": ["e2e/responsive"],
     "about": ["e2e/about"],
     "iam": ["e2e/iam"],
     "iam:user": ["e2e/iam/user"],
@@ -225,7 +227,7 @@
     "host": [
       {
         "name": "core",
-        "entries": ["e2e/auth", "e2e/dashboard", "e2e/about"]
+        "entries": ["e2e/auth", "e2e/dashboard", "e2e/about", "e2e/profile", "e2e/responsive"]
       },
       {
         "name": "iam",

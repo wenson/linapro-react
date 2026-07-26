@@ -3,15 +3,15 @@ import path from "node:path";
 
 import type { APIRequestContext, APIResponse } from "@playwright/test";
 
-import { request as playwrightRequest, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 import { test } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import { PluginPage } from "../../../pages/PluginPage";
 import { RolePage } from "../../../pages/RolePage";
+import { createLoggedInApiContext } from "../../../support/auth-session";
 import { execPgSQLStatements, pgEscapeLiteral } from "../../../support/postgres";
 
-const apiBaseURL = config.apiBaseURL;
 
 const pluginID = "plugin-dev-dynamic-host-auth-ui";
 const pluginVersion = "v0.1.0";
@@ -59,26 +59,7 @@ function assertOk(response: APIResponse, message: string) {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      password: config.adminPass,
-      username: config.adminUser,
-      clientType: "web",
-    },
-  });
-  assertOk(loginResponse, "管理员登录失败");
-  const loginResult = unwrapApiData(await loginResponse.json());
-  const accessToken = loginResult?.accessToken;
-  expect(accessToken, "未获取到管理员 accessToken").toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function listPlugins(

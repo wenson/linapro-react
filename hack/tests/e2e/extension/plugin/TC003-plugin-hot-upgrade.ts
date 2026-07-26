@@ -3,11 +3,12 @@ import path from "node:path";
 
 import type { APIRequestContext, APIResponse, Page } from "@playwright/test";
 
-import { request as playwrightRequest, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 import { test } from "../../../fixtures/auth";
 import { config, workspacePath } from "../../../fixtures/config";
 import { PluginPage } from "../../../pages/PluginPage";
+import { createLoggedInApiContext } from "../../../support/auth-session";
 import {
   execPgSQLStatements,
   pgEscapeLiteral,
@@ -15,7 +16,6 @@ import {
 } from "../../../support/postgres";
 import { waitForRouteReady } from "../../../support/ui";
 
-const apiBaseURL = config.apiBaseURL;
 const publicBaseURL = config.publicBaseURL;
 
 const pluginID = "plugin-dev-dynamic-hot-upgrade";
@@ -270,25 +270,7 @@ function writeRuntimeArtifact(version: string, marker: string, broken = false) {
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await anonymousApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  assertOk(loginResponse, "管理员登录 API 失败");
-  const loginPayload = unwrapApiData(await loginResponse.json());
-  await anonymousApi.dispose();
-
-  expect(loginPayload?.accessToken, "管理员登录后应返回 accessToken").toBeTruthy();
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${loginPayload.accessToken as string}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function uploadDynamicPlugin(

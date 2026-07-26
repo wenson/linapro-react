@@ -17,6 +17,7 @@ export default defineConfig({
   testIgnore: ['**/temp/**'],
   fullyParallel: false,
   globalSetup: './global-setup.ts',
+  globalTeardown: './global-teardown.ts',
   workers: Number.parseInt(process.env.E2E_WORKERS ?? '1', 10),
   retries: Number.parseInt(process.env.E2E_RETRIES ?? (process.env.CI ? '1' : '0'), 10),
   timeout: 180000,

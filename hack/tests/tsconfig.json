@@ -23,6 +23,7 @@
     "../../apps/lina-plugins/*/hack/tests/pages/**/*.ts",
     "../../apps/lina-plugins/*/hack/tests/support/**/*.ts",
     "global-setup.ts",
+    "global-teardown.ts",
     "playwright.config.ts"
   ]
 }

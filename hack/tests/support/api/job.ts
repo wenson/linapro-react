@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 
 import { config } from "../../fixtures/config";
+import { createLoggedInApiContext } from "../auth-session";
 
 export { playwrightRequest };
 export type { APIRequestContext, APIResponse };
@@ -132,25 +133,7 @@ export async function createApiContext(
   username: string,
   password: string,
 ): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      username,
-      password,
-      clientType: "web",
-    },
-  });
-  const loginPayload = await expectSuccess<{ accessToken: string }>(
-    loginResponse,
-  );
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${loginPayload.accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(username, password);
 }
 
 export async function createAdminApiContext(): Promise<APIRequestContext> {

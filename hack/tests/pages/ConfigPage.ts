@@ -70,6 +70,22 @@ export class ConfigPage {
     return this.page.locator('.semi-sidesheet-inner[role="dialog"]:visible').last();
   }
 
+  get createEditDialog() {
+    return this.dialog;
+  }
+
+  get dialogFullscreenButton() {
+    return this.dialog.getByRole("button", { name: /全屏|Fullscreen/i });
+  }
+
+  get richtextEditor() {
+    return this.dialog.getByTestId("config-value-editor-richtext");
+  }
+
+  get richtextEditorContent() {
+    return this.richtextEditor.getByRole("textbox").first();
+  }
+
   private get importDialog() {
     return this.page
       .locator('.semi-modal-content[role="dialog"]:visible')
@@ -121,6 +137,104 @@ export class ConfigPage {
       .getByRole("button", { name: /搜\s*索|Search/i })
       .first()
       .click();
+  }
+
+  async openCreateDialog() {
+    await this.page.getByRole("button", { name: /新\s*增|Add/i }).click();
+    await waitForDialogReady(this.dialog);
+  }
+
+  async openEditByKey(key: string) {
+    await this.fillSearchField("参数键名", key);
+    await this.clickSearch();
+    const edit = await this.getEditButtonByKey(key);
+    await edit.click();
+    await waitForDialogReady(this.dialog);
+  }
+
+  booleanOption(label: RegExp | string) {
+    return this.dialog
+      .getByRole("radio", { name: label })
+      .locator("xpath=ancestor-or-self::*[contains(@class, 'semi-radio')][1]");
+  }
+
+  async chooseBooleanValue(value: "false" | "true") {
+    const label = value === "true" ? /是|True/i : /否|False/i;
+    await this.booleanOption(label).click();
+  }
+
+  async confirmDialog() {
+    await this.dialog.getByRole("button", { name: /保\s*存|Save|确\s*认|Confirm/i }).click();
+    await this.dialog.waitFor({ state: "hidden", timeout: 10_000 });
+    await waitForRouteReady(this.page);
+  }
+
+  async clickDialogConfirm() {
+    await this.dialog.getByRole("button", { name: /保\s*存|Save|确\s*认|Confirm/i }).click();
+  }
+
+  async selectDialogOption(fieldLabel: string, option: RegExp | string) {
+    await this.resolveLocalizedLabel(this.dialog, fieldLabel).click();
+    const dropdown = await waitForDropdown(this.page);
+    await dropdown.getByText(option).first().click();
+  }
+
+  async selectValueType(option: RegExp | string) {
+    await this.dialog.getByLabel(/值类型|Value type/i).click();
+    const dropdown = await waitForDropdown(this.page);
+    await dropdown.getByText(option).first().click();
+  }
+
+  async createSelect(
+    name: string,
+    key: string,
+    options: string,
+    value: string,
+    remark: string,
+  ) {
+    await this.openCreateDialog();
+    await this.resolveLocalizedLabel(this.dialog, "参数名称").fill(name);
+    await this.resolveLocalizedLabel(this.dialog, "参数键名").fill(key);
+    await this.selectValueType(/下拉选择|Select/i);
+    await this.dialog.getByLabel(/选项|Options/i).fill(options);
+    await this.selectDialogOption("参数键值", new RegExp(value, "i"));
+    await this.resolveLocalizedLabel(this.dialog, "备注").fill(remark);
+    await this.confirmDialog();
+  }
+
+  dialogFieldError(label: string) {
+    const field = this.dialog.locator(".semi-form-field").filter({
+      has: this.dialog.getByText(this.localizedLabelPattern(label)).first(),
+    }).first();
+    return field.locator(".semi-form-field-error-message, [role=alert]").first();
+  }
+
+  dialogFieldControl(label: string) {
+    return this.resolveLocalizedLabel(this.dialog, label);
+  }
+
+  async getColumnAlignment(label: string) {
+    const pattern = this.localizedLabelPattern(label);
+    const headers = this.page.getByTestId("config-table").getByRole("columnheader");
+    const texts = await headers.allTextContents();
+    const index = texts.findIndex((text) => pattern.test(text));
+    if (index < 0) {
+      throw new Error(`未找到参数表格列：${label}`);
+    }
+    const header = headers.nth(index);
+    const body = this.page.getByTestId("config-table")
+      .locator(".semi-table-tbody > .semi-table-row")
+      .first()
+      .locator(".semi-table-row-cell")
+      .nth(index);
+    const [headerAlign, bodyAlign] = await Promise.all([
+      header.evaluate((node) => getComputedStyle(node).textAlign),
+      body.evaluate((node) => getComputedStyle(node).textAlign),
+    ]);
+    return {
+      bodyLeft: bodyAlign === "left" || bodyAlign === "start",
+      headerLeft: headerAlign === "left" || headerAlign === "start",
+    };
   }
 
   // ========== CRUD operations ==========

@@ -8,12 +8,12 @@ import {
   withAdminApi,
 } from "../support/ai-core-api";
 
-test.describe("TC-9 AI 管理列表响应式布局", () => {
+test.describe("TC-10 AI 管理列表响应式布局", () => {
   test.beforeAll(async () => {
     await prepareSourcePluginsBaseline(["linapro-ai-core"]);
   });
 
-  test("TC-9a: 渠道、模型、档位和调用日志在桌面与手机端均可查看和操作", async ({
+  test("TC-10a: 渠道、模型、档位和调用日志在桌面与手机端均可查看和操作", async ({
     adminPage,
   }) => {
     await withAdminApi(async (api) => {

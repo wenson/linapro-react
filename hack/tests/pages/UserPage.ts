@@ -6,6 +6,7 @@ import {
   waitForRouteReady,
   waitForTableReady,
 } from "../support/ui";
+import { captureEvidence } from "../support/evidence";
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -38,6 +39,10 @@ export class UserPage {
 
   get drawer() {
     return this.page.locator('.semi-sidesheet-inner[role="dialog"]').last();
+  }
+
+  get mobileList() {
+    return this.page.getByTestId("user-mobile-list");
   }
 
   private get rows() {
@@ -122,6 +127,16 @@ export class UserPage {
     await this.drawerPasswordInput.fill(password);
     if (nickname) await this.drawer.getByLabel(/用户昵称|Display name/i).fill(nickname);
     await this.saveDrawer();
+  }
+
+  async openCreateDrawer() {
+    await this.page.getByTestId("user-create-button").click();
+    await this.waitForDrawerReady("");
+    return this.drawer;
+  }
+
+  async capture(name: string) {
+    return captureEvidence(this.page, name);
   }
 
   async editUser(username: string, fields: { nickname?: string }) {

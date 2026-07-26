@@ -128,6 +128,47 @@ export class MenuPage {
     }
   }
 
+  async revealMenuRow(menuName: string) {
+    const target = this.row(menuName);
+    if (!(await target.isVisible().catch(() => false))) {
+      await this.searchMenu(menuName);
+    }
+    await expect(this.row(menuName)).toBeVisible({ timeout: 10_000 });
+  }
+
+  async expandMenuRow(menuName: string) {
+    const target = this.row(menuName);
+    await expect(target).toBeVisible();
+    const trigger = target
+      .locator('.semi-table-row-expand-icon, button[aria-label*="expand" i]')
+      .first();
+    if (await trigger.isVisible().catch(() => false)) {
+      const expanded = await trigger.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await trigger.click();
+        await waitForBusyIndicatorsToClear(this.table);
+      }
+    }
+  }
+
+  statusSwitch(menuName: string) {
+    return this.row(menuName).getByTestId("menu-status-switch").getByRole("switch");
+  }
+
+  visibleSwitch(menuName: string) {
+    return this.row(menuName).getByTestId("menu-visible-switch").getByRole("switch");
+  }
+
+  async toggleStatus(menuName: string) {
+    await this.statusSwitch(menuName).click();
+    await waitForBusyIndicatorsToClear(this.table);
+  }
+
+  async toggleVisible(menuName: string) {
+    await this.visibleSwitch(menuName).click();
+    await waitForBusyIndicatorsToClear(this.table);
+  }
+
   async createRootMenu(params: MenuFormParams) {
     await this.openCreateDrawer();
     await this.fillMenuForm(params);

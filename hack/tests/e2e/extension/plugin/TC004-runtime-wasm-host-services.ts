@@ -5,16 +5,15 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 
 import type { APIRequestContext, APIResponse } from "@playwright/test";
-import { request as playwrightRequest } from "@playwright/test";
 
 import { test, expect } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
+import { createLoggedInApiContext } from "../../../support/auth-session";
 import {
   execPgSQLStatements,
   pgEscapeLiteral,
 } from "../../../support/postgres";
 
-const apiBaseURL = config.apiBaseURL;
 
 const successPluginID = "plugin-dev-host-services-e2e";
 const deniedPluginID = "plugin-dev-host-services-denied-e2e";
@@ -131,27 +130,7 @@ async function expectApiFailure(
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await anonymousApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
-    loginResponse,
-    "管理员登录失败",
-  );
-  await anonymousApi.dispose();
-
-  expect(loginPayload?.accessToken, "管理员登录后应返回 accessToken").toBeTruthy();
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${loginPayload.accessToken as string}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function listPlugins(

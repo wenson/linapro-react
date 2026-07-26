@@ -4,6 +4,7 @@ import { expect } from "@playwright/test";
 
 import { workspacePath } from "../fixtures/config";
 import { waitForRouteReady } from "../support/ui";
+import { captureEvidence } from "../support/evidence";
 
 export class LoginPage {
   constructor(private page: Page) {}
@@ -55,6 +56,10 @@ export class LoginPage {
       .locator("p")
       .filter({ hasText: /宿主|工作台|品牌|平台|能力/ })
       .first();
+  }
+
+  get publicPanel() {
+    return this.page.locator(".login-panel").first();
   }
 
   get loginSubtitle() {
@@ -317,5 +322,59 @@ export class LoginPage {
     await this.page.waitForURL((url) => !url.pathname.includes("/auth/login"), {
       timeout: 15000,
     });
+  }
+
+  async startMissingPageWatch() {
+    await this.page.evaluate(() => {
+      const marker = "__linaproE2EMissingPageObserved";
+      Reflect.set(window, marker, false);
+      const inspect = () => {
+        if (/页面不存在|Page not found|\b404\b/i.test(document.body?.innerText ?? "")) {
+          Reflect.set(window, marker, true);
+        }
+      };
+      inspect();
+      const observer = new MutationObserver(inspect);
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+      Reflect.set(window, "__linaproE2EMissingPageObserver", observer);
+    });
+  }
+
+  async missingPageWasObserved() {
+    return this.page.evaluate(() =>
+      Boolean(Reflect.get(window, "__linaproE2EMissingPageObserved")),
+    );
+  }
+
+  async waitForAuthorizedLanding() {
+    await this.page.waitForFunction(() => {
+      const workbench = document.querySelector(".workbench-shell, .workbench-layout");
+      const page = document.querySelector("[data-route-cache-path]:not([hidden]) [data-testid]");
+      return Boolean(workbench && page);
+    }, undefined, { timeout: 15_000 });
+  }
+
+  async gotoPublicPath(path: "/auth/forget-password" | "/auth/register" | "/auth/reset-password") {
+    await this.page.goto(workspacePath(path));
+    await this.publicPanel.waitFor({ state: "visible" });
+  }
+
+  async expectNoHorizontalOverflow() {
+    await expect
+      .poll(async () => this.page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      })))
+      .toEqual(await this.page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.clientWidth,
+      })));
+  }
+
+  async capture(name: string) {
+    return captureEvidence(this.page, name);
   }
 }

@@ -1562,9 +1562,7 @@ export class PluginPage {
             if (!(cell instanceof HTMLElement)) {
               return false;
             }
-            const buttons = Array.from(
-              cell.querySelectorAll("button"),
-            ).filter((node): node is HTMLElement => node instanceof HTMLElement);
+            const buttons = Array.from(cell.querySelectorAll("button"));
             if (buttons.length < 2) {
               return false;
             }

@@ -8,6 +8,10 @@ import { request as playwrightRequest } from "@playwright/test";
 import { expect, test } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import {
+  createLoggedInApiContext,
+  logoutAccessToken,
+} from "../../../support/auth-session";
+import {
   execPgSQLStatements,
   pgEscapeLiteral,
 } from "../../../support/postgres";
@@ -127,27 +131,7 @@ async function expectApiFailure(
 }
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await anonymousApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
-    loginResponse,
-    "管理员登录失败",
-  );
-  await anonymousApi.dispose();
-
-  expect(loginPayload?.accessToken, "管理员登录后应返回 accessToken").toBeTruthy();
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${loginPayload.accessToken as string}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function apiLogin(username: string, password: string): Promise<string> {
@@ -971,17 +955,23 @@ test.describe("TC-1 Runtime Wasm Low Priority Host Services", () => {
   });
 
   test.afterAll(async () => {
-    if (adminApi) {
-      await resetPlugin(adminApi, successPluginID);
-      await resetPlugin(adminApi, deniedPluginID);
-      await adminApi.dispose();
+    try {
+      if (adminApi) {
+        await resetPlugin(adminApi, successPluginID);
+        await resetPlugin(adminApi, deniedPluginID);
+        await adminApi.dispose();
+      }
+      if (adminToken) {
+        await apiClearMessages(adminToken);
+      }
+      cleanupPluginRows([successPluginID, deniedPluginID]);
+      cleanupArtifacts([successPluginID, deniedPluginID]);
+      rmSync(tempRoot(), { force: true, recursive: true });
+    } finally {
+      if (adminToken) {
+        await logoutAccessToken(adminToken);
+      }
     }
-    if (adminToken) {
-      await apiClearMessages(adminToken);
-    }
-    cleanupPluginRows([successPluginID, deniedPluginID]);
-    cleanupArtifacts([successPluginID, deniedPluginID]);
-    rmSync(tempRoot(), { force: true, recursive: true });
   });
 
   test.beforeEach(async () => {

@@ -1,6 +1,5 @@
 import {
   expect,
-  request as playwrightRequest,
   type APIRequestContext,
 } from "@playwright/test";
 
@@ -8,31 +7,10 @@ import { test } from "../../../fixtures/auth";
 import { config } from "../../../fixtures/config";
 import { MenuPage } from "../../../pages/MenuPage";
 import { waitForBusyIndicatorsToClear } from "../../../support/ui";
-
-const apiBaseURL = config.apiBaseURL;
+import { createLoggedInApiContext } from "../../../support/auth-session";
 
 async function createAdminApiContext(): Promise<APIRequestContext> {
-  const loginApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
-  const loginResponse = await loginApi.post("auth/login", {
-    data: {
-      username: config.adminUser,
-      password: config.adminPass,
-      clientType: "web",
-    },
-  });
-  expect(loginResponse.ok()).toBeTruthy();
-
-  const loginResult = await loginResponse.json();
-  const accessToken = loginResult.data?.accessToken;
-  expect(accessToken).toBeTruthy();
-  await loginApi.dispose();
-
-  return playwrightRequest.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return createLoggedInApiContext(config.adminUser, config.adminPass);
 }
 
 async function createMenuTree(

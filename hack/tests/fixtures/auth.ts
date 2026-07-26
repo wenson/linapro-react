@@ -5,6 +5,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { MainLayout } from '../pages/MainLayout';
 import { config, isWorkspaceManagedPath, workspacePath } from './config';
 import { waitForRouteReady } from '../support/ui';
+import { logoutBrowserContextSession } from '../support/auth-session';
 
 export type AuthFixtures = {
   adminContext: BrowserContext;
@@ -45,29 +46,42 @@ async function installWorkspaceGoto(page: Page) {
 export const test = base.extend<AuthFixtures>({
   page: async ({ page }, use) => {
     await installWorkspaceGoto(page);
-    await use(page);
+    try {
+      await use(page);
+    } finally {
+      await logoutBrowserContextSession(page.context());
+    }
   },
   adminContext: async ({ browser }, use) => {
     const context = await browser.newContext({
       baseURL: config.baseURL,
       storageState: adminStorageStatePath,
     });
-    await use(context);
-    await context.close();
+    try {
+      await use(context);
+    } finally {
+      await context.close();
+    }
   },
   authenticatedPage: async ({ adminContext }, use) => {
     const page = await adminContext.newPage();
     await installWorkspaceGoto(page);
-    await use(page);
-    await page.close();
+    try {
+      await use(page);
+    } finally {
+      await page.close();
+    }
   },
   adminPage: async ({ adminContext }, use) => {
     const page = await adminContext.newPage();
     await installWorkspaceGoto(page);
     await page.goto(workspacePath('/dashboard/analytics'), { waitUntil: 'domcontentloaded' });
     await waitForRouteReady(page, 15000);
-    await use(page);
-    await page.close();
+    try {
+      await use(page);
+    } finally {
+      await page.close();
+    }
   },
   loginPage: async ({ page }, use) => {
     await installWorkspaceGoto(page);
