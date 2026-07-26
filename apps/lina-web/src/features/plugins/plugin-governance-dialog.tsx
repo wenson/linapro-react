@@ -295,7 +295,7 @@ export default function PluginGovernanceDialog({
       onCancel={onClose}
       title={title}
       visible={visible && forceReasons.length === 0}
-      width={820}
+      width="min(820px, calc(100vw - 24px))"
     >
       <div className="plugin-governance-dialog" data-testid={`plugin-${mode}-dialog`}>
         {mode === "detail" && plugin ? (
@@ -505,7 +505,7 @@ export default function PluginGovernanceDialog({
         onCancel={onClose}
         title={t("pages.plugins.preconditionTitle")}
         visible={visible && forceReasons.length > 0}
-        width={620}
+        width="min(620px, calc(100vw - 24px))"
       >
         {plugin ? (
           <div className="plugin-governance-stack" data-testid="lifecycle-precondition-dialog">

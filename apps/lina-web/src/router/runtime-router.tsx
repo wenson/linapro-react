@@ -36,9 +36,9 @@ export function createRuntimeRouter(
         ),
         path: "/auth/login",
       },
-      { element: <RegisterPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.registerEnabled} privacyPolicy={config.auth.privacyPolicy} termsOfService={config.auth.termsOfService} />, path: "/auth/register" },
-      { element: <ForgetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.forgetPasswordEnabled} />, path: "/auth/forget-password" },
-      { element: <ResetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} enabled={config.auth.forgetPasswordEnabled} />, path: "/auth/reset-password" },
+      { element: <RegisterPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} appName={config.app.name} enabled={config.auth.registerEnabled} logoUrl={logoUrl} privacyPolicy={config.auth.privacyPolicy} termsOfService={config.auth.termsOfService} />, path: "/auth/register" },
+      { element: <ForgetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} appName={config.app.name} enabled={config.auth.forgetPasswordEnabled} logoUrl={logoUrl} />, path: "/auth/forget-password" },
+      { element: <ResetPasswordPage api={createAuthApi(apiClient) as Required<Pick<ReturnType<typeof createAuthApi>, "forgetPassword" | "register" | "resetPassword">>} appName={config.app.name} enabled={config.auth.forgetPasswordEnabled} logoUrl={logoUrl} />, path: "/auth/reset-password" },
       {
         element: <Navigate replace to="/auth/login" />,
         path: "/auth/*",

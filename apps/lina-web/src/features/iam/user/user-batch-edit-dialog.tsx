@@ -46,7 +46,7 @@ export function UserBatchEditDialog({ api, capabilities, currentTenantId, ids, i
     await onSaved();
     close();
   }
-  return <Modal footer={null} onCancel={close} title={t("pages.iam.user.batchEditTitle")} visible={open}><div data-testid="user-batch-edit-dialog">
+  return <Modal footer={null} onCancel={close} title={t("pages.iam.user.batchEditTitle")} visible={open} width="min(520px, calc(100vw - 24px))"><div data-testid="user-batch-edit-dialog">
     <Form<Omit<UserBatchUpdateInput, "ids">>
       initValues={{ updateRoles: false, updateStatus: false, updateTenant: false }}
       labelPosition="top"

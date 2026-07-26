@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createInstance } from "i18next";
 import { beforeAll, expect, it, vi } from "vitest";
@@ -28,6 +28,53 @@ const auth: AuthenticatedContext = {
   capabilities: { organizationEnabled: true, tenantEnabled: true }, menus: [], plugins: [],
   user: { avatar: "", email: "admin@example.com", homePath: "/profile", menus: [], permissions: [], realName: "Admin", roles: [], userId: 1, username: "admin" },
 };
+
+const profileData = {
+  avatar: "", createdAt: 1, deptId: 0, deptName: "", email: "admin@example.com", id: 1,
+  loginDate: 1, nickname: "Admin", phone: "13800000000", postIds: [], remark: "", roleIds: [], roleNames: [],
+  sex: 0, status: 1, updatedAt: 1, username: "admin",
+} satisfies UserProfile;
+
+function profileView(fetch: typeof globalThis.fetch) {
+  return render(
+    <Providers i18n={i18n} queryClient={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AuthContextProvider value={auth}>
+        <WorkbenchRuntimeProvider value={{ apiClient: new ApiClient({ fetch }), config: defaultPublicFrontendConfig }}>
+          <ProfilePage />
+        </WorkbenchRuntimeProvider>
+      </AuthContextProvider>
+    </Providers>,
+  );
+}
+
+it("shows a structured skeleton and delayed explanation while making one profile request", async () => {
+  let resolveRequest: ((response: Response) => void) | undefined;
+  const fetch = vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; }));
+  vi.useFakeTimers();
+  profileView(fetch);
+
+  expect(screen.getByTestId("profile-loading-skeleton")).toBeVisible();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  act(() => vi.advanceTimersByTime(600));
+  expect(screen.getByRole("status")).toHaveTextContent("Loading your profile");
+
+  resolveRequest?.(new Response(JSON.stringify({ code: 0, data: profileData }), { headers: { "content-type": "application/json" } }));
+  vi.useRealTimers();
+  expect(await screen.findByText("Admin")).toBeVisible();
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it("offers a retry after profile loading fails", async () => {
+  const fetch = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ code: 500, message: "Profile unavailable" }), { headers: { "content-type": "application/json" } }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: profileData }), { headers: { "content-type": "application/json" } }));
+  profileView(fetch);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Profile unavailable");
+  await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(await screen.findByText("Admin")).toBeVisible();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
 
 it("blocks a mismatched profile password confirmation without calling the update API", async () => {
   const fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify({
@@ -63,11 +110,7 @@ it("blocks a mismatched profile password confirmation without calling the update
 });
 
 it("submits profile base settings through the owning local form", async () => {
-  const profile = {
-    avatar: "", createdAt: 1, deptId: 0, deptName: "", email: "admin@example.com", id: 1,
-    loginDate: 1, nickname: "Admin", phone: "13800000000", postIds: [], remark: "", roleIds: [], roleNames: [],
-    sex: 0, status: 1, updatedAt: 1, username: "admin",
-  } satisfies UserProfile;
+  const profile = profileData;
   const update = vi.fn(async () => undefined);
   render(<Providers i18n={i18n}><BaseSettings profile={profile} update={update} /></Providers>);
   fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Lina" } });

@@ -84,11 +84,12 @@ it("renders a typed boolean configuration editor from server metadata", async ()
   const user = userEvent.setup();
   renderConfig(fetch);
 
-  await user.click(await screen.findByTestId("config-edit-9"));
+  const [desktopEdit] = await screen.findAllByTestId("config-edit-9");
+  await user.click(desktopEdit!);
 
   expect(await screen.findByTestId("config-value-editor-boolean")).toBeVisible();
   expect(screen.getByLabelText("Parameter Value")).toBeVisible();
-  expect(screen.getAllByText("Boolean")).toHaveLength(2);
+  expect(screen.getAllByText("Boolean")).toHaveLength(3);
 });
 
 it("keeps loading and empty feedback mutually exclusive", async () => {

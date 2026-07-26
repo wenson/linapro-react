@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { createInstance } from "i18next";
 import { lazy } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -12,17 +12,23 @@ import { ApiClient } from "#/api/client";
 import AnalyticsPage from "#/features/dashboard/analytics-page";
 import WorkspacePage from "#/features/dashboard/workspace-page";
 import enMessages from "#/locales/en-US/app.json";
+import zhMessages from "#/locales/zh-CN/app.json";
 import { PluginUIRegistryProvider } from "#/plugin-ui/registry-provider";
 import type { PluginUIRegistry, RegisteredPluginSlot } from "#/plugin-ui/registry";
 import { defaultPublicFrontendConfig } from "#/runtime/public-config";
 
 vi.mock("#/features/dashboard/echart", () => ({
-  EChart: ({ ariaLabel }: { ariaLabel: string }) => <div aria-label={ariaLabel} role="img" />,
+  EChart: ({ ariaLabel, option }: { ariaLabel: string; option: unknown }) => (
+    <div aria-label={ariaLabel} data-option={JSON.stringify(option)} role="img" />
+  ),
 }));
 
 const i18n = createInstance();
 beforeAll(async () => {
-  await i18n.init({ lng: "en-US", resources: { "en-US": { translation: enMessages } } });
+  await i18n.init({ lng: "en-US", resources: {
+    "en-US": { translation: enMessages },
+    "zh-CN": { translation: zhMessages },
+  } });
 });
 
 const auth: AuthenticatedContext = {
@@ -57,6 +63,34 @@ it("renders the equivalent analytics overview, tabs and chart cards", () => {
   expect(screen.getByRole("heading", { name: "Visit Channels" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Traffic Sources" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Commercial Mix" })).toBeVisible();
+  expect(screen.getByRole("img", { name: "Traffic Trends" })).toHaveAttribute(
+    "data-option",
+    expect.stringContaining("Mon"),
+  );
+  expect(screen.getByRole("img", { name: "Visit Channels" })).toHaveAttribute(
+    "data-option",
+    expect.stringContaining("Web"),
+  );
+});
+
+it("rebuilds every analytics category with actual Chinese labels", async () => {
+  await act(async () => i18n.changeLanguage("zh-CN"));
+  render(<Providers i18n={i18n}><AnalyticsPage /></Providers>);
+
+  expect(screen.getByRole("img", { name: "流量趋势" })).toHaveAttribute(
+    "data-option",
+    expect.stringContaining("周一"),
+  );
+  expect(screen.getByRole("img", { name: "访问数量" })).toHaveAttribute(
+    "data-option",
+    expect.stringContaining("网页"),
+  );
+  expect(screen.getByRole("img", { name: "商业占比" })).toHaveAttribute(
+    "data-option",
+    expect.stringContaining("交付"),
+  );
+  expect(screen.getByRole("img", { name: "流量趋势" }).getAttribute("data-option")).not.toContain("Mon");
+  await act(async () => i18n.changeLanguage("en-US"));
 });
 
 it("renders workspace plugin slots before and after host content", async () => {

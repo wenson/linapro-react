@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { act } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import type { AuthRuntimeApis } from "#/auth/auth-runtime";
@@ -40,12 +41,14 @@ function createRuntime() {
 function renderLogin(runtime: AuthRuntime) {
   return render(
     <Providers queryClient={new QueryClient()}>
-      <LoginPage
-        appName="LinaPro"
-        logoUrl="/logo.webp"
-        loginSubtitle="LinaPro platform"
-        runtime={runtime}
-      />
+      <MemoryRouter>
+        <LoginPage
+          appName="LinaPro"
+          logoUrl="/logo.webp"
+          loginSubtitle="LinaPro platform"
+          runtime={runtime}
+        />
+      </MemoryRouter>
     </Providers>,
   );
 }
@@ -94,14 +97,16 @@ describe("LoginPage", () => {
     await act(async () => runtimeI18n.changeLanguage("zh-CN"));
     const view = render(
       <Providers i18n={runtimeI18n} queryClient={new QueryClient()}>
-        <LoginPage
-          appName="LinaPro"
-          logoUrl="/logo.webp"
-          loginSubtitle="请输入您的帐户信息以开始管理您的项目"
-          pageDescription="帮助团队快速交付生产级应用，同时保持架构、测试与治理的可持续演进"
-          pageTitle="面向可持续交付的 AI 原生全栈框架"
-          runtime={runtime}
-        />
+        <MemoryRouter>
+          <LoginPage
+            appName="LinaPro"
+            logoUrl="/logo.webp"
+            loginSubtitle="请输入您的帐户信息以开始管理您的项目"
+            pageDescription="帮助团队快速交付生产级应用，同时保持架构、测试与治理的可持续演进"
+            pageTitle="面向可持续交付的 AI 原生全栈框架"
+            runtime={runtime}
+          />
+        </MemoryRouter>
       </Providers>,
     );
 
@@ -116,12 +121,14 @@ describe("LoginPage", () => {
     view.unmount();
     const custom = render(
       <Providers i18n={runtimeI18n} queryClient={new QueryClient()}>
-        <LoginPage
-          appName="LinaPro"
-          logoUrl="/logo.webp"
-          loginSubtitle="Custom tenant sign-in copy"
-          runtime={runtime}
-        />
+        <MemoryRouter>
+          <LoginPage
+            appName="LinaPro"
+            logoUrl="/logo.webp"
+            loginSubtitle="Custom tenant sign-in copy"
+            runtime={runtime}
+          />
+        </MemoryRouter>
       </Providers>,
     );
     await act(async () => runtimeI18n.changeLanguage("zh-CN"));

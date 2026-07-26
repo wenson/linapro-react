@@ -17,7 +17,7 @@ export function MenuDrawer({ api, menuId, onClose, onSaved, open, parentId }: {
   const detail = useQuery({ enabled: open && Boolean(menuId), queryFn: () => api.get(menuId!), queryKey: ["iam", "menu", menuId] });
   const menuTree = useQuery({ enabled: open, queryFn: () => api.list({}), queryKey: ["iam", "menus", "drawer"] });
   const record = detail.data;
-  return <SideSheet onCancel={onClose} title={t(menuId ? "pages.iam.menu.editTitle" : "pages.iam.menu.createTitle")} visible={open} width={620}>
+  return <SideSheet onCancel={onClose} title={t(menuId ? "pages.iam.menu.editTitle" : "pages.iam.menu.createTitle")} visible={open} width="min(620px, 100vw)">
     {menuId && detail.isPending ? <Spin aria-label={t("pages.common.loading")} /> : <MenuDrawerForm api={api} key={`${menuId ?? "new"}-${record?.updatedAt ?? 0}`} menuId={menuId} menus={menuTree.data ?? []} onClose={onClose} onSaved={onSaved} parentId={parentId} record={record} />}
   </SideSheet>;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ReturnTypeOfSystemFileApi } from "#/features/settings/file/types";
-import { uploadThroughPlan } from "#/features/settings/file/managed-upload";
+import { uploadThroughPlan } from "#/features/settings/file/managed-upload-plan";
 
 function apiForProxyMultipart(): ReturnTypeOfSystemFileApi {
   return {

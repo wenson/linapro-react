@@ -13,7 +13,7 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("trends");
   const trendOption = useMemo(
     () => ({
-      grid: { bottom: 28, left: 44, right: 20, top: 24 },
+      grid: { bottom: 44, left: 44, right: 20, top: 24 },
       series: [
         {
           areaStyle: { opacity: 0.12 },
@@ -24,16 +24,19 @@ export default function AnalyticsPage() {
       ],
       tooltip: { trigger: "axis" as const },
       xAxis: {
-        data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        axisLabel: { hideOverlap: true, interval: 0 },
+        data: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map(
+          (day) => t(`pages.dashboard.analytics.weekdays.${day}`),
+        ),
         type: "category" as const,
       },
       yAxis: { type: "value" as const },
     }),
-    [],
+    [t],
   );
   const visitsOption = useMemo(
     () => ({
-      grid: { bottom: 28, left: 44, right: 20, top: 24 },
+      grid: { bottom: 60, left: 44, right: 20, top: 24 },
       series: [
         {
           data: [820, 932, 901, 934, 1290, 1330, 1520, 1420, 1680, 1820, 2010, 2240],
@@ -43,16 +46,19 @@ export default function AnalyticsPage() {
       ],
       tooltip: { trigger: "axis" as const },
       xAxis: {
-        data: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        axisLabel: { hideOverlap: true, rotate: 30 },
+        data: ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].map(
+          (month) => t(`pages.dashboard.analytics.months.${month}`),
+        ),
         type: "category" as const,
       },
       yAxis: { type: "value" as const },
     }),
-    [],
+    [t],
   );
   const sourceOption = useMemo(
     () => ({
-      legend: { bottom: 0 },
+      legend: { bottom: 0, type: "scroll" as const },
       series: [
         {
           data: [
@@ -61,6 +67,7 @@ export default function AnalyticsPage() {
             { name: t("pages.dashboard.sources.referral"), value: 20 },
           ],
           radius: ["45%", "70%"],
+          label: { show: false },
           type: "pie" as const,
         },
       ],
@@ -70,29 +77,37 @@ export default function AnalyticsPage() {
   );
   const channelOption = useMemo(
     () => ({
-      grid: { bottom: 24, left: 36, right: 16, top: 18 },
+      grid: { bottom: 44, left: 40, right: 16, top: 18 },
       series: [{ data: [46, 32, 28, 21, 16], type: "bar" as const }],
-      xAxis: { data: ["Web", "Mobile", "Client", "Partner", "Other"], type: "category" as const },
+      xAxis: {
+        axisLabel: { hideOverlap: true, interval: 0 },
+        data: ["web", "mobile", "client", "partner", "other"].map(
+          (channel) => t(`pages.dashboard.analytics.channels.${channel}`),
+        ),
+        type: "category" as const,
+      },
       yAxis: { type: "value" as const },
     }),
-    [],
+    [t],
   );
   const salesOption = useMemo(
     () => ({
+      legend: { bottom: 0, type: "scroll" as const },
       series: [
         {
           data: [
-            { name: "Delivery", value: 42 },
-            { name: "Customization", value: 35 },
-            { name: "Consulting", value: 23 },
+            { name: t("pages.dashboard.analytics.sales.delivery"), value: 42 },
+            { name: t("pages.dashboard.analytics.sales.customization"), value: 35 },
+            { name: t("pages.dashboard.analytics.sales.consulting"), value: 23 },
           ],
-          radius: "68%",
+          label: { show: false },
+          radius: ["35%", "60%"],
           type: "pie" as const,
         },
       ],
       tooltip: { trigger: "item" as const },
     }),
-    [],
+    [t],
   );
   const metrics: ReadonlyArray<readonly [string, string, string]> = [
     ["pages.dashboard.analytics.overview.users.title", "2,000", "120,000"],

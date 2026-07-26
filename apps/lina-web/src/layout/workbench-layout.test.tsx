@@ -44,6 +44,85 @@ it("keeps tabs single-line semantic controls and restores focus after closing th
   expect(screen.getByRole("button", { name: "A deliberately long first tab title" })).toHaveFocus();
 });
 
+function createLayoutRuntime() {
+  const apis = {
+    auth: { login: vi.fn(), logout: vi.fn(), refresh: vi.fn() },
+    menu: { getAllMenus: vi.fn() },
+    plugins: { getRuntimeStates: vi.fn() },
+    tenant: {
+      endImpersonation: vi.fn(), impersonate: vi.fn(), listLoginTenants: vi.fn(),
+      selectTenant: vi.fn(), switchTenant: vi.fn(),
+    },
+    user: { getCurrentUser: vi.fn() },
+  } satisfies AuthRuntimeApis;
+  return new AuthRuntime({
+    apis,
+    queryClient: new QueryClient(),
+    sessionStore: createSessionStore({ storage: null }),
+    tenantStore: createTenantStore({ storage: null }),
+  });
+}
+
+const layoutContext = {
+  capabilities: { organizationEnabled: false, tenantEnabled: false },
+  menus: [], plugins: [],
+  user: {
+    avatar: "", email: "a@example.com", homePath: "/dashboard", menus: [],
+    permissions: [], realName: "Admin", roles: [], userId: 1, username: "admin",
+  },
+};
+
+it("redirects the workbench root without rendering a 404 first", async () => {
+  const route = {
+    children: [], componentKey: "dashboard", hidden: false, hideInBreadcrumb: false,
+    hideInTab: false, id: 1, keepAlive: false, name: "Dashboard", path: "/dashboard",
+    query: {}, title: "Dashboard",
+  };
+  render(
+    <Providers i18n={i18n}>
+      <AuthContextProvider value={layoutContext}>
+        <MemoryRouter initialEntries={["/"]}>
+          <WorkbenchLayout
+            appName="LinaPro"
+            defaultAvatarUrl="/avatar.webp"
+            registry={{ dashboard: { component: () => <p>Resolved dashboard</p>, surface: "page" } }}
+            logoUrl="/logo.webp"
+            rootLandingPath="/dashboard"
+            routes={[route]}
+            runtime={createLayoutRuntime()}
+          />
+        </MemoryRouter>
+      </AuthContextProvider>
+    </Providers>,
+  );
+
+  expect(screen.queryByText("Page not found")).not.toBeInTheDocument();
+  expect(await screen.findByText("Resolved dashboard")).toBeVisible();
+});
+
+it("shows an explicit empty-access state when no landing page exists", () => {
+  render(
+    <Providers i18n={i18n}>
+      <AuthContextProvider value={layoutContext}>
+        <MemoryRouter initialEntries={["/"]}>
+          <WorkbenchLayout
+            appName="LinaPro"
+            defaultAvatarUrl="/avatar.webp"
+            registry={{}}
+            logoUrl="/logo.webp"
+            rootLandingPath={null}
+            routes={[]}
+            runtime={createLayoutRuntime()}
+          />
+        </MemoryRouter>
+      </AuthContextProvider>
+    </Providers>,
+  );
+
+  expect(screen.getByText("No accessible pages")).toBeVisible();
+  expect(screen.queryByText("Page not found")).not.toBeInTheDocument();
+});
+
 it("renders the desktop shell, mobile SideSheet trigger, header regions and metadata tabs", async () => {
   const apis = {
     auth: { login: vi.fn(), logout: vi.fn(), refresh: vi.fn() },

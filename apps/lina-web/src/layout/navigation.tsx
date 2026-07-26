@@ -30,6 +30,7 @@ export function WorkbenchNavigation({
   return (
     <Navigation
       aria-label="Workbench navigation"
+      className="workbench-navigation"
       items={navigationItems(routes, t)}
       onSelect={({ itemKey }) => onNavigate(String(itemKey))}
       selectedKeys={[activePath]}

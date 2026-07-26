@@ -1,9 +1,10 @@
+import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
 import Descriptions from "@douyinfe/semi-ui/lib/es/descriptions";
-import Spin from "@douyinfe/semi-ui/lib/es/spin";
 import Tabs from "@douyinfe/semi-ui/lib/es/tabs";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { createProfileApi } from "#/api/profile";
@@ -17,6 +18,37 @@ import { SecuritySettings } from "#/features/profile/security-settings";
 import { resolveWorkspaceAssetUrl } from "#/runtime/public-config";
 import { formatTimestamp } from "#/shared/format";
 
+function ProfileLoadingState() {
+  const { t } = useTranslation();
+  const [showMessage, setShowMessage] = useState(false);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowMessage(true), 600);
+    return () => window.clearTimeout(timeout);
+  }, []);
+  return (
+    <section className="feature-page profile-page profile-loading" data-testid="profile-loading-skeleton">
+      <Card className="profile-overview-card">
+        <div className="profile-loading-card-content">
+          <div aria-hidden="true" className="profile-skeleton-avatar" />
+          <div aria-hidden="true" className="profile-skeleton-line profile-skeleton-line-title" />
+          <div aria-hidden="true" className="profile-skeleton-line" />
+          <div aria-hidden="true" className="profile-skeleton-line" />
+          <div aria-hidden="true" className="profile-skeleton-line" />
+        </div>
+      </Card>
+      <Card className="profile-settings-card">
+        <div className="profile-loading-card-content">
+          <div aria-hidden="true" className="profile-skeleton-tabs" />
+          <div aria-hidden="true" className="profile-skeleton-line" />
+          <div aria-hidden="true" className="profile-skeleton-line" />
+          <div aria-hidden="true" className="profile-skeleton-line profile-skeleton-line-short" />
+          {showMessage ? <Typography.Text role="status">{t("pages.profile.loading")}</Typography.Text> : null}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
 export default function ProfilePage() {
   const { apiClient, config } = useWorkbenchRuntime();
   const auth = useAuthContext();
@@ -26,10 +58,21 @@ export default function ProfilePage() {
   const queryKey = ["profile", auth?.user.userId ?? 0] as const;
   const profileQuery = useQuery({ queryFn: () => api.getProfile(), queryKey });
   if (profileQuery.isPending) {
-    return <Spin aria-label={t("pages.common.loading")} />;
+    return <ProfileLoadingState />;
   }
   if (profileQuery.isError || !profileQuery.data) {
-    return <Typography.Text role="alert" type="danger">{profileQuery.error?.message || t("pages.common.loadFailed")}</Typography.Text>;
+    return (
+      <Card className="profile-error-card">
+        <div className="profile-error-content">
+          <Typography.Text role="alert" type="danger">
+            {profileQuery.error?.message || t("pages.common.loadFailed")}
+          </Typography.Text>
+          <Button loading={profileQuery.isFetching} onClick={() => void profileQuery.refetch()}>
+            {t("fallback.retry")}
+          </Button>
+        </div>
+      </Card>
+    );
   }
   const profile = profileQuery.data;
   async function refreshProfile() {

@@ -47,6 +47,7 @@ describe("user capability projection", () => {
       total: 1,
     }));
     render(<Providers queryClient={new QueryClient()}><WorkbenchRuntimeProvider value={{ apiClient: new ApiClient({ fetch }), config, tenantStore: createTenantStore({ storage: null }) }}><AuthContextProvider value={auth({ organizationEnabled: false, tenantEnabled: false }, ["system:user:resetPwd"])}><UserPage /></AuthContextProvider></WorkbenchRuntimeProvider></Providers>);
-    expect(await screen.findByRole("button", { name: "Reset password" }, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findAllByText("operator")).toHaveLength(2);
+    expect(await screen.findAllByRole("button", { name: "Reset password" }, { timeout: 5_000 })).toHaveLength(2);
   });
 });

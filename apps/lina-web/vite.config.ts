@@ -1,10 +1,11 @@
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
+import { resolveBasePathPublicAsset } from "./build/base-path-public-asset";
 import { createPluginUIRegistryPlugin } from "./build/plugin-ui-registry";
 
 const DEFAULT_API_TARGET = "http://127.0.0.1:9120";
@@ -18,52 +19,29 @@ function normalizeBuildBase(value: string | undefined): string {
   return `/${candidate.replace(/^\/+|\/+$/g, "")}/`;
 }
 
-function createBasePathPublicAssetPlugin(base: string): Plugin {
-  const contentTypes: Record<string, string> = {
-    ".css": "text/css; charset=utf-8",
-    ".html": "text/html; charset=utf-8",
-    ".ico": "image/x-icon",
-    ".jpeg": "image/jpeg",
-    ".jpg": "image/jpeg",
-    ".js": "text/javascript; charset=utf-8",
-    ".json": "application/json; charset=utf-8",
-    ".png": "image/png",
-    ".svg": "image/svg+xml",
-    ".webp": "image/webp",
-  };
+export function createBasePathPublicAssetPlugin(base: string): Plugin {
   return {
     name: "linapro-base-path-public-assets",
     configureServer(server) {
-      if (base === "/") {
-        return;
-      }
-      const basePath = base.replace(/\/$/, "");
       const publicDir = path.resolve(server.config.publicDir);
       server.middlewares.use((request, response, next) => {
         const pathname = (request.url ?? "").split("?", 2)[0] ?? "";
-        if (pathname === basePath) {
+        const basePath = base === "/" ? "/" : base.replace(/\/$/, "");
+        if (basePath !== "/" && pathname === basePath) {
           response.statusCode = 307;
           response.setHeader("Location", `${basePath}/`);
           response.end();
           return;
         }
-        if (!pathname.startsWith(`${basePath}/`)) {
-          next();
-          return;
-        }
-        const relativePath = pathname.slice(basePath.length + 1);
-        const publicFile = path.resolve(publicDir, relativePath);
-        if (
-          publicFile.startsWith(`${publicDir}${path.sep}`)
-          && existsSync(publicFile)
-          && statSync(publicFile).isFile()
-        ) {
+        const asset = resolveBasePathPublicAsset(
+          base,
+          publicDir,
+          request.url ?? "",
+        );
+        if (asset) {
           response.statusCode = 200;
-          response.setHeader(
-            "Content-Type",
-            contentTypes[path.extname(publicFile).toLowerCase()] ?? "application/octet-stream",
-          );
-          createReadStream(publicFile).pipe(response);
+          response.setHeader("Content-Type", asset.contentType);
+          createReadStream(asset.filePath).pipe(response);
           return;
         }
         next();

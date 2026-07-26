@@ -27,6 +27,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { downloadBlob } from "#/features/iam/download";
 import { ImportDialog } from "#/features/settings/import-dialog";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 
 function allowed(permissions: readonly string[], key: string) {
   return permissions.includes("*") || permissions.includes(key);
@@ -194,6 +195,10 @@ export default function DictPage() {
     });
   }
 
+  function typeStatus(row: DictType) { return t(row.status === 1 ? "pages.common.enabled" : "pages.common.disabled"); }
+  function renderTypeActions(row: DictType) { return <>{row.canEdit !== false && allowed(permissions, "system:dict:edit") ? <Button data-testid={`dict-type-edit-${row.id}`} onClick={(event) => { event.stopPropagation(); setTypeEdit(row.id); }} theme="borderless">{t("pages.common.edit")}</Button> : null}{row.canEdit !== false && allowed(permissions, "system:dict:remove") ? row.isBuiltin === 1 ? <Tooltip content={t("pages.common.builtinDeleteDisabled")}><span><Button data-testid={`dict-type-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button></span></Tooltip> : <Popconfirm content={t("pages.settings.dict.cascadeConfirm")} onConfirm={() => void removeType(row)}><Button data-testid={`dict-type-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}</>; }
+  function renderDataActions(row: DictData) { return <>{row.canEdit !== false && allowed(permissions, "system:dict:edit") ? <Button data-testid={`dict-data-edit-${row.id}`} onClick={() => setDataEdit(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}{row.canEdit !== false && allowed(permissions, "system:dict:remove") ? row.isBuiltin === 1 ? <Tooltip content={t("pages.common.builtinDeleteDisabled")}><span><Button data-testid={`dict-data-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button></span></Tooltip> : <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void removeData(row.id)}><Button data-testid={`dict-data-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}</>; }
+
   const typeColumns: ColumnProps<DictType>[] = [
     { dataIndex: "name", ellipsis: true, title: t("pages.settings.dict.name"), width: 180 },
     { dataIndex: "type", ellipsis: true, title: t("pages.settings.dict.type"), width: 190 },
@@ -204,23 +209,7 @@ export default function DictPage() {
       width: 90,
     },
     {
-      fixed: "right",
-      render: (_, row) => <Space>
-        {row.canEdit !== false && allowed(permissions, "system:dict:edit") ? (
-          <Button data-testid={`dict-type-edit-${row.id}`} onClick={(event) => { event.stopPropagation(); setTypeEdit(row.id); }} theme="borderless">{t("pages.common.edit")}</Button>
-        ) : null}
-        {row.canEdit !== false && allowed(permissions, "system:dict:remove") ? row.isBuiltin === 1 ? (
-          <Tooltip content={t("pages.common.builtinDeleteDisabled")}>
-            <span onClick={(event) => event.stopPropagation()}>
-              <Button data-testid={`dict-type-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button>
-            </span>
-          </Tooltip>
-        ) : (
-          <Popconfirm content={t("pages.settings.dict.cascadeConfirm")} onConfirm={() => void removeType(row)}>
-            <Button data-testid={`dict-type-delete-${row.id}`} onClick={(event) => event.stopPropagation()} theme="borderless" type="danger">{t("pages.common.delete")}</Button>
-          </Popconfirm>
-        ) : null}
-      </Space>,
+      render: (_, row) => <Space>{renderTypeActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
     },
@@ -236,23 +225,7 @@ export default function DictPage() {
     },
     { dataIndex: "sort", title: t("pages.common.sort"), width: 80 },
     {
-      fixed: "right",
-      render: (_, row) => <Space>
-        {row.canEdit !== false && allowed(permissions, "system:dict:edit") ? (
-          <Button data-testid={`dict-data-edit-${row.id}`} onClick={() => setDataEdit(row.id)} theme="borderless">{t("pages.common.edit")}</Button>
-        ) : null}
-        {row.canEdit !== false && allowed(permissions, "system:dict:remove") ? row.isBuiltin === 1 ? (
-          <Tooltip content={t("pages.common.builtinDeleteDisabled")}>
-            <span>
-              <Button data-testid={`dict-data-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button>
-            </span>
-          </Tooltip>
-        ) : (
-          <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void removeData(row.id)}>
-            <Button data-testid={`dict-data-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button>
-          </Popconfirm>
-        ) : null}
-      </Space>,
+      render: (_, row) => <Space>{renderDataActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
     },
@@ -282,7 +255,7 @@ export default function DictPage() {
               <Button onClick={() => setTypeEdit("new")} theme="solid" type="primary">{t("pages.common.add")}</Button>
             </> : null}
           </Space></div>
-          <div data-testid="dict-type-table"><Table<DictType>
+          <div className="responsive-desktop-table" data-testid="dict-type-table"><Table<DictType>
             columns={typeColumns}
             dataSource={types.data?.list ?? []}
             loading={types.isPending}
@@ -292,6 +265,7 @@ export default function DictPage() {
             rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelectedTypeIds((keys ?? []).map(Number)), selectedRowKeys: selectedTypeIds }}
             scroll={{ x: 648 }}
           /></div>
+          <MobileRecordList testId="dict-type-mobile-list">{(types.data?.list ?? []).map((row) => <MobileRecordCard key={row.id} testId={`dict-type-mobile-card-${row.id}`}><MobileRecordTitle>{row.name}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.settings.dict.type")} value={row.type} /><MobileRecordField label={t("pages.common.status")} value={typeStatus(row)} /></MobileRecordFields><MobileRecordActions><Button onClick={() => { setSelectedType(row.type); setDataParams((current) => ({ ...current, pageNum: 1 })); }} theme="borderless">{t("pages.common.detail")}</Button>{renderTypeActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
         </Card>
       </section>
       <section id="dict-data">
@@ -310,7 +284,7 @@ export default function DictPage() {
             {selectedType && allowed(permissions, "system:dict:remove") ? <Button disabled={!selectedDataIds.length} onClick={() => Modal.confirm({ content: t("pages.settings.deleteConfirm"), onOk: removeSelectedData, title: t("pages.common.confirmTitle") })} type="danger">{t("pages.common.delete")}</Button> : null}
             {selectedType && allowed(permissions, "system:dict:add") ? <Button onClick={() => setDataEdit("new")} theme="solid" type="primary">{t("pages.common.add")}</Button> : null}
           </Space></div>
-          <div data-testid="dict-data-table"><Table<DictData>
+          <div className="responsive-desktop-table" data-testid="dict-data-table"><Table<DictData>
             columns={dataColumns}
             dataSource={data.data?.list ?? []}
             loading={Boolean(selectedType) && data.isPending}
@@ -319,10 +293,11 @@ export default function DictPage() {
             rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelectedDataIds((keys ?? []).map(Number)), selectedRowKeys: selectedDataIds }}
             scroll={{ x: 788 }}
           /></div>
+          <MobileRecordList testId="dict-data-mobile-list">{(data.data?.list ?? []).map((row) => <MobileRecordCard key={row.id} testId={`dict-data-mobile-card-${row.id}`}><MobileRecordTitle>{row.label}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.settings.dict.value")} value={row.value} /><MobileRecordField label={t("pages.settings.dict.style")} value={row.tagStyle} /></MobileRecordFields><MobileRecordActions>{renderDataActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
         </Card>
       </section>
     </div>
-    <SideSheet onCancel={() => setTypeEdit(undefined)} title={t("pages.settings.dict.editType")} visible={typeEdit !== undefined}>
+    <SideSheet onCancel={() => setTypeEdit(undefined)} title={t("pages.settings.dict.editType")} visible={typeEdit !== undefined} width="min(448px, 100vw)">
       <Form<Partial<DictType>> key={`${typeEdit}-${typeDetail.data?.updatedAt ?? 0}`} initValues={typeDetail.data ?? { status: 1 }} labelPosition="top" onSubmit={saveType}>
         <Form.Input field="name" label={t("pages.settings.dict.name")} rules={[{ required: true, message: t("pages.settings.required") }]} />
         <Form.Input field="type" label={t("pages.settings.dict.type")} rules={[{ required: true, message: t("pages.settings.required") }]} />
@@ -332,7 +307,7 @@ export default function DictPage() {
         <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.save")}</Button>
       </Form>
     </SideSheet>
-    <SideSheet onCancel={() => setDataEdit(undefined)} title={t("pages.settings.dict.editData")} visible={dataEdit !== undefined}>
+    <SideSheet onCancel={() => setDataEdit(undefined)} title={t("pages.settings.dict.editData")} visible={dataEdit !== undefined} width="min(448px, 100vw)">
       <Form<Partial<DictData>> key={`${dataEdit}-${dataDetail.data?.updatedAt ?? 0}`} initValues={dataDetail.data ?? { sort: 0, status: 1, tagStyle: "default" }} labelPosition="top" onSubmit={saveData}>
         <Form.Input field="label" label={t("pages.settings.dict.label")} rules={[{ required: true, message: t("pages.settings.required") }]} />
         <Form.Input field="value" label={t("pages.settings.dict.value")} rules={[{ required: true, message: t("pages.settings.required") }]} />

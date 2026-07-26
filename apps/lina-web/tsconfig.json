@@ -16,7 +16,16 @@
     "noUnusedParameters": true,
     "paths": {
       "#/*": ["src/*"],
-      "@linapro/plugin-ui": ["src/plugin-ui/public.ts"]
+      "@douyinfe/semi-icons/*": ["node_modules/@douyinfe/semi-icons/*"],
+      "@douyinfe/semi-ui/*": ["node_modules/@douyinfe/semi-ui/*"],
+      "@linapro/plugin-ui/rich-text-editor": ["src/plugin-ui/rich-text-public.ts"],
+      "@linapro/plugin-ui": ["src/plugin-ui/public.ts"],
+      "react": ["node_modules/@types/react/index.d.ts"],
+      "react/*": ["node_modules/@types/react/*"],
+      "react-dom": ["node_modules/@types/react-dom/index.d.ts"],
+      "react-dom/*": ["node_modules/@types/react-dom/*"],
+      "zustand": ["node_modules/zustand"],
+      "zustand/*": ["node_modules/zustand/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,

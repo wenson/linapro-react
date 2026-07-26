@@ -59,7 +59,7 @@ export function UserDrawer({ api, capabilities, currentTenantId, isPlatform, onC
   }
 
   return (
-    <SideSheet closable onCancel={onClose} title={t(userId ? "pages.iam.user.editTitle" : "pages.iam.user.createTitle")} visible={open} width={600}>
+    <SideSheet closable onCancel={onClose} title={t(userId ? "pages.iam.user.editTitle" : "pages.iam.user.createTitle")} visible={open} width="min(600px, 100vw)">
       {loading ? <Spin aria-label={t("pages.common.loading")} /> : (
         <Form<UserFormValues> data-testid="user-drawer-form" key={`${userId ?? "new"}-${initial?.updatedAt ?? 0}`} initValues={initValues} labelPosition="top" onSubmit={submit}>
           <Form.Input disabled={Boolean(userId)} field="username" label={t("pages.iam.user.fields.username")} rules={[{ required: true, message: t("pages.iam.user.validation.username") }]} />

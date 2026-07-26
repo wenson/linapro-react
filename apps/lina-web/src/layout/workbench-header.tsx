@@ -37,7 +37,7 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
         onClick={onOpenNavigation}
         theme="borderless"
       />
-      <div data-testid="layout-header-plugin-slots-before">{pluginActionsBefore}</div>
+      <div className="workbench-header-plugin-slot workbench-header-plugin-slot-before" data-testid="layout-header-plugin-slots-before">{pluginActionsBefore}</div>
       {tenants.length > 1 ? (
         <div className="tenant-switcher" data-testid="tenant-switcher">
           <span className="visually-hidden" id="tenant-switcher-label">
@@ -49,7 +49,7 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
             disabled={tenantSwitchDisabled}
             onChange={(value) => onTenantChange(Number(value))}
             optionList={tenants.map((tenant) => ({ label: tenant.name, value: tenant.id }))}
-            style={{ width: 240 }}
+            className="tenant-switcher-select"
             value={currentTenantId}
           />
         </div>
@@ -57,10 +57,12 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
         <Typography.Text strong>{tenants[0]?.name || t("workbench.platform")}</Typography.Text>
       )}
       <div className="workbench-header-spacer" />
-      <div data-testid="layout-header-plugin-slots">{pluginActionsAfter}</div>
-      <LanguageToggle />
-      <Button aria-label="light" onClick={() => applyThemePreference("light")} theme="borderless">☀</Button>
-      <Button aria-label="dark" onClick={() => applyThemePreference("dark")} theme="borderless">☾</Button>
+      <div className="workbench-header-plugin-slot workbench-header-plugin-slot-after" data-testid="layout-header-plugin-slots">{pluginActionsAfter}</div>
+      <div className="desktop-preference-shortcuts">
+        <LanguageToggle />
+        <Button aria-label="light" onClick={() => applyThemePreference("light")} theme="borderless">☀</Button>
+        <Button aria-label="dark" onClick={() => applyThemePreference("dark")} theme="borderless">☾</Button>
+      </div>
       <Button
         aria-label={t("workbench.preferences.open")}
         data-testid="preferences-trigger"
@@ -124,7 +126,7 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
               {(context?.user.realName || context?.user.username || "").slice(-2).toUpperCase() || <IconUser />}
             </Avatar>
           </span>
-          <span>{context?.user.realName || context?.user.username}</span>
+          <span className="workbench-user-trigger-name">{context?.user.realName || context?.user.username}</span>
         </Button>
       </Dropdown>
     </header>

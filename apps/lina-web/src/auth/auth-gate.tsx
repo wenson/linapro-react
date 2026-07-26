@@ -43,13 +43,6 @@ function safeRedirect(value: null | string, fallback = "/"): string {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/";
 }
 
-function loginDestination(redirect: null | string, homePath: string): string {
-  const destination = safeRedirect(redirect, "");
-  return destination && destination !== "/"
-    ? destination
-    : safeRedirect(homePath, "/");
-}
-
 export function AuthGate({
   apiClient,
   appName,
@@ -100,7 +93,6 @@ export function AuthGate({
 
   useEffect(() => {
     if (!apiClient || sourcePluginUI.length === 0) {
-      setAnonymousPluginStates([]);
       return;
     }
     let active = true;
@@ -240,10 +232,7 @@ export function AuthGate({
   }
 
   if (loginOnly) {
-    return <Navigate replace to={loginDestination(
-      externalRedirect || searchParams.get("redirect"),
-      context.user.homePath,
-    )} />;
+    return <Navigate replace to={safeRedirect(externalRedirect || searchParams.get("redirect"), "/")} />;
   }
 
   async function refreshContext() {

@@ -102,6 +102,7 @@ export function AvatarCropper({
         onOk={() => void confirm()}
         title={t("pages.profile.avatar.cropTitle")}
         visible={!!source}
+        width="min(520px, calc(100vw - 24px))"
       >
         {source ? <img alt={t("pages.profile.avatar.cropPreview")} className="avatar-crop-image" ref={imageRef} src={source} /> : null}
         {error ? <Typography.Text role="alert" type="danger">{error}</Typography.Text> : null}

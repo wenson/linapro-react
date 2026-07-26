@@ -28,14 +28,17 @@ function wrapper(client: ApiClient, config = defaultPublicFrontendConfig) {
   );
 }
 
-it("keeps API Docs under basePath with /api.json and the active iframe language", async () => {
-  const config = { ...defaultPublicFrontendConfig, workspace: { basePath: "/console" } };
+it.each([
+  ["/", "/stoplight/apidocs.html?api=%2Fapi.json&lang=en-US"],
+  ["/console", "/console/stoplight/apidocs.html?api=%2Fapi.json&lang=en-US"],
+])("keeps API Docs under basePath %s with /api.json and the active iframe language", async (basePath, expectedSource) => {
+  const config = { ...defaultPublicFrontendConfig, workspace: { basePath } };
   const fetch = vi.fn(async () => new Response("{}", { status: 200 }));
   const { rerender } = render(<ApiDocsPage />, { wrapper: wrapper(new ApiClient({ fetch }), config) });
   expect(screen.getByTestId("api-docs-loading")).toBeVisible();
   expect(await screen.findByTitle("API documentation")).toHaveAttribute(
     "src",
-    "/console/stoplight/apidocs.html?api=%2Fapi.json&lang=en-US",
+    expectedSource,
   );
   await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api.json?lang=en-US", expect.anything()));
   await act(async () => i18n.changeLanguage("zh-CN"));

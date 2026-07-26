@@ -195,7 +195,7 @@ export default function MessagePage() {
         onCancel={() => setDetailId(undefined)}
         title={detail.data?.title || t("pages.settings.message.detail")}
         visible={detailId !== undefined}
-        width={800}
+        width="min(800px, calc(100vw - 24px))"
       >
         <Spin spinning={detail.isPending}>
           <div data-testid="message-detail-dialog">

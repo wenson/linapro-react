@@ -27,6 +27,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { downloadBlob } from "#/features/iam/download";
 import { ManagedUpload } from "#/features/settings/file/managed-upload";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 const imageSuffixes = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
@@ -218,7 +219,6 @@ export default function FilePage() {
       width: 120,
     },
     {
-      fixed: "right",
       render: (_, row) => (
         <Space>
           <Button
@@ -313,12 +313,16 @@ export default function FilePage() {
         <div className="iam-toolbar">
           <Space>
             <Tooltip content={t("pages.settings.file.previewImages")}>
+              <span className="file-preview-control">
+                <span id="file-preview-switch-label">{t("pages.settings.file.previewImages")}</span>
               <Switch
                 aria-label={t("pages.settings.file.previewImages")}
+                aria-labelledby="file-preview-switch-label"
                 checked={previewEnabled}
                 data-testid="file-preview-switch"
                 onChange={setPreviewEnabled}
               />
+              </span>
             </Tooltip>
             {allowed(permissions, "system:file:remove") ? (
               <Button
@@ -337,7 +341,7 @@ export default function FilePage() {
             ) : null}
           </Space>
         </div>
-        <div data-testid="file-table">
+        <div className="responsive-desktop-table" data-testid="file-table">
           {list.isError ? null : list.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : <Table<FileInfo>
             columns={columns}
             dataSource={list.data?.list ?? []}
@@ -360,12 +364,31 @@ export default function FilePage() {
             scroll={{ x: 1318 }}
           />}
         </div>
+        <MobileRecordList testId="file-mobile-list">
+          {(list.data?.list ?? []).map((row) => (
+            <MobileRecordCard key={row.id} testId={`file-mobile-card-${row.id}`}>
+              <MobileRecordTitle>{row.original}</MobileRecordTitle>
+              <MobileRecordFields>
+                <MobileRecordField label={t("pages.settings.file.suffix")} value={row.suffix} />
+                <MobileRecordField label={t("pages.settings.file.scene")} value={options.data?.scenes.find((item) => item.value === row.scene)?.label ?? row.scene} />
+                <MobileRecordField label={t("pages.settings.file.size")} value={formatSize(row.size)} />
+                <MobileRecordField label={t("pages.settings.file.uploadedAt")} value={formatTimestamp(row.createdAt, i18n.resolvedLanguage || "en-US")} />
+              </MobileRecordFields>
+              <MobileRecordActions>
+                <Button data-testid={`file-mobile-detail-${row.id}`} onClick={() => setDetailId(row.id)} theme="borderless">{t("pages.settings.file.detail")}</Button>
+                {allowed(permissions, "system:file:download") ? <Button loading={downloadingId === row.id} onClick={() => void download(row)} theme="borderless">{t("pages.settings.file.download")}</Button> : null}
+                {allowed(permissions, "system:file:remove") ? <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void remove([row.id])}><Button theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}
+              </MobileRecordActions>
+            </MobileRecordCard>
+          ))}
+        </MobileRecordList>
       </Card>
       <Modal
         footer={null}
         onCancel={() => setUpload(undefined)}
         title={t(upload === "image" ? "pages.settings.file.uploadImage" : "pages.settings.file.upload")}
         visible={upload !== undefined}
+        width="min(520px, calc(100vw - 24px))"
       >
         {upload ? (
           <ManagedUpload api={api} imageOnly={upload === "image"} onUploaded={refresh} />
@@ -376,7 +399,7 @@ export default function FilePage() {
         onCancel={() => setDetailId(undefined)}
         title={t("pages.settings.file.detail")}
         visible={detailId !== undefined}
-        width={720}
+        width="min(720px, calc(100vw - 24px))"
       >
         <Spin spinning={detail.isPending}>
           <Descriptions data={detailData} row />

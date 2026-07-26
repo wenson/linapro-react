@@ -22,3 +22,11 @@ export {
   requestTenantImpersonationExit,
   requestTenantSwitch,
 } from "#/plugin-ui/tenant-actions";
+export {
+  MobileRecordActions,
+  MobileRecordCard,
+  MobileRecordField,
+  MobileRecordFields,
+  MobileRecordList,
+  MobileRecordTitle,
+} from "#/plugin-ui/mobile-record";

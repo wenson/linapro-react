@@ -30,7 +30,12 @@ import { managementCapabilityKeys } from "#/plugins/capabilities";
 import { MessageIndicator } from "#/features/settings/message/message-indicator";
 import { hostPages } from "#/router/host-pages";
 import { hostSupplementalRoutes } from "#/router/host-routes";
-import { findWorkbenchRoute, flattenRoutes, projectMenuTree } from "#/router/project-menu";
+import {
+  findWorkbenchRoute,
+  flattenRoutes,
+  projectMenuTree,
+  resolveWorkbenchLandingPath,
+} from "#/router/project-menu";
 
 interface PendingPluginRefresh {
   generation: number;
@@ -79,6 +84,10 @@ export function WorkbenchApp({ apiClient, config, runtime }: {
       ...hostSupplementalRoutes,
     ],
     [context?.menus, pluginRegistry],
+  );
+  const rootLandingPath = useMemo(
+    () => resolveWorkbenchLandingPath(context?.user.homePath, routes) ?? null,
+    [context?.user.homePath, routes],
   );
   const currentRoute = useMemo(
     () => findWorkbenchRoute(routes, location.pathname),
@@ -214,12 +223,13 @@ export function WorkbenchApp({ apiClient, config, runtime }: {
             )}
             headerActionsBefore={<PluginSlotOutlet items={pluginRegistry.slots["layout.header.actions.before"]} />}
             headerActionsAfter={<>
-              <MessageIndicator apiClient={apiClient} />
-              <PluginSlotOutlet items={pluginRegistry.slots["layout.header.actions.after"]} />
+              <span className="workbench-header-message-action"><MessageIndicator apiClient={apiClient} /></span>
+              <span className="workbench-header-extra-action"><PluginSlotOutlet items={pluginRegistry.slots["layout.header.actions.after"]} /></span>
             </>}
             registry={pageRegistry}
             logoUrl={resolveWorkspaceAssetUrl(config.app.logo, config.workspace.basePath)}
             routes={routes}
+            rootLandingPath={rootLandingPath}
             runtime={runtime}
             userDropdownAfter={<PluginSlotOutlet items={pluginRegistry.slots["layout.user-dropdown.after"]} />}
           />

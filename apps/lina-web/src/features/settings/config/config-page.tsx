@@ -20,7 +20,7 @@ import Toast from "@douyinfe/semi-ui/lib/es/toast";
 import Tooltip from "@douyinfe/semi-ui/lib/es/tooltip";
 import Typography from "@douyinfe/semi-ui/lib/es/typography";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -34,6 +34,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { downloadBlob } from "#/features/iam/download";
 import { ImportDialog } from "#/features/settings/import-dialog";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 const valueTypes: readonly ConfigValueType[] = [
@@ -189,23 +190,21 @@ export default function ConfigPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [editId, setEditId] = useState<number | "new">();
   const [draft, setDraft] = useState<ConfigDraft>(draftFrom());
+  const [metadataReadOnly, setMetadataReadOnly] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const query = useQuery({ queryFn: () => api.list(params), queryKey: ["settings", "config", params] });
-  const detail = useQuery({
-    enabled: typeof editId === "number",
-    queryFn: () => api.get(editId as number),
-    queryKey: ["settings", "config-detail", editId],
-  });
+  function openCreate() {
+    setDraft(draftFrom());
+    setMetadataReadOnly(false);
+    setEditId("new");
+  }
 
-  useEffect(() => {
-    if (editId === "new") {
-      setDraft(draftFrom());
-      return;
-    }
-    if (typeof editId === "number" && detail.data?.id === editId) {
-      setDraft(draftFrom(detail.data));
-    }
-  }, [detail.data, editId]);
+  async function openEdit(id: number) {
+    const detail = await api.get(id);
+    setDraft(draftFrom(detail));
+    setMetadataReadOnly(detail.isBuiltin === 1);
+    setEditId(id);
+  }
 
   async function refresh() {
     setSelected([]);
@@ -227,7 +226,7 @@ export default function ConfigPage() {
       Toast.error(t("pages.settings.required"));
       return;
     }
-    let options: ConfigValueOption[] = [];
+    let options: ConfigValueOption[];
     try {
       options = parseOptions(draft.optionsText);
     } catch {
@@ -253,13 +252,16 @@ export default function ConfigPage() {
     setEditId(undefined);
   }
 
+  function valueTypeLabel(row: SysConfig) { return t(`pages.settings.config.valueTypes.${resolveValueType(row.valueType)}`); }
+  function renderActions(row: SysConfig) { return <>{row.canEdit !== false && allowed(permissions, "system:config:edit") ? <Button data-testid={`config-edit-${row.id}`} onClick={() => void openEdit(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}{row.canEdit !== false && allowed(permissions, "system:config:remove") ? row.isBuiltin === 1 ? <Tooltip content={t("pages.common.builtinDeleteDisabled")}><span><Button data-testid={`config-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button></span></Tooltip> : <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void remove(row.id)}><Button data-testid={`config-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}</>; }
+
   const columns: ColumnProps<SysConfig>[] = [
     { dataIndex: "name", title: t("pages.settings.config.name"), width: 160 },
     { dataIndex: "key", title: t("pages.settings.config.key"), width: 200 },
     { dataIndex: "value", title: t("pages.settings.config.value"), width: 140 },
     {
       dataIndex: "valueType",
-      render: (value) => <Tag>{t(`pages.settings.config.valueTypes.${resolveValueType(String(value))}`)}</Tag>,
+      render: (_, row) => <Tag>{valueTypeLabel(row)}</Tag>,
       title: t("pages.settings.config.valueType"),
       width: 120,
     },
@@ -271,23 +273,16 @@ export default function ConfigPage() {
     },
     {
       dataIndex: "createdAt",
-      fixed: "right",
       render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"),
       title: t("pages.common.createdAt"),
       width: 170,
     },
     {
-      fixed: "right",
-      render: (_, row) => <Space>
-        {row.canEdit !== false && allowed(permissions, "system:config:edit") ? <Button data-testid={`config-edit-${row.id}`} onClick={() => setEditId(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}
-        {row.canEdit !== false && allowed(permissions, "system:config:remove") ? row.isBuiltin === 1 ? <Tooltip content={t("pages.common.builtinDeleteDisabled")}><span><Button data-testid={`config-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button></span></Tooltip> : <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void remove(row.id)}><Button data-testid={`config-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}
-      </Space>,
+      render: (_, row) => <Space>{renderActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
     },
   ];
-  const selectedConfig = typeof editId === "number" && detail.data?.id === editId ? detail.data : undefined;
-  const metadataReadOnly = selectedConfig?.isBuiltin === 1;
   let parsedOptions: ConfigValueOption[] = [];
   try {
     parsedOptions = parseOptions(draft.optionsText);
@@ -309,11 +304,12 @@ export default function ConfigPage() {
     <Card>
       <div className="iam-toolbar"><Space>
         {allowed(permissions, "system:config:export") ? <Button onClick={() => Modal.confirm({ content: t("pages.settings.exportConfirm"), onOk: () => api.export({ ...params, ids: selected }).then((blob) => downloadBlob(blob, "configs.xlsx")), title: t("pages.common.confirmTitle") })}>{t("pages.settings.export")}</Button> : null}
-        {allowed(permissions, "system:config:add") ? <><Button onClick={() => setImportOpen(true)}>{t("pages.settings.importAction")}</Button><Button onClick={() => setEditId("new")} theme="solid" type="primary">{t("pages.common.add")}</Button></> : null}
+        {allowed(permissions, "system:config:add") ? <><Button onClick={() => setImportOpen(true)}>{t("pages.settings.importAction")}</Button><Button onClick={openCreate} theme="solid" type="primary">{t("pages.common.add")}</Button></> : null}
       </Space></div>
-      <div data-testid="config-table">{query.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : query.isError ? <div role="alert"><Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>{query.error.message ? <Typography.Text type="tertiary">{query.error.message}</Typography.Text> : null}<Button onClick={() => void query.refetch()}>{t("fallback.retry")}</Button></div> : !query.data?.list.length ? <Empty description={t("pages.settings.config.empty")} image={null} /> : <Table<SysConfig> columns={columns} dataSource={query.data.list} pagination={{ currentPage: params.pageNum, onChange: (page) => setParams((current) => ({ ...current, pageNum: page })), pageSize: params.pageSize, total: query.data.total }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1200 }} />}</div>
+      <div className="responsive-desktop-table" data-testid="config-table">{query.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : query.isError ? <div role="alert"><Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>{query.error.message ? <Typography.Text type="tertiary">{query.error.message}</Typography.Text> : null}<Button onClick={() => void query.refetch()}>{t("fallback.retry")}</Button></div> : !query.data?.list.length ? <Empty description={t("pages.settings.config.empty")} image={null} /> : <Table<SysConfig> columns={columns} dataSource={query.data.list} pagination={{ currentPage: params.pageNum, onChange: (page) => setParams((current) => ({ ...current, pageNum: page })), pageSize: params.pageSize, total: query.data.total }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1200 }} />}</div>
+      <MobileRecordList testId="config-mobile-list">{(query.data?.list ?? []).map((row) => <MobileRecordCard key={row.id} testId={`config-mobile-card-${row.id}`}><MobileRecordTitle>{row.name}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.settings.config.key")} value={row.key} /><MobileRecordField label={t("pages.settings.config.valueType")} value={valueTypeLabel(row)} /><MobileRecordField label={t("pages.settings.config.value")} value={row.value} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
     </Card>
-    <SideSheet onCancel={() => setEditId(undefined)} title={t(editId === "new" ? "pages.settings.config.create" : "pages.settings.config.edit")} visible={editId !== undefined}>
+    <SideSheet onCancel={() => setEditId(undefined)} title={t(editId === "new" ? "pages.settings.config.create" : "pages.settings.config.edit")} visible={editId !== undefined} width="min(448px, 100vw)">
       <form className="semi-form" data-testid="config-editor-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>
         <label className="semi-form-field"><Typography.Text>{t("pages.settings.config.name")}</Typography.Text><Input aria-label={t("pages.settings.config.name")} onChange={(name) => updateDraft({ name })} value={draft.name} /></label>
         <label className="semi-form-field"><Typography.Text>{t("pages.settings.config.key")}</Typography.Text><Input aria-label={t("pages.settings.config.key")} onChange={(key) => updateDraft({ key })} value={draft.key} /></label>

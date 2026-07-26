@@ -18,6 +18,7 @@ import { createSystemJobApi } from "#/api/system/job";
 import type { JobGroup } from "#/api/system/job";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 
 interface GroupFilters {
   code?: string;
@@ -71,6 +72,27 @@ export default function JobGroupPage() {
     setPage(1);
   }
 
+  function renderActions(row: JobGroup) {
+    return (
+      <Space>
+        {can(permissions, "system:jobgroup:edit") ? (
+          <Button data-testid={`job-group-edit-${row.id}`} onClick={() => setEditing(row)} theme="borderless">
+            {t("pages.common.edit")}
+          </Button>
+        ) : null}
+        {can(permissions, "system:jobgroup:remove") ? row.isDefault === 1 ? (
+          <Tooltip content={t("pages.scheduler.group.defaultDeleteDisabled")}>
+            <span><Button data-testid={`job-group-delete-${row.id}`} disabled theme="borderless" type="danger">{t("pages.common.delete")}</Button></span>
+          </Tooltip>
+        ) : (
+          <Popconfirm content={t("pages.scheduler.group.deleteConfirm")} onConfirm={() => void remove(row)}>
+            <Button data-testid={`job-group-delete-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button>
+          </Popconfirm>
+        ) : null}
+      </Space>
+    );
+  }
+
   const columns: ColumnProps<JobGroup>[] = [
     { dataIndex: "code", title: t("pages.scheduler.group.code") },
     { dataIndex: "name", title: t("pages.scheduler.group.name") },
@@ -83,30 +105,7 @@ export default function JobGroupPage() {
     },
     { dataIndex: "remark", title: t("pages.common.remark") },
     {
-      render: (_, row) => (
-        <Space>
-          {can(permissions, "system:jobgroup:edit") ? (
-            <Button data-testid={`job-group-edit-${row.id}`} onClick={() => setEditing(row)} theme="borderless">
-              {t("pages.common.edit")}
-            </Button>
-          ) : null}
-          {can(permissions, "system:jobgroup:remove") ? row.isDefault === 1 ? (
-            <Tooltip content={t("pages.scheduler.group.defaultDeleteDisabled")}>
-              <span>
-                <Button data-testid={`job-group-delete-${row.id}`} disabled theme="borderless" type="danger">
-                  {t("pages.common.delete")}
-                </Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Popconfirm content={t("pages.scheduler.group.deleteConfirm")} onConfirm={() => void remove(row)}>
-              <Button data-testid={`job-group-delete-${row.id}`} theme="borderless" type="danger">
-                {t("pages.common.delete")}
-              </Button>
-            </Popconfirm>
-          ) : null}
-        </Space>
-      ),
+      render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 160,
     },
@@ -136,7 +135,7 @@ export default function JobGroupPage() {
             </Button>
           ) : null}
         </div>
-        <div data-testid="job-group-table">
+        <div className="responsive-desktop-table" data-testid="job-group-table">
           <Table<JobGroup>
             columns={columns}
             dataSource={query.data?.list ?? []}
@@ -144,11 +143,25 @@ export default function JobGroupPage() {
             rowKey="id"
           />
         </div>
+        <MobileRecordList testId="job-group-mobile-list">
+          {(query.data?.list ?? []).map((row) => (
+            <MobileRecordCard key={row.id} testId={`job-group-mobile-card-${row.id}`}>
+              <MobileRecordTitle>{row.name}</MobileRecordTitle>
+              <MobileRecordFields>
+                <MobileRecordField label={t("pages.scheduler.group.code")} value={row.code} />
+                <MobileRecordField label={t("pages.scheduler.group.jobs")} value={row.jobCount} />
+                <MobileRecordField label={t("pages.scheduler.group.default")} value={row.isDefault === 1 ? t("pages.common.yes") : t("pages.common.no")} />
+              </MobileRecordFields>
+              <MobileRecordActions>{renderActions(row)}</MobileRecordActions>
+            </MobileRecordCard>
+          ))}
+        </MobileRecordList>
       </Card>
       <SideSheet
         onCancel={() => setEditing(undefined)}
         title={t(editing === "new" ? "pages.scheduler.group.create" : "pages.scheduler.group.edit")}
         visible={editing !== undefined}
+        width="min(448px, 100vw)"
       >
         <Form<Partial<JobGroup>>
           initValues={editing === "new" ? { sortOrder: 0 } : editing}

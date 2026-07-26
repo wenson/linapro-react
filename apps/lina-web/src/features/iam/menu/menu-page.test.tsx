@@ -14,5 +14,8 @@ it("renders the backend menu hierarchy as a Semi table", async () => {
   const fetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ code: 0, data: { list: [menu] } }), { headers: { "content-type": "application/json" } }));
   const context = { capabilities: { organizationEnabled: true, tenantEnabled: true }, menus: [], plugins: [], user: { avatar: "", email: "", homePath: "/", menus: [], permissions: ["*"], realName: "Admin", roles: [], userId: 1, username: "admin" } };
   render(<Providers queryClient={new QueryClient()}><WorkbenchRuntimeProvider value={{ apiClient: new ApiClient({ fetch }), config: {} as PublicFrontendConfig }}><AuthContextProvider value={context}><MenuPage /></AuthContextProvider></WorkbenchRuntimeProvider></Providers>);
-  expect(await screen.findByTestId("menu-page")).toBeVisible(); expect(await screen.findByText("Users")).toBeVisible(); expect(screen.getByText("system:user:list")).toBeVisible();
+  expect(await screen.findByTestId("menu-page")).toBeVisible();
+  expect(await screen.findAllByText("Users")).toHaveLength(2);
+  expect(screen.getAllByText("system:user:list")).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(2);
 });

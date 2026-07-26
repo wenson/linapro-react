@@ -87,7 +87,7 @@ function RoleDrawerSession({ api, capabilities, menuApi, onClose, onSaved, open,
       onCancel={requestClose}
       title={t(roleId ? "pages.iam.role.editTitle" : "pages.iam.role.createTitle")}
       visible={open}
-      width={720}
+      width="min(720px, 100vw)"
     >
       {open && pending ? <Spin aria-label={t("pages.common.loading")} /> : null}
       {open && !pending ? (

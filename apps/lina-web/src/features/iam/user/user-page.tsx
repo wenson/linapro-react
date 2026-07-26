@@ -28,6 +28,7 @@ import { UserDrawer } from "#/features/iam/user/user-drawer";
 import { UserImportDialog } from "#/features/iam/user/user-import-dialog";
 import { UserResetPasswordDialog } from "#/features/iam/user/user-reset-password-dialog";
 import { loadUserTenantOptions } from "#/features/iam/user/tenant-options";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 import { useDictOptions } from "#/features/settings/dict/use-dict-options";
 import { formatTimestamp } from "#/shared/format";
 import { tenantStore as fallbackTenantStore } from "#/tenant/tenant-store";
@@ -98,6 +99,17 @@ export default function UserPage() {
     if (ids.length === 1) await api.delete(ids[0]!); else await api.batchDelete(ids);
     Toast.success(t("pages.common.deleteSuccess")); await refresh();
   }
+  function renderStatus(row: SysUser) {
+    return <Switch checked={row.status === 1} disabled={row.id === auth?.user.userId || !hasPermission(permissions, "system:user:edit")} onChange={(checked) => void api.updateStatus(row.id, checked ? 1 : 0).then(refresh)} />;
+  }
+  function renderActions(row: SysUser) {
+    if (row.id === auth?.user.userId) return null;
+    return <>
+      {hasPermission(permissions, "system:user:edit") ? <Button onClick={() => setDrawerUserId(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}
+      {hasPermission(permissions, "system:user:resetPwd") ? <Button onClick={() => setResetUserId(row.id)} theme="borderless">{t("pages.iam.user.actions.resetPassword")}</Button> : null}
+      {hasPermission(permissions, "system:user:remove") ? <Popconfirm content={t("pages.iam.user.messages.deleteConfirm")} onConfirm={() => void remove([row.id])}><Button theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}
+    </>;
+  }
   const columns: ColumnProps<SysUser>[] = [
     { dataIndex: "username", sorter: true, title: t("pages.iam.user.fields.username"), width: 150 },
     { dataIndex: "nickname", sorter: true, title: t("pages.iam.user.fields.nickname"), width: 140 },
@@ -105,13 +117,9 @@ export default function UserPage() {
     { dataIndex: "roleNames", render: (value) => Array.isArray(value) ? value.join(", ") : "", title: t("pages.iam.user.fields.roles"), width: 180 },
     ...(capabilities.tenantEnabled ? [{ dataIndex: "tenantNames", render: (value: unknown, row: SysUser) => Array.isArray(value) ? value.join(", ") : row.tenantName || t("pages.common.none"), title: t("pages.iam.user.fields.tenants"), width: 180 }] : []),
     { dataIndex: "phone", title: t("pages.iam.user.fields.phone"), width: 130 },
-    { dataIndex: "status", render: (value, row) => <Switch checked={value === 1} disabled={row.id === auth?.user.userId || !hasPermission(permissions, "system:user:edit")} onChange={(checked) => void api.updateStatus(row.id, checked ? 1 : 0).then(refresh)} />, title: t("pages.common.status"), width: 90 },
+    { dataIndex: "status", render: (_, row) => renderStatus(row), title: t("pages.common.status"), width: 90 },
     { dataIndex: "createdAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), sorter: true, title: t("pages.common.createdAt"), width: 180 },
-    { fixed: "right", render: (_, row) => row.id === auth?.user.userId ? null : <Space>
-      {hasPermission(permissions, "system:user:edit") ? <Button onClick={() => setDrawerUserId(row.id)} theme="borderless">{t("pages.common.edit")}</Button> : null}
-      {hasPermission(permissions, "system:user:resetPwd") ? <Button onClick={() => setResetUserId(row.id)} theme="borderless">{t("pages.iam.user.actions.resetPassword")}</Button> : null}
-      {hasPermission(permissions, "system:user:remove") ? <Popconfirm content={t("pages.iam.user.messages.deleteConfirm")} onConfirm={() => void remove([row.id])}><Button theme="borderless" type="danger">{t("pages.common.delete")}</Button></Popconfirm> : null}
-    </Space>, title: t("pages.common.actions"), width: 280 },
+    { render: (_, row) => <Space>{renderActions(row)}</Space>, title: t("pages.common.actions"), width: 280 },
   ];
   return <section className="feature-page iam-page" data-testid="user-page">
     <header className="feature-page-header"><Typography.Title heading={3}>{t("pages.iam.user.title")}</Typography.Title>{capabilities.organizationEnabled ? <Button aria-expanded={departmentFilterOpen} data-testid="user-department-filter-toggle" onClick={() => setDepartmentFilterOpen((value) => !value)}>{t(departmentFilterOpen ? "pages.common.collapse" : "pages.common.expand")} {t("pages.iam.user.fields.department")}</Button> : null}</header>
@@ -150,7 +158,8 @@ export default function UserPage() {
           {hasPermission(permissions, "system:user:import") ? <Button onClick={() => setImportOpen(true)}>{t("pages.iam.user.actions.import")}</Button> : null}
           {hasPermission(permissions, "system:user:export") ? <Button onClick={() => confirmExport({ confirm: t("pages.settings.exportConfirm"), error: t("pages.common.exportFailed"), filename: "users.xlsx", load: () => api.export(selected.length ? { ids: selected } : undefined), success: t("pages.common.exportSuccess"), title: t("pages.common.confirmTitle") })}>{t("pages.iam.user.actions.export")}</Button> : null}
         </Space></div>
-          <div data-testid="user-table"><Table<SysUser> columns={columns} dataSource={query.data?.list ?? []} loading={query.isPending} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum, pageSize: pagination?.pageSize ?? current.pageSize }))} pagination={{ currentPage: params.pageNum, pageSize: params.pageSize, showSizeChanger: true, total: query.data?.total ?? 0 }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.id === auth?.user.userId }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1300 }} /></div>
+          <div className="responsive-desktop-table" data-testid="user-table"><Table<SysUser> columns={columns} dataSource={query.data?.list ?? []} loading={query.isPending} onChange={({ pagination, sorter }) => setParams((current) => ({ ...current, orderBy: sorter?.dataIndex ? String(sorter.dataIndex) : undefined, orderDirection: sorter?.sortOrder === "ascend" ? "asc" : sorter?.sortOrder === "descend" ? "desc" : undefined, pageNum: pagination?.currentPage ?? current.pageNum, pageSize: pagination?.pageSize ?? current.pageSize }))} pagination={{ currentPage: params.pageNum, pageSize: params.pageSize, showSizeChanger: true, total: query.data?.total ?? 0 }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.id === auth?.user.userId }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1300 }} /></div>
+          <MobileRecordList testId="user-mobile-list">{(query.data?.list ?? []).map((row) => <MobileRecordCard key={row.id} testId={`user-mobile-card-${row.id}`}><MobileRecordTitle>{row.nickname || row.username}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.iam.user.fields.username")} value={row.username} />{capabilities.organizationEnabled ? <MobileRecordField label={t("pages.iam.user.fields.department")} value={row.deptName || t("pages.common.none")} /> : null}<MobileRecordField label={t("pages.iam.user.fields.roles")} value={row.roleNames?.join(", ") || t("pages.common.none")} /><MobileRecordField label={t("pages.common.status")} value={renderStatus(row)} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
         </Card>
       </div>
     </div>

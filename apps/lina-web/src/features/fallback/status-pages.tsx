@@ -22,6 +22,10 @@ export function NotFoundPage() {
   return <StatusPage code="404" detailKey="fallback.404.description" />;
 }
 
+export function NoAccessiblePage() {
+  return <StatusPage code="noAccess" detailKey="fallback.noAccess.description" />;
+}
+
 export function ServerErrorPage() {
   return <StatusPage code="500" detailKey="fallback.500.description" onRetry={() => window.location.reload()} />;
 }

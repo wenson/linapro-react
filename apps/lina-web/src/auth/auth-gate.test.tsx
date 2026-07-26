@@ -63,6 +63,7 @@ function renderRoutes(runtime: AuthRuntime, queryClient: QueryClient, initialPat
         ),
         path: "/private",
       },
+      { element: <div>Workbench root</div>, path: "/" },
     ],
     { initialEntries: [initialPath] },
   );
@@ -93,14 +94,14 @@ describe("AuthGate", () => {
     expect(await screen.findByText("Private workspace")).toBeVisible();
   });
 
-  it("uses the user's home path instead of the application root after root redirect login", async () => {
+  it("sends an authenticated login visit through the workbench landing resolver", async () => {
     const { queryClient, runtime, sessionStore } = createHarness();
     sessionStore.getState().commitTokens({ accessToken: "access", refreshToken: "refresh" });
     sessionStore.getState().completeAuthentication();
-    const router = renderRoutes(runtime, queryClient, "/auth/login?redirect=%2F");
+    const router = renderRoutes(runtime, queryClient, "/auth/login");
 
-    expect(await screen.findByText("Private workspace")).toBeVisible();
-    expect(router.state.location.pathname).toBe("/private");
+    expect(await screen.findByText("Workbench root")).toBeVisible();
+    expect(router.state.location.pathname).toBe("/");
   });
 
   it("keeps the stable tenant transition surface mounted during tenant selection", async () => {

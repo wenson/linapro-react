@@ -10,7 +10,11 @@ import enMessages from "#/locales/en-US/app.json";
 import { PageSurface } from "#/layout/page-surface";
 import { ComingSoonPage } from "#/features/fallback/status-pages";
 import { tabStore } from "#/layout/tab-store";
-import { findWorkbenchRoute, projectMenuTree } from "#/router/project-menu";
+import {
+  findWorkbenchRoute,
+  projectMenuTree,
+  resolveWorkbenchLandingPath,
+} from "#/router/project-menu";
 import { hostSupplementalRoutes } from "#/router/host-routes";
 import { RouteView } from "#/router/route-view";
 import type { AuthenticatedContext } from "#/auth/auth-context";
@@ -74,6 +78,57 @@ describe("menu projection", () => {
       permission: "system:developer:view",
       titleKey: "page.about.project.title",
     });
+  });
+
+  it("resolves the configured home page before the first visible leaf", () => {
+    const routes = projectMenuTree([
+      menu({ id: 1, path: "/first" }),
+      menu({ id: 2, path: "/preferred" }),
+    ]);
+    expect(resolveWorkbenchLandingPath("/preferred?source=login", routes)).toBe("/preferred");
+  });
+
+  it("falls back from an invalid home page to the first visible leaf", () => {
+    const routes = projectMenuTree([
+      menu({
+        component: "BasicLayout",
+        id: 1,
+        path: "/dashboard",
+        children: [menu({ id: 2, path: "analytics" })],
+      }),
+    ]);
+    expect(resolveWorkbenchLandingPath("/missing", routes)).toBe("/dashboard/analytics");
+  });
+
+  it("follows a parent redirect without selecting the parent layout", () => {
+    const routes = projectMenuTree([
+      menu({
+        component: "BasicLayout",
+        id: 1,
+        path: "/dashboard",
+        redirect: "/dashboard/analytics",
+        children: [menu({ id: 2, path: "analytics" })],
+      }),
+    ]);
+    expect(resolveWorkbenchLandingPath("/dashboard", routes)).toBe("/dashboard/analytics");
+  });
+
+  it("skips hidden and external pages when choosing the first visible leaf", () => {
+    const routes = projectMenuTree([
+      menu({ id: 1, meta: { hideInMenu: true, order: 1, title: "Hidden" }, path: "/hidden" }),
+      menu({
+        id: 2,
+        meta: { link: "https://example.com", openInNewWindow: true, order: 2, title: "External" },
+        path: "/external",
+      }),
+      menu({ id: 3, path: "/visible" }),
+    ]);
+    expect(resolveWorkbenchLandingPath("/", routes)).toBe("/visible");
+  });
+
+  it("uses the profile fallback and reports no landing page when even profile is unavailable", () => {
+    expect(resolveWorkbenchLandingPath("/missing", hostSupplementalRoutes)).toBe("/profile");
+    expect(resolveWorkbenchLandingPath("/missing", [])).toBeUndefined();
   });
 
   it("keeps the authenticated message center reachable without a sidebar menu", () => {

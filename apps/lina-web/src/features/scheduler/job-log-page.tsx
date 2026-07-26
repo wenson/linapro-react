@@ -21,6 +21,7 @@ import { createSystemJobApi } from "#/api/system/job";
 import type { JobLog } from "#/api/system/job";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 interface LogSearchValues {
@@ -191,6 +192,24 @@ export default function JobLogPage() {
     setPage(1);
   }
 
+  function renderActions(row: JobLog) {
+    return (
+      <Space>
+        <Button data-testid={`job-log-detail-${row.id}`} onClick={() => setDetailId(row.id)} theme="borderless">{t("pages.common.detail")}</Button>
+        {canCancel(row) ? (
+          <Popconfirm content={t("pages.scheduler.log.cancelConfirm")} onConfirm={() => void cancel(row)}>
+            <Button data-testid={`job-log-cancel-${row.id}`} theme="borderless" type="danger">{t("pages.scheduler.log.cancel")}</Button>
+          </Popconfirm>
+        ) : null}
+        {row.status !== "running" && can(permissions, "system:joblog:remove") ? (
+          <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void deleteOne(row)}>
+            <Button data-testid={`job-log-delete-row-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button>
+          </Popconfirm>
+        ) : null}
+      </Space>
+    );
+  }
+
   const columns: ColumnProps<JobLog>[] = [
     { dataIndex: "jobName", title: t("pages.scheduler.log.job"), width: 180 },
     { dataIndex: "trigger", title: t("pages.scheduler.log.trigger"), width: 110 },
@@ -206,22 +225,7 @@ export default function JobLogPage() {
     { dataIndex: "durationMs", title: t("pages.scheduler.log.duration"), width: 120 },
     { dataIndex: "errMsg", render: (value) => String(value || "-"), title: t("pages.scheduler.log.errorSummary"), width: 220 },
     {
-      fixed: "right",
-      render: (_, row) => (
-        <Space>
-          <Button data-testid={`job-log-detail-${row.id}`} onClick={() => setDetailId(row.id)} theme="borderless">{t("pages.common.detail")}</Button>
-          {canCancel(row) ? (
-            <Popconfirm content={t("pages.scheduler.log.cancelConfirm")} onConfirm={() => void cancel(row)}>
-              <Button data-testid={`job-log-cancel-${row.id}`} theme="borderless" type="danger">{t("pages.scheduler.log.cancel")}</Button>
-            </Popconfirm>
-          ) : null}
-          {row.status !== "running" && can(permissions, "system:joblog:remove") ? (
-            <Popconfirm content={t("pages.settings.deleteConfirm")} onConfirm={() => void deleteOne(row)}>
-              <Button data-testid={`job-log-delete-row-${row.id}`} theme="borderless" type="danger">{t("pages.common.delete")}</Button>
-            </Popconfirm>
-          ) : null}
-        </Space>
-      ),
+      render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 220,
     },
@@ -261,7 +265,7 @@ export default function JobLogPage() {
             <Button data-testid="job-log-delete" onClick={openClear} type="danger">{t("pages.common.delete")}</Button>
           ) : null}
         </div>
-        <div data-testid="job-log-table">
+        <div className="responsive-desktop-table" data-testid="job-log-table">
           <Table<JobLog>
             columns={columns}
             dataSource={list.data?.list ?? []}
@@ -270,8 +274,22 @@ export default function JobLogPage() {
             scroll={{ x: 1600 }}
           />
         </div>
+        <MobileRecordList testId="job-log-mobile-list">
+          {(list.data?.list ?? []).map((row) => (
+            <MobileRecordCard key={row.id} testId={`job-log-mobile-card-${row.id}`}>
+              <MobileRecordTitle>{row.jobName}</MobileRecordTitle>
+              <MobileRecordFields>
+                <MobileRecordField label={t("pages.scheduler.log.status")} value={<Tag color={statusColor(row.status)}>{statusLabel(row.status)}</Tag>} />
+                <MobileRecordField label={t("pages.scheduler.log.started")} value={formatTimestamp(row.startAt, i18n.resolvedLanguage || "en-US")} />
+                <MobileRecordField label={t("pages.scheduler.log.node")} value={row.nodeId || "-"} />
+                <MobileRecordField label={t("pages.scheduler.log.duration")} value={`${row.durationMs} ms`} />
+              </MobileRecordFields>
+              <MobileRecordActions>{renderActions(row)}</MobileRecordActions>
+            </MobileRecordCard>
+          ))}
+        </MobileRecordList>
       </Card>
-      <Modal footer={null} onCancel={() => setDetailId(undefined)} title={t("pages.scheduler.log.detailTitle")} visible={detailId !== undefined} width={900}>
+      <Modal footer={null} onCancel={() => setDetailId(undefined)} title={t("pages.scheduler.log.detailTitle")} visible={detailId !== undefined} width="min(900px, calc(100vw - 24px))">
         {detailData ? (
           <div className="scheduler-form-stack" data-testid="job-log-detail-modal">
             <Descriptions
@@ -315,6 +333,7 @@ export default function JobLogPage() {
         onCancel={() => setClearOpen(false)}
         title={t("pages.scheduler.log.deleteRangeTitle")}
         visible={clearOpen}
+        width="min(520px, calc(100vw - 24px))"
       >
         <div className="scheduler-form-stack">
           <div data-testid="job-log-delete-alert">

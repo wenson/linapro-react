@@ -1,4 +1,4 @@
-import { LineChart, PieChart } from "echarts/charts";
+import { BarChart, LineChart, PieChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import type { EChartsCoreOption } from "echarts/core";
@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 
 echarts.use([
   CanvasRenderer,
+  BarChart,
   GridComponent,
   LegendComponent,
   LineChart,
@@ -22,17 +23,36 @@ export function EChart({ ariaLabel, option }: { ariaLabel: string; option: EChar
     if (!element) {
       return;
     }
-    const chart = echarts.init(
-      element,
-      document.body.getAttribute("theme-mode") === "dark" ? "dark" : undefined,
-      { renderer: "canvas" },
-    );
-    chart.setOption(option, { notMerge: true });
-    const resizeObserver = new ResizeObserver(() => chart.resize());
+    let chart: ReturnType<typeof echarts.init> | undefined;
+    function renderWhenVisible(entries?: ResizeObserverEntry[]) {
+      const rect = entries?.find((entry) => entry.target === element)?.contentRect
+        ?? entries?.[0]?.contentRect
+        ?? element!.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+      if (!chart) {
+        const dark = document.documentElement.classList.contains("dark")
+          || document.body.getAttribute("theme-mode") === "dark";
+        chart = echarts.init(element, dark ? "dark" : undefined, { renderer: "canvas" });
+        chart.setOption(option, { notMerge: true });
+        return;
+      }
+      chart.resize();
+    }
+    const resizeObserver = new ResizeObserver(renderWhenVisible);
     resizeObserver.observe(element);
+    const themeObserver = new MutationObserver(() => {
+      chart?.dispose();
+      chart = undefined;
+      renderWhenVisible();
+    });
+    themeObserver.observe(document.documentElement, { attributeFilter: ["class"], attributes: true });
+    themeObserver.observe(document.body, { attributeFilter: ["theme-mode"], attributes: true });
     return () => {
       resizeObserver.disconnect();
-      chart.dispose();
+      themeObserver.disconnect();
+      chart?.dispose();
     };
   }, [option]);
 

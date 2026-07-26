@@ -29,7 +29,7 @@ export function UserImportDialog({ api, onClose, onSaved, open }: { api: SystemU
     } finally { setSubmitting(false); }
   }
   async function template() { downloadBlob(await api.getImportTemplate(), "user-import-template.xlsx"); }
-  return <Modal confirmLoading={submitting} footer={null} onCancel={onClose} title={t("pages.iam.user.import.title")} visible={open}><div data-testid="user-import-dialog">
+  return <Modal confirmLoading={submitting} footer={null} onCancel={onClose} title={t("pages.iam.user.import.title")} visible={open} width="min(520px, calc(100vw - 24px))"><div data-testid="user-import-dialog">
     <Upload accept=".xlsx,.xls" action="" beforeUpload={() => false} dragMainText={t("pages.iam.user.import.drag")} dragSubText={t("pages.iam.user.import.hint")} draggable fileList={fileList} limit={1} onChange={({ fileList: files }: OnChangeProps) => setFileList(files)} />
     <Checkbox checked={updateSupport} onChange={(event) => setUpdateSupport(Boolean(event.target.checked))}>{t("pages.iam.user.import.overwrite")}</Checkbox>
     <div className="iam-form-actions"><Button onClick={() => void template()}>{t("pages.iam.user.import.template")}</Button><Button disabled={!fileList[0]?.fileInstance} loading={submitting} onClick={() => void submit()} theme="solid" type="primary">{t("pages.iam.user.import.submit")}</Button></div>

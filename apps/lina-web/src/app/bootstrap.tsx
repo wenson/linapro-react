@@ -152,8 +152,8 @@ export async function bootstrapApp(dependencies: BootstrapDependencies = {}): Pr
     refreshDictionaries: () =>
       activeQueryClient.invalidateQueries({ queryKey: ["runtime", "dictionary"] }),
     refreshMessages: () => i18n.refreshCurrentMessages(),
-    resetDefaultRoute: async (homePath) => {
-      await router.navigate(homePath || "/", { replace: true });
+    resetDefaultRoute: async () => {
+      await router.navigate("/", { replace: true });
     },
   });
   const rootFactory = dependencies.createRoot ?? ((container) => createRoot(container));

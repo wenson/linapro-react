@@ -5,6 +5,7 @@ import Typography from "@douyinfe/semi-ui/lib/es/typography";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { useStore } from "zustand";
 
 import type { LoginParams } from "#/api/auth";
@@ -206,14 +207,14 @@ export function LoginPage({
             {(forgetPasswordEnabled || registerEnabled) ? (
               <div className="login-public-actions">
                 {forgetPasswordEnabled ? (
-                  <a data-testid="login-forgot-password" href="/auth/forget-password">
+                  <Link data-testid="login-forgot-password" to="/auth/forget-password">
                     {t("auth.forgotPassword")}
-                  </a>
+                  </Link>
                 ) : null}
                 {registerEnabled ? (
-                  <a data-testid="login-create-account" href="/auth/register">
+                  <Link data-testid="login-create-account" to="/auth/register">
                     {t("auth.createAccount")}
-                  </a>
+                  </Link>
                 ) : null}
               </div>
             ) : null}

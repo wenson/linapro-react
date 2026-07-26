@@ -92,6 +92,7 @@
     "404": { "description": "请求的工作台页面不存在。", "title": "页面不存在" },
     "500": { "description": "页面渲染失败，请重新加载。", "title": "页面错误" },
     "comingSoon": { "description": "该能力正在准备中，将在后续版本提供。", "title": "即将推出" },
+    "noAccess": { "description": "当前账户暂时没有可以访问的工作台页面。", "title": "没有可访问页面" },
     "offline": { "description": "请检查网络连接后重试。", "title": "网络已断开" },
     "retry": "重试",
     "unregistered": {
@@ -230,8 +231,13 @@
     "dashboard": {
       "analytics": {
         "cards": { "channels": "访问数量", "sales": "商业占比", "sources": "访问来源" },
+        "channels": { "client": "客户端", "mobile": "移动端", "other": "其他", "partner": "合作伙伴", "web": "网页" },
+        "months": { "apr": "四月", "aug": "八月", "dec": "十二月", "feb": "二月", "jan": "一月", "jul": "七月", "jun": "六月", "mar": "三月", "may": "五月", "nov": "十一月", "oct": "十月", "sep": "九月" },
         "overview": { "downloads": { "title": "下载量" }, "usage": { "title": "使用量" }, "users": { "title": "用户量" }, "visits": { "title": "访问量" } },
-        "sampleLabel": "示例数据 · 尚未接入实时分析接口", "samplePeriod": "示例时间范围：2026 年 1 月至 12 月", "tabs": { "trends": "流量趋势", "visits": "月访问量" }
+        "sampleLabel": "示例数据 · 尚未接入实时分析接口", "samplePeriod": "示例时间范围：2026 年 1 月至 12 月",
+        "sales": { "consulting": "咨询", "customization": "定制", "delivery": "交付" },
+        "tabs": { "trends": "流量趋势", "visits": "月访问量" },
+        "weekdays": { "fri": "周五", "mon": "周一", "sat": "周六", "sun": "周日", "thu": "周四", "tue": "周二", "wed": "周三" }
       },
       "analyticsDescription": "简洁展示工作台活动与服务健康状态。",
       "analyticsTitle": "分析页",
@@ -311,6 +317,7 @@
         "uploadFailed": "头像上传失败。"
       },
       "fields": { "account": "账号", "email": "邮箱", "lastLogin": "最后登录", "nickname": "昵称", "phone": "手机号", "sex": "性别" },
+      "loading": "正在加载个人资料……",
       "placeholders": { "email": "请输入邮箱地址", "nickname": "请输入昵称", "phone": "请输入手机号" },
       "notification": {
         "account": { "description": "接收账号和密码变更提醒。", "title": "账号提醒" },
@@ -337,7 +344,7 @@
       "dict": { "allowOverride": "允许租户覆盖", "cascadeConfirm": "删除字典类型将同时删除该类型下的所有字典数据，确认删除？", "editData": "编辑字典数据", "editType": "编辑字典类型", "exportAllConfirm": "是否导出全部字典类型和字典数据？", "exportSelectedConfirm": "是否导出选中的字典类型及其关联的字典数据？", "importDataOverwrite": "是否更新/覆盖已存在的字典数据", "importDataTitle": "字典数据导入", "importOverwrite": "是否更新/覆盖已存在的字典类型和字典数据", "importTitle": "字典管理导入", "label": "字典标签", "name": "字典名称", "selectType": "请选择左侧字典类型", "style": "标签样式", "styles": { "cyan": "青色", "danger": "危险", "default": "默认", "green": "绿色", "info": "信息", "orange": "橙色", "pink": "粉色", "primary": "主要", "purple": "紫色", "red": "红色", "success": "成功", "warning": "警告" }, "title": "字典管理", "type": "字典类型", "types": "字典类型", "value": "字典值" },
       "export": "导出",
       "exportConfirm": "确认导出当前筛选结果？",
-      "file": { "deleteSelectedConfirm": "确认删除选中的{{count}}条记录吗？", "detail": "详情", "download": "下载", "downloadFailed": "文件下载失败。", "downloadFallback": "直链下载不可用，已改用受保护下载通道。", "id": "文件 ID", "imageOnly": "只能上传图片文件。", "list": "文件列表", "name": "文件名", "original": "原始文件名", "pdfPreview": "PDF 预览", "preview": "文件预览", "previewImages": "预览图片", "scene": "使用场景", "size": "文件大小", "storedName": "存储文件名", "suffix": "文件类型", "title": "文件管理", "tooLarge": "文件不能超过 20 MB。", "upload": "文件上传", "uploadedAt": "上传时间", "uploader": "上传者", "uploadFailed": "文件上传失败。", "uploadImage": "图片上传", "uploadSuccess": "文件上传成功。", "url": "文件 URL" },
+      "file": { "deleteSelectedConfirm": "确认删除选中的{{count}}条记录吗？", "detail": "详情", "download": "下载", "downloadFailed": "文件下载失败。", "downloadFallback": "直链下载不可用，已改用受保护下载通道。", "id": "文件 ID", "imageOnly": "只能上传图片文件。", "list": "文件列表", "name": "文件名", "original": "原始文件名", "pdfPreview": "PDF 预览", "preview": "文件预览", "previewImages": "预览图片和 PDF", "scene": "使用场景", "size": "文件大小", "storedName": "存储文件名", "suffix": "文件类型", "title": "文件管理", "tooLarge": "文件不能超过 20 MB。", "upload": "文件上传", "uploadedAt": "上传时间", "uploader": "上传者", "uploadFailed": "文件上传失败。", "uploadImage": "图片上传", "uploadSuccess": "文件上传成功。", "url": "文件 URL" },
       "import": { "choose": "选择 Excel 文件", "drag": "点击或者拖拽到此处上传文件", "failureTitle": "导入失败", "hint": "允许导入xlsx, xls文件", "overwrite": "覆盖已有数据", "result": "导入结果", "submit": "开始导入", "successTitle": "成功导入", "summary": "成功 {{success}} 条，失败 {{fail}} 条", "template": "下载模板" },
       "importAction": "导入",
       "message": { "clear": "清空消息", "clearConfirm": "确认清空全部消息？", "clearSuccess": "消息已清空。", "detail": "消息详情", "empty": "暂无消息", "emptyDescription": "工作台和已启用插件的消息会显示在这里。", "open": "打开我的消息", "panelTitle": "通知", "readAll": "全部已读", "readAllSuccess": "全部消息已标记为已读。", "short": "消息", "title": "我的消息", "viewAll": "查看所有消息" },
@@ -626,6 +633,7 @@
     "navigation": { "mobile": "移动端导航", "open": "打开导航", "title": "导航" },
     "platform": "平台",
     "preferences": { "dark": "深色", "english": "English", "general": "通用", "language": "语言", "layout": "布局", "layoutDescription": "工作台布局跟随 LinaPro 运行时配置。", "light": "浅色", "open": "打开偏好设置", "shortcuts": "快捷键", "shortcutsDescription": "快捷键跟随当前工作台上下文。", "simplifiedChinese": "简体中文", "subtitle": "调整后即时预览", "theme": "主题", "themeDescription": "选择工作台配色主题。", "title": "偏好设置" },
+    "tabs": { "close": "关闭{{title}}", "open": "已打开页面" },
     "tenant": { "switch": "切换租户" },
     "user": { "logout": "退出登录", "menu": "用户菜单", "profile": "个人中心" }
   }

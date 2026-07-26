@@ -18,6 +18,7 @@ import { createSystemPluginApi, type PluginItem } from "#/api/system/plugin";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext, useAuthContextRefresh } from "#/auth/auth-context";
 import type { GovernanceMode } from "#/features/plugins/plugin-governance-dialog";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 
 const PluginGovernanceDialog = lazy(() => import("#/features/plugins/plugin-governance-dialog"));
 
@@ -160,6 +161,22 @@ export default function PluginPage() {
     return labels[state || "normal"] ?? state ?? "-";
   }
 
+  function typeLabel(type: string) {
+    return t(type === "dynamic" ? "pages.plugins.dynamic" : "pages.plugins.source");
+  }
+
+  function renderActions(row: PluginItem) {
+    return (
+      <Space>
+        <Button data-testid={`plugin-detail-button-${row.id}`} onClick={() => void open("detail", row)} theme="borderless">{t("pages.common.detail")}</Button>
+        {!isBuiltin(row) && row.installed !== 1 && can(permissions, "plugin:install") ? <Button data-testid={`plugin-install-${row.id}`} onClick={() => void open("install", row)} theme="borderless">{t("pages.plugins.install")}</Button> : null}
+        {!isBuiltin(row) && row.installed === 1 && row.upgradeAvailable && (row.runtimeState === "pending_upgrade" || row.runtimeState === "upgrade_failed") && can(permissions, "plugin:install") ? <Button data-testid={`plugin-upgrade-${row.id}`} onClick={() => void open("upgrade", row)} theme="borderless">{t(row.runtimeState === "upgrade_failed" ? "pages.plugins.retryUpgrade" : "pages.plugins.upgrade")}</Button> : null}
+        {!isBuiltin(row) && row.runtimeState === "abnormal" ? <Tooltip content={t("pages.plugins.manualRepairHint")}><span><Button data-testid={`plugin-abnormal-repair-${row.id}`} disabled theme="borderless" type="danger">{t("pages.plugins.manualRepair")}</Button></span></Tooltip> : null}
+        {!isBuiltin(row) && row.installed === 1 && can(permissions, "plugin:uninstall") ? <Button data-testid={`plugin-uninstall-${row.id}`} onClick={() => void open("uninstall", row)} theme="borderless" type="danger">{t("pages.plugins.uninstall")}</Button> : null}
+      </Space>
+    );
+  }
+
   const columns: ColumnProps<PluginItem>[] = [
     {
       dataIndex: "name",
@@ -217,38 +234,7 @@ export default function PluginPage() {
       width: 132,
     },
     {
-      fixed: "right",
-      render: (_, row) => (
-        <Space>
-          <Button data-testid={`plugin-detail-button-${row.id}`} onClick={() => void open("detail", row)} theme="borderless">
-            {t("pages.common.detail")}
-          </Button>
-          {!isBuiltin(row) && row.installed !== 1 && can(permissions, "plugin:install") ? (
-            <Button data-testid={`plugin-install-${row.id}`} onClick={() => void open("install", row)} theme="borderless">
-              {t("pages.plugins.install")}
-            </Button>
-          ) : null}
-          {!isBuiltin(row) && row.installed === 1 && row.upgradeAvailable && (row.runtimeState === "pending_upgrade" || row.runtimeState === "upgrade_failed") && can(permissions, "plugin:install") ? (
-            <Button data-testid={`plugin-upgrade-${row.id}`} onClick={() => void open("upgrade", row)} theme="borderless">
-              {t(row.runtimeState === "upgrade_failed" ? "pages.plugins.retryUpgrade" : "pages.plugins.upgrade")}
-            </Button>
-          ) : null}
-          {!isBuiltin(row) && row.runtimeState === "abnormal" ? (
-            <Tooltip content={t("pages.plugins.manualRepairHint")}>
-              <span>
-                <Button data-testid={`plugin-abnormal-repair-${row.id}`} disabled theme="borderless" type="danger">
-                  {t("pages.plugins.manualRepair")}
-                </Button>
-              </span>
-            </Tooltip>
-          ) : null}
-          {!isBuiltin(row) && row.installed === 1 && can(permissions, "plugin:uninstall") ? (
-            <Button data-testid={`plugin-uninstall-${row.id}`} onClick={() => void open("uninstall", row)} theme="borderless" type="danger">
-              {t("pages.plugins.uninstall")}
-            </Button>
-          ) : null}
-        </Space>
-      ),
+      render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 250,
     },
@@ -326,7 +312,7 @@ export default function PluginPage() {
             ) : null}
           </Space>
         </div>
-        <div className="plugin-table" data-testid="plugin-table">
+        <div className="plugin-table responsive-desktop-table" data-testid="plugin-table">
           <Table<PluginItem>
             columns={columns}
             dataSource={rows}
@@ -336,6 +322,20 @@ export default function PluginPage() {
             scroll={{ x: 980 }}
           />
         </div>
+        <MobileRecordList testId="plugin-mobile-list">
+          {rows.map((row) => (
+            <MobileRecordCard key={row.id} testId={`plugin-mobile-card-${row.id}`}>
+              <MobileRecordTitle>{row.name}</MobileRecordTitle>
+              <MobileRecordFields>
+                <MobileRecordField label={t("pages.plugins.id")} value={row.id} />
+                <MobileRecordField label={t("pages.plugins.type")} value={typeLabel(row.type)} />
+                <MobileRecordField label={t("pages.plugins.version")} value={effectiveVersion(row)} />
+                <MobileRecordField label={t("pages.plugins.runtimeState")} value={<Tag color={row.runtimeState === "abnormal" || row.runtimeState === "upgrade_failed" ? "red" : "green"}>{runtimeLabel(row.runtimeState)}</Tag>} />
+              </MobileRecordFields>
+              <MobileRecordActions>{renderActions(row)}</MobileRecordActions>
+            </MobileRecordCard>
+          ))}
+        </MobileRecordList>
       </Card>
       {dialog ? (
         <Suspense fallback={<p role="status">{t("pages.common.loading")}</p>}>

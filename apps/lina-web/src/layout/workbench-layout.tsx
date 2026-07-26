@@ -13,6 +13,7 @@ import { useStore } from "zustand";
 
 import { AuthRuntime } from "#/auth/auth-runtime";
 import { applyThemePreference } from "#/app/theme";
+import { NoAccessiblePage } from "#/features/fallback/status-pages";
 import { WorkbenchNavigation } from "#/layout/navigation";
 import { TabStrip } from "#/layout/tab-strip";
 import { tabStore } from "#/layout/tab-store";
@@ -23,13 +24,14 @@ import type { HostPageRegistry, WorkbenchRoute } from "#/router/contracts";
 import { safeNavigationTarget } from "#/router/url-safety";
 import { useRuntimeI18n } from "#/runtime/i18n-context";
 
-export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, headerActionsAfter, headerActionsBefore, logoUrl, registry, routes, runtime, userDropdownAfter }: {
+export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, headerActionsAfter, headerActionsBefore, logoUrl, registry, rootLandingPath, routes, runtime, userDropdownAfter }: {
   appName: string;
   contentNotice?: ReactNode;
   defaultAvatarUrl: string;
   headerActionsAfter?: ReactNode;
   headerActionsBefore?: ReactNode;
   registry: HostPageRegistry;
+  rootLandingPath?: string | null;
   logoUrl: string;
   routes: readonly WorkbenchRoute[];
   runtime: AuthRuntime;
@@ -50,6 +52,7 @@ export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, head
   const [mobileOpen, setMobileOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const route = useMemo(() => findWorkbenchRoute(routes, location.pathname), [location.pathname, routes]);
+  const isRootPath = location.pathname.replace(/\/+$/, "") === "";
   const routeTrail = useMemo(() => findRouteTrail(routes, location.pathname), [location.pathname, routes]);
   const routePaths = useMemo(
     () => new Set(flattenRoutes(routes).map((item) => item.path)),
@@ -68,6 +71,12 @@ export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, head
   useEffect(() => {
     retainTabs(routePaths);
   }, [retainTabs, routePaths]);
+
+  useEffect(() => {
+    if (isRootPath && rootLandingPath) {
+      void navigate(rootLandingPath, { replace: true });
+    }
+  }, [isRootPath, navigate, rootLandingPath]);
 
   useEffect(() => {
     if (route && !route.hideInTab && !route.externalHref) {
@@ -164,7 +173,15 @@ export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, head
           </Breadcrumb>
         ) : null}
         <Layout.Content className="workbench-content">
-          {route ? null : <RouteView registry={registry} />}
+          {route ? null : isRootPath && rootLandingPath !== undefined ? (
+            rootLandingPath ? (
+              <p aria-live="polite" role="status">{t("workbench.loadingPage")}</p>
+            ) : (
+              <NoAccessiblePage />
+            )
+          ) : (
+            <RouteView registry={registry} />
+          )}
           {renderedRoutes.map((renderedRoute) => (
             <div
               data-route-cache-path={renderedRoute.path}
@@ -184,7 +201,7 @@ export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, head
         onCancel={() => setMobileOpen(false)}
         title={t("workbench.navigation.title")}
         visible={mobileOpen}
-        width={320}
+        width="min(320px, 100vw)"
       >
         <WorkbenchNavigation activePath={location.pathname} onNavigate={go} routes={routes} />
       </SideSheet>
@@ -201,7 +218,7 @@ export function WorkbenchLayout({ appName, contentNotice, defaultAvatarUrl, head
           </div>
         )}
         visible={preferencesOpen}
-        width={420}
+        width="min(420px, 100vw)"
       >
         <Tabs>
           <Tabs.TabPane itemKey="theme" tab={t("workbench.preferences.theme")}>

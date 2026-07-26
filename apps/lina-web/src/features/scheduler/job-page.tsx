@@ -22,6 +22,7 @@ import { createSystemJobApi } from "#/api/system/job";
 import type { JobGroup, JobPayload, JobRecord } from "#/api/system/job";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 interface JobFilters {
@@ -370,6 +371,42 @@ export default function JobPage() {
     return t("pages.scheduler.job.userCreated");
   }
 
+  function renderActions(row: JobRecord) {
+    const pluginPaused = row.status === "paused_by_plugin";
+    const shellBlocked = row.taskType === "shell" && !shellAllowed;
+    const mayTrigger = can(permissions, "system:job:trigger");
+    const mayEdit = row.isBuiltin !== 1 && can(permissions, "system:job:edit");
+    const mayReset = row.isBuiltin !== 1 && can(permissions, "system:job:reset");
+    const mayDelete = row.isBuiltin !== 1 && can(permissions, "system:job:remove");
+    return (
+      <Space>
+        {mayTrigger ? pluginPaused ? (
+          <Tooltip content={t("pages.scheduler.job.pluginPausedTooltip")}>
+            <span><Button data-testid={`job-trigger-${row.id}`} disabled theme="borderless">{t("pages.scheduler.job.trigger")}</Button></span>
+          </Tooltip>
+        ) : (
+          <Popconfirm cancelText={t("pages.common.cancel")} confirmText={t("pages.common.confirm")} content={t("pages.scheduler.job.triggerConfirm")} onConfirm={() => void trigger(row)}>
+            <Button data-testid={`job-trigger-${row.id}`} theme="borderless">{t("pages.scheduler.job.trigger")}</Button>
+          </Popconfirm>
+        ) : null}
+        {row.isBuiltin === 1 ? (
+          <Button data-testid={`job-edit-${row.id}`} onClick={() => void open(row)} theme="borderless">{t("pages.common.detail")}</Button>
+        ) : mayEdit ? shellBlocked || pluginPaused ? (
+          <Tooltip content={pluginPaused ? t("pages.scheduler.job.pluginPausedTooltip") : shellBlockedReason()}>
+            <span><Button data-testid={`job-edit-${row.id}`} disabled theme="borderless">{t("pages.common.edit")}</Button></span>
+          </Tooltip>
+        ) : (
+          <Button data-testid={`job-edit-${row.id}`} onClick={() => void open(row)} theme="borderless">{t("pages.common.edit")}</Button>
+        ) : null}
+        {mayReset || mayDelete ? (
+          <Dropdown render={<Dropdown.Menu>{mayReset ? <Dropdown.Item data-testid={`job-reset-${row.id}`} onClick={() => void reset(row)}>{t("pages.scheduler.job.reset")}</Dropdown.Item> : null}{mayDelete ? <Dropdown.Item><Popconfirm content={t("pages.scheduler.job.deleteConfirm")} onConfirm={() => void remove(row)}><span data-testid={`job-delete-${row.id}`}>{t("pages.common.delete")}</span></Popconfirm></Dropdown.Item> : null}</Dropdown.Menu>} trigger="click">
+            <Button data-testid={`job-more-${row.id}`} theme="borderless">{t("pages.scheduler.job.more")}</Button>
+          </Dropdown>
+        ) : null}
+      </Space>
+    );
+  }
+
   const columns: ColumnProps<JobRecord>[] = [
     { dataIndex: "name", title: t("pages.scheduler.job.name"), width: 180 },
     { dataIndex: "groupName", title: t("pages.scheduler.job.group"), width: 140 },
@@ -405,65 +442,7 @@ export default function JobPage() {
     { dataIndex: "stopReason", render: (value) => value ? <Tag color="amber">{String(value)}</Tag> : "-", title: t("pages.scheduler.job.stopReason"), width: 180 },
     { dataIndex: "updatedAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), title: t("pages.common.updatedAt"), width: 180 },
     {
-      fixed: "right",
-      render: (_, row) => {
-        const pluginPaused = row.status === "paused_by_plugin";
-        const shellBlocked = row.taskType === "shell" && !shellAllowed;
-        const mayTrigger = can(permissions, "system:job:trigger");
-        const mayEdit = row.isBuiltin !== 1 && can(permissions, "system:job:edit");
-        const mayReset = row.isBuiltin !== 1 && can(permissions, "system:job:reset");
-        const mayDelete = row.isBuiltin !== 1 && can(permissions, "system:job:remove");
-        return (
-          <Space>
-            {mayTrigger ? pluginPaused ? (
-              <Tooltip content={t("pages.scheduler.job.pluginPausedTooltip")}>
-                <span><Button data-testid={`job-trigger-${row.id}`} disabled theme="borderless">{t("pages.scheduler.job.trigger")}</Button></span>
-              </Tooltip>
-            ) : (
-              <Popconfirm
-                cancelText={t("pages.common.cancel")}
-                confirmText={t("pages.common.confirm")}
-                content={t("pages.scheduler.job.triggerConfirm")}
-                onConfirm={() => void trigger(row)}
-              >
-                <Button data-testid={`job-trigger-${row.id}`} theme="borderless">{t("pages.scheduler.job.trigger")}</Button>
-              </Popconfirm>
-            ) : null}
-            {row.isBuiltin === 1 ? (
-              <Button data-testid={`job-edit-${row.id}`} onClick={() => void open(row)} theme="borderless">{t("pages.common.detail")}</Button>
-            ) : mayEdit ? shellBlocked || pluginPaused ? (
-              <Tooltip content={pluginPaused ? t("pages.scheduler.job.pluginPausedTooltip") : shellBlockedReason()}>
-                <span><Button data-testid={`job-edit-${row.id}`} disabled theme="borderless">{t("pages.common.edit")}</Button></span>
-              </Tooltip>
-            ) : (
-              <Button data-testid={`job-edit-${row.id}`} onClick={() => void open(row)} theme="borderless">{t("pages.common.edit")}</Button>
-            ) : null}
-            {mayReset || mayDelete ? (
-              <Dropdown
-                render={(
-                  <Dropdown.Menu>
-                    {mayReset ? (
-                      <Dropdown.Item data-testid={`job-reset-${row.id}`} onClick={() => void reset(row)}>
-                        {t("pages.scheduler.job.reset")}
-                      </Dropdown.Item>
-                    ) : null}
-                    {mayDelete ? (
-                      <Dropdown.Item>
-                        <Popconfirm content={t("pages.scheduler.job.deleteConfirm")} onConfirm={() => void remove(row)}>
-                          <span data-testid={`job-delete-${row.id}`}>{t("pages.common.delete")}</span>
-                        </Popconfirm>
-                      </Dropdown.Item>
-                    ) : null}
-                  </Dropdown.Menu>
-                )}
-                trigger="click"
-              >
-                <Button data-testid={`job-more-${row.id}`} theme="borderless">{t("pages.scheduler.job.more")}</Button>
-              </Dropdown>
-            ) : null}
-          </Space>
-        );
-      },
+      render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 280,
     },
@@ -546,7 +525,7 @@ export default function JobPage() {
             <Button data-testid="job-add" onClick={() => void open("new")} theme="solid" type="primary">{t("pages.common.add")}</Button>
           ) : null}
         </div>
-        <div data-testid="job-table">
+        <div className="responsive-desktop-table" data-testid="job-table">
           <Table<JobRecord>
             columns={columns}
             dataSource={list.data?.list ?? []}
@@ -555,12 +534,26 @@ export default function JobPage() {
             scroll={{ x: 1900 }}
           />
         </div>
+        <MobileRecordList testId="job-mobile-list">
+          {(list.data?.list ?? []).map((row) => (
+            <MobileRecordCard key={row.id} testId={`job-mobile-card-${row.id}`}>
+              <MobileRecordTitle>{row.name}</MobileRecordTitle>
+              <MobileRecordFields>
+                <MobileRecordField label={t("pages.scheduler.job.group")} value={row.groupName || "-"} />
+                <MobileRecordField label={t("pages.common.status")} value={<Tag color={row.status === "enabled" ? "green" : row.status === "paused_by_plugin" ? "red" : "grey"}>{statusLabel(row.status)}</Tag>} />
+                <MobileRecordField label={t("pages.scheduler.job.cronExpr")} value={row.cronExpr} />
+                <MobileRecordField label={t("pages.scheduler.job.scope")} value={scopeLabel(row.scope)} />
+              </MobileRecordFields>
+              <MobileRecordActions>{renderActions(row)}</MobileRecordActions>
+            </MobileRecordCard>
+          ))}
+        </MobileRecordList>
       </Card>
       <SideSheet
         onCancel={close}
         title={t(editing === "new" ? "pages.scheduler.job.create" : editing?.isBuiltin === 1 ? "pages.scheduler.job.detail" : "pages.scheduler.job.edit")}
         visible={editing !== undefined}
-        width={760}
+        width="min(760px, 100vw)"
       >
         {editing && editing !== "new" && editing.isBuiltin === 1 ? (
           <div className="scheduler-form-stack">
