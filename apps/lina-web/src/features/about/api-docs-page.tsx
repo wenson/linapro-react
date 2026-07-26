@@ -11,38 +11,43 @@ export default function ApiDocsPage() {
   const { apiClient, config } = useWorkbenchRuntime();
   const { i18n, t } = useTranslation();
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<"failed" | "loading" | "ready">("loading");
+  const language = i18n.resolvedLanguage === "zh-CN" ? "zh-CN" : "en-US";
+  const requestKey = `${language}:${attempt}`;
+  const [requestState, setRequestState] = useState<{
+    key: string;
+    status: "failed" | "ready";
+  }>();
+  const state = requestState?.key === requestKey ? requestState.status : "loading";
   const source = useMemo(() => {
     const params = new URLSearchParams({
       api: "/api.json",
-      lang: i18n.resolvedLanguage === "zh-CN" ? "zh-CN" : "en-US",
+      lang: language,
     });
     return resolveWorkspaceAssetUrl(
       `/stoplight/apidocs.html?${params.toString()}`,
       config.workspace.basePath,
     );
-  }, [config.workspace.basePath, i18n.resolvedLanguage]);
+  }, [config.workspace.basePath, language]);
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 10_000);
-    setState("loading");
-    void apiClient.requestRaw(`/api.json?lang=${encodeURIComponent(i18n.resolvedLanguage === "zh-CN" ? "zh-CN" : "en-US")}`, {
+    void apiClient.requestRaw(`/api.json?lang=${encodeURIComponent(language)}`, {
       cache: "no-store",
       signal: controller.signal,
     }).then((response) => {
       if (!response.ok) throw new Error(`OpenAPI preflight failed with ${response.status}`);
-      if (!controller.signal.aborted) setState("ready");
+      if (!controller.signal.aborted) setRequestState({ key: requestKey, status: "ready" });
     }).catch(() => {
-      if (!controller.signal.aborted) setState("failed");
+      if (!controller.signal.aborted) setRequestState({ key: requestKey, status: "failed" });
     }).finally(() => window.clearTimeout(timer));
 
     return () => {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [apiClient, attempt, i18n.resolvedLanguage]);
+  }, [apiClient, language, requestKey]);
 
   if (state === "failed") {
     return (
