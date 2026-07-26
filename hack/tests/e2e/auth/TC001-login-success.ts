@@ -24,7 +24,7 @@ test.describe('TC-1 登录验证', () => {
     await expect(adminPage.getByText(/页面不存在|Page not found|\b404\b/i)).toHaveCount(0);
   });
 
-  test('TC001c: 从工作台根路径登录后进入用户默认首页而非根路径 404', async ({
+  test('TC-1c: 从工作台根路径登录后进入用户默认首页而非根路径 404', async ({
     page,
   }) => {
     const loginPage = new LoginPage(page);

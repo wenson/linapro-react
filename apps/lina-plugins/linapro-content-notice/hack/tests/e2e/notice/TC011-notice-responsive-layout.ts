@@ -3,14 +3,14 @@ import { prepareSourcePluginsBaseline } from "@host-tests/fixtures/plugin";
 
 import { NoticePage } from "../../pages/NoticePage";
 
-test.describe("TC011 通知公告响应式布局", () => {
+test.describe("TC-11 通知公告响应式布局", () => {
   test.beforeAll(async () => {
     await prepareSourcePluginsBaseline(["linapro-content-notice"], {
       loadMockData: false,
     });
   });
 
-  test("TC011a: 筛选按钮、桌面表格和手机信息卡均完整可用", async ({
+  test("TC-11a: 筛选按钮、桌面表格和手机信息卡均完整可用", async ({
     adminPage,
   }) => {
     const noticeRoute =

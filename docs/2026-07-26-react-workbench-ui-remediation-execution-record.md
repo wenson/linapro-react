@@ -94,16 +94,16 @@
 | 命令 | 退出码 | 结果 |
 | --- | --- | --- |
 | `pnpm --dir apps/lina-web typecheck` | `0` | 类型检查通过。 |
-| `pnpm --dir apps/lina-web test:unit` | `0` | 71 个测试文件、265 项测试全部通过。 |
+| `pnpm --dir apps/lina-web test:unit` | `0` | 71 个测试文件、273 项测试全部通过。 |
 | 7 个接口文档与响应式定向测试文件 | `0` | 34 项测试全部通过，覆盖两种基础路径、Windows 路径及各列表组的数据、权限和操作一致性。 |
 | `pnpm --dir apps/lina-web lint` | `0` | 静态检查通过。 |
 | `pnpm --dir apps/lina-web build` | `0` | 生产构建通过。 |
 | `make i18n.check` | `0` | 双语静态检查通过，0 个违规。 |
 | `pnpm --dir hack/tests exec tsc --noEmit -p tsconfig.json` | `0` | E2E 测试 TypeScript 检查通过。 |
-| `node hack/tests/scripts/validate-e2e.mjs` | `0` | 272 个 E2E 文件、19 个范围通过治理校验。 |
-| 8 个受影响 E2E 文件 | `0` | 宿主、AI、通知共 12 项测试全部通过，耗时约 1.8 分钟。 |
+| `node hack/tests/scripts/validate-e2e.mjs` | `0` | 278 个 E2E 文件、19 个范围通过治理校验。 |
+| 8 个受影响 E2E 文件 | `0` | 宿主、AI、通知共 14 项测试全部通过；远端精简插件表格列后同步修正旧断言，相关桌面和手机用例复测通过。 |
 | `TC001-analytics-overview.ts`最终加固复测 | `0` | 2 项测试通过；截图前等待像素稳定，中文折线图和英文深色 12 根柱子完整可见。 |
-| 在线会话数量探针 | `0` | 两轮目标 E2E 运行前后基线均为 121；最终单项复测后为 119，没有持续增长。 |
+| 在线会话数量探针 | `0` | 变基前两轮目标 E2E 的基线均为 121；同步远端后的最终复测从 52 降至 46，没有持续增长。 |
 | `git diff --check` | `0` | 没有空白符错误。 |
 | 受保护目录与插件导入静态检查 | `0` | 没有修改`apps/lina-core/`或`apps/lina-vben/`；根`hack/`修改已获 owner 授权；插件未导入宿主私有`#/*`。 |
 | 新增样式检查 | `0` | 本次新增样式没有覆盖`.semi-*`内部选择器。 |
@@ -114,12 +114,12 @@
 ```bash
 E2E_BROWSER_CHANNEL=chrome pnpm --dir hack/tests exec playwright test --config playwright.config.ts \
   hack/tests/e2e/auth/TC001-login-success.ts \
-  hack/tests/e2e/auth/TC011-public-auth-mobile-layout.ts \
+  hack/tests/e2e/auth/TC012-public-auth-mobile-layout.ts \
   hack/tests/e2e/dashboard/TC001-analytics-overview.ts \
-  hack/tests/e2e/dashboard/TC008-mobile-workbench-shell.ts \
+  hack/tests/e2e/dashboard/TC009-mobile-workbench-shell.ts \
   hack/tests/e2e/profile/TC001-profile-loading-mobile.ts \
   hack/tests/e2e/responsive/TC001-host-core-lists.ts \
-  apps/lina-plugins/linapro-ai-core/hack/tests/e2e/TC009-responsive-lists.ts \
+  apps/lina-plugins/linapro-ai-core/hack/tests/e2e/TC010-responsive-lists.ts \
   apps/lina-plugins/linapro-content-notice/hack/tests/e2e/notice/TC011-notice-responsive-layout.ts
 ```
 
@@ -264,9 +264,9 @@ E2E_BROWSER_CHANNEL=chrome pnpm --dir hack/tests exec playwright test --config p
 
 ### 验证证据
 
-- 前端类型检查、71 个测试文件共 265 项单元测试、`lint`、生产构建、双语检查、E2E TypeScript、E2E 治理和空白符检查：通过。
-- 受影响 E2E：宿主、AI 和通知共 12 项测试通过；加固后的分析页 2 项测试再次通过。
-- 会话清理：两轮目标 E2E 前后基线均为 121；后续单项复测后的基线为 119，没有持续增长。
+- 前端类型检查、71 个测试文件共 273 项单元测试、`lint`、生产构建、双语检查、E2E TypeScript、E2E 治理和空白符检查：通过。
+- 受影响 E2E：宿主、AI 和通知共 14 项测试通过；远端列语义同步后的桌面和手机列表用例再次通过。
+- 会话清理：变基前两轮目标 E2E 的基线均为 121；同步远端后的最终复测从 52 降至 46，没有持续增长。
 - 应用内浏览器：28 个页面、三种视口、双语和明暗主题代表性回归通过；最终手机用户页测得页面宽度与滚动宽度均为 390。
 - 截图审查：最新参数、任务、插件、AI 档位、通知、手机标签和分析页截图均无横向溢出、重叠、截断或原始翻译键，英文深色月访问量完整显示 12 根柱子。
 
@@ -292,7 +292,7 @@ E2E_BROWSER_CHANNEL=chrome pnpm --dir hack/tests exec playwright test --config p
 | 2 | `hack/tests/fixtures/auth.ts`与额外浏览器上下文 | 普通`page`在清理阶段读取并退出自身会话；额外上下文显式退出。 | 登录成功、失败和异常路径均不会阻断其余清理。 |
 | 3 | `hack/tests/support/auth-session.ts`、API 与插件测试 helper | 已登录 API 请求上下文在`dispose()`前统一退出，独立令牌在`finally`中退出。 | 临时用户、权限用户和插件生命周期测试不再持续增加在线记录。 |
 | 4 | 登录、分析、认证、布局和列表相关 E2E | 已加入最终落点、真实图表像素、双语、深色、`1366×768`桌面宽表和`390×844`手机信息卡断言。 | `UIR-013`、`UIR-019`、`UIR-035`和`UIR-056`通过。 |
-| 5 | 重复运行与会话探针 | 连续两轮运行同一组 12 项测试，并在前后测量排除探针自身后的在线数量。 | 两轮前后均为 121，相关任务全部关闭。 |
+| 5 | 重复运行与会话探针 | 变基前连续两轮运行同一组 12 项测试，并在前后测量排除探针自身后的在线数量。 | 两轮前后均为 121；同步远端后扩展为 14 项并再次通过，相关任务全部关闭。 |
 
 ## 变更文件摘要
 

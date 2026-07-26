@@ -8,7 +8,7 @@ const listCases = [
   { fields: ["参数键", "值类型", "参数值"], headers: ["参数名称", "参数键", "值类型", "操作"], mobile: "config-mobile-list", name: "config", path: "/system/config", table: "config-table" },
   { fields: ["字典类型", "状态"], headers: ["字典名称", "字典类型", "状态", "操作"], mobile: "dict-type-mobile-list", name: "dict", path: "/system/dict", table: "dict-type-table" },
   { fields: ["所属分组", "状态", "定时表达式"], headers: ["任务名称", "分组", "状态", "操作"], mobile: "job-mobile-list", name: "job", path: "/system/job", table: "job-table" },
-  { fields: ["插件标识", "插件类型", "版本号", "运行时状态"], headers: ["插件名称", "版本号", "插件类型", "运行时状态", "操作"], mobile: "plugin-mobile-list", name: "plugin", path: "/system/plugin", table: "plugin-table" },
+  { fields: ["插件标识", "插件类型", "版本号", "运行时状态"], headers: ["插件名称", "版本号", "状态", "运行时状态", "操作"], mobile: "plugin-mobile-list", name: "plugin", path: "/system/plugin", table: "plugin-table" },
 ] as const;
 
 test.describe("TC-1 宿主核心列表响应式布局", () => {
