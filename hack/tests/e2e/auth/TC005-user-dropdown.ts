@@ -1,4 +1,7 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+
+import type { APIRequestContext } from '@playwright/test';
 
 import { request as playwrightRequest } from '@playwright/test';
 
@@ -69,15 +72,6 @@ function getAvatarFallbackText(profile: CurrentUserProfile) {
   return text ? text.slice(-2).toUpperCase() : '';
 }
 
-function getUserDropdownLocators(adminPage: Page) {
-  return {
-    menu: adminPage.getByTestId('layout-user-dropdown-menu'),
-    profile: adminPage.getByTestId('layout-user-dropdown-profile'),
-    trigger: adminPage.getByTestId('layout-user-dropdown-trigger'),
-    triggerAvatar: adminPage.getByTestId('layout-user-dropdown-trigger-avatar'),
-  };
-}
-
 test.describe('TC005 用户头像下拉菜单', () => {
   let adminApi: APIRequestContext;
   let currentUserProfile: CurrentUserProfile;
@@ -92,17 +86,11 @@ test.describe('TC005 用户头像下拉菜单', () => {
   });
 
   test('TC005a: 下拉菜单不显示文档、Github、问题&帮助', async ({
-    adminPage,
+    mainLayout,
   }) => {
-    await adminPage.goto('/');
-    await adminPage.waitForLoadState('networkidle');
+    await mainLayout.openUserDropdown();
 
-    const { menu: dropdownContent, trigger: avatarTrigger } =
-      getUserDropdownLocators(adminPage);
-    await avatarTrigger.click();
-
-    await expect(dropdownContent).toBeVisible();
-    const menuItems = dropdownContent.locator('[role="menuitem"]');
+    const menuItems = mainLayout.userDropdownMenu.locator('[role="menuitem"]');
     const count = await menuItems.count();
     const menuTexts: string[] = [];
     for (let i = 0; i < count; i++) {
@@ -120,63 +108,68 @@ test.describe('TC005 用户头像下拉菜单', () => {
   });
 
   test('TC005b: 下拉菜单显示正确的用户昵称和邮箱', async ({
-    adminPage,
+    adminPage, mainLayout,
   }) => {
-    await adminPage.goto('/');
-    await adminPage.waitForLoadState('networkidle');
-
-    const { menu: dropdownContent, profile, trigger: avatarTrigger } =
-      getUserDropdownLocators(adminPage);
-    await avatarTrigger.click();
+    await mainLayout.openUserDropdown();
 
     await expect(
       adminPage.getByText('ann.vben@gmail.com'),
     ).toHaveCount(0);
 
-    await expect(dropdownContent).toBeVisible();
-    await expect(profile.getByTestId('layout-user-dropdown-name')).toHaveText(
+    await expect(mainLayout.userDropdownName).toHaveText(
       currentUserProfile.realName,
     );
     if (currentUserProfile.username) {
-      await expect(profile.getByTestId('layout-user-dropdown-tag')).toHaveText(
-        currentUserProfile.username,
-      );
+      await expect(mainLayout.userDropdownHandle).toHaveText(`@${currentUserProfile.username}`);
     } else {
-      await expect(profile.getByTestId('layout-user-dropdown-tag')).toHaveCount(
-        0,
-      );
+      await expect(mainLayout.userDropdownHandle).toHaveCount(0);
     }
     if (currentUserProfile.email) {
-      await expect(
-        profile.getByTestId('layout-user-dropdown-description'),
-      ).toHaveText(currentUserProfile.email);
+      await expect(mainLayout.userDropdownEmail).toHaveText(currentUserProfile.email);
     } else {
-      await expect(
-        profile.getByTestId('layout-user-dropdown-description'),
-      ).toHaveText('');
+      await expect(mainLayout.userDropdownEmail).toHaveCount(0);
     }
+
+    const name = await mainLayout.userDropdownName.boundingBox();
+    expect(name).not.toBeNull();
+    if (currentUserProfile.username) {
+      const handle = await mainLayout.userDropdownHandle.boundingBox();
+      expect(handle).not.toBeNull();
+      expect(handle!.y).toBeGreaterThan(name!.y);
+    }
+    if (currentUserProfile.email) {
+      const handle = currentUserProfile.username
+        ? await mainLayout.userDropdownHandle.boundingBox()
+        : null;
+      const email = await mainLayout.userDropdownEmail.boundingBox();
+      expect(email).not.toBeNull();
+      expect(email!.y).toBeGreaterThan((handle ?? name)!.y);
+    }
+
+    const timestamp = new Date();
+    const date = timestamp.toISOString().slice(0, 10).replaceAll('-', '');
+    const time = timestamp.toTimeString().slice(0, 8).replaceAll(':', '');
+    const screenshotDirectory = path.resolve('../../temp', date);
+    mkdirSync(screenshotDirectory, { recursive: true });
+    await adminPage.screenshot({
+      path: path.join(screenshotDirectory, `${time}-workbench-user-menu.png`),
+      fullPage: false,
+    });
   });
 
   test('TC005c: 页面右上角应展示用户头像或默认头像', async ({
-    adminPage,
+    mainLayout,
   }) => {
-    await adminPage.goto('/');
-    await adminPage.waitForLoadState('networkidle');
+    await expect(mainLayout.userDropdownTrigger).toBeVisible();
+    await expect(mainLayout.userDropdownAvatar).toBeVisible();
 
-    const {
-      trigger: avatarTrigger,
-      triggerAvatar,
-    } = getUserDropdownLocators(adminPage);
-    await expect(avatarTrigger).toBeVisible();
-    await expect(triggerAvatar).toBeVisible();
-
-    const avatarImages = triggerAvatar.locator('img[alt]');
+    const avatarImages = mainLayout.userDropdownAvatar.locator('img[alt]');
     const hasVisibleAvatarImage =
       (await avatarImages.count()) > 0 &&
       (await avatarImages.first().isVisible());
     const avatarFallbackText = getAvatarFallbackText(currentUserProfile);
     const hasVisibleAvatarFallback = avatarFallbackText
-      ? await triggerAvatar
+      ? await mainLayout.userDropdownAvatar
           .getByText(avatarFallbackText, { exact: true })
           .first()
           .isVisible()

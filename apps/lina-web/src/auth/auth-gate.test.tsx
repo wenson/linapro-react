@@ -93,6 +93,16 @@ describe("AuthGate", () => {
     expect(await screen.findByText("Private workspace")).toBeVisible();
   });
 
+  it("uses the user's home path instead of the application root after root redirect login", async () => {
+    const { queryClient, runtime, sessionStore } = createHarness();
+    sessionStore.getState().commitTokens({ accessToken: "access", refreshToken: "refresh" });
+    sessionStore.getState().completeAuthentication();
+    const router = renderRoutes(runtime, queryClient, "/auth/login?redirect=%2F");
+
+    expect(await screen.findByText("Private workspace")).toBeVisible();
+    expect(router.state.location.pathname).toBe("/private");
+  });
+
   it("keeps the stable tenant transition surface mounted during tenant selection", async () => {
     const { queryClient, runtime, sessionStore, tenantStore } = createHarness();
     renderRoutes(runtime, queryClient, "/auth/login");

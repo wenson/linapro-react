@@ -148,6 +148,21 @@ textarea {
   margin-top: var(--lina-space-3);
 }
 
+.login-public-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--lina-space-3);
+}
+
+.login-public-actions > a {
+  color: var(--semi-color-link);
+  text-decoration: none;
+}
+
+.login-public-actions > a:hover {
+  text-decoration: underline;
+}
+
 .login-language-toggle {
   display: flex;
   justify-content: flex-end;
@@ -233,6 +248,43 @@ html.dark .workbench-brand img {
 
 .workbench-header-spacer {
   flex: 1;
+}
+
+.workbench-header > .semi-typography {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-user-dropdown {
+  inline-size: min(14rem, calc(100vw - var(--lina-space-8)));
+}
+
+.workbench-user-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lina-space-1);
+  padding: var(--lina-space-3) var(--lina-space-4);
+  border-bottom: 1px solid var(--lina-border-color);
+}
+
+.workbench-user-profile-name,
+.workbench-user-profile-handle,
+.workbench-user-profile-email {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-user-profile-name {
+  color: var(--semi-color-text-0);
+}
+
+.workbench-user-profile-handle,
+.workbench-user-profile-email {
+  color: var(--semi-color-text-2);
 }
 
 .visually-hidden {
@@ -864,6 +916,16 @@ html.dark .workbench-brand img {
 
 .plugin-name-cell .semi-tag {
   flex: none;
+}
+
+.plugin-id-secondary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--semi-color-text-2);
+  font-family: var(--semi-font-family-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plugin-table-title h5 {

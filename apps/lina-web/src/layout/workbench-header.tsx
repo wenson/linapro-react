@@ -72,17 +72,34 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
         render={(
           <div className="workbench-user-dropdown" data-testid="layout-user-dropdown-menu">
             <div className="workbench-user-profile" data-testid="layout-user-dropdown-profile">
-              <Typography.Text data-testid="layout-user-dropdown-name" strong>
+              <Typography.Text
+                className="workbench-user-profile-name"
+                data-testid="layout-user-dropdown-name"
+                strong
+                title={context?.user.realName || context?.user.username}
+              >
                 {context?.user.realName || context?.user.username}
               </Typography.Text>
               {context?.user.username ? (
-                <Typography.Text data-testid="layout-user-dropdown-tag" type="tertiary">
-                  {context.user.username}
+                <Typography.Text
+                  className="workbench-user-profile-handle"
+                  data-testid="layout-user-dropdown-tag"
+                  title={context.user.username}
+                  type="tertiary"
+                >
+                  @{context.user.username}
                 </Typography.Text>
               ) : null}
-              <Typography.Text data-testid="layout-user-dropdown-description" type="tertiary">
-                {context?.user.email || ""}
-              </Typography.Text>
+              {context?.user.email ? (
+                <Typography.Text
+                  className="workbench-user-profile-email"
+                  data-testid="layout-user-dropdown-description"
+                  title={context.user.email}
+                  type="tertiary"
+                >
+                  {context.user.email}
+                </Typography.Text>
+              ) : null}
             </div>
             <Dropdown.Menu>
               <Dropdown.Item data-testid="layout-user-dropdown-profile-entry" icon={<IconUser />} onClick={onOpenProfile}>

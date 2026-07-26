@@ -77,7 +77,7 @@ function joinRequestUrl(baseUrl: string, path: string): string {
   if (/^[a-z][a-z\d+.-]*:/i.test(normalizedPath) || normalizedPath.startsWith("//")) {
     throw new TypeError("API paths must be same-origin paths");
   }
-  if (normalizedPath.startsWith("/api/") || normalizedPath.startsWith("/x/")) {
+  if (normalizedPath.startsWith("/")) {
     return normalizedPath;
   }
   return `${baseUrl}/${normalizedPath.replace(/^\/+/, "")}`;
