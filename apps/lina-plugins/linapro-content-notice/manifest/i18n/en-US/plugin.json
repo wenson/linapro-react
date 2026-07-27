@@ -11,9 +11,12 @@
         "editTitle": "Edit Notice"
       },
       "editor": {
+        "bold": "Bold",
         "image": "Image",
+        "italic": "Italic",
         "link": "Link",
-        "linkPrompt": "Enter a URL"
+        "linkPrompt": "Enter a URL",
+        "underline": "Underline"
       },
       "fields": {
         "attachments": "Attachments",

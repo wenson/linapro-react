@@ -11,9 +11,12 @@
         "editTitle": "编辑通知公告"
       },
       "editor": {
+        "bold": "加粗",
         "image": "图片",
+        "italic": "斜体",
         "link": "链接",
-        "linkPrompt": "请输入链接地址"
+        "linkPrompt": "请输入链接地址",
+        "underline": "下划线"
       },
       "fields": {
         "attachments": "附件",

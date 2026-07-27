@@ -11,6 +11,7 @@ import type { DeptTreeNode, SystemUserApi, UserCreateInput, UserUpdateInput } fr
 import type { SystemRoleApi } from "#/api/system/role";
 import type { CapabilityProjection } from "#/plugins/capabilities";
 import type { TenantOption } from "#/features/iam/user/tenant-options";
+import { LocalizedPasswordField } from "#/plugin-ui/password-field";
 import { toSemiTree } from "#/shared/tree";
 
 interface UserFormValues extends Partial<UserCreateInput> { password?: string }
@@ -63,7 +64,7 @@ export function UserDrawer({ api, capabilities, currentTenantId, isPlatform, onC
       {loading ? <Spin aria-label={t("pages.common.loading")} /> : (
         <Form<UserFormValues> data-testid="user-drawer-form" key={`${userId ?? "new"}-${initial?.updatedAt ?? 0}`} initValues={initValues} labelPosition="top" onSubmit={submit}>
           <Form.Input disabled={Boolean(userId)} field="username" label={t("pages.iam.user.fields.username")} rules={[{ required: true, message: t("pages.iam.user.validation.username") }]} />
-          <Form.Input field="password" label={t("pages.iam.user.fields.password")} mode="password" rules={userId ? [] : [{ required: true, message: t("pages.iam.user.validation.password") }]} />
+          <LocalizedPasswordField field="password" hidePasswordLabel={t("pages.common.hidePassword")} label={t("pages.iam.user.fields.password")} rules={userId ? [] : [{ required: true, message: t("pages.iam.user.validation.password") }]} showPasswordLabel={t("pages.common.showPassword")} />
           <Form.Input field="nickname" label={t("pages.iam.user.fields.nickname")} rules={[{ required: true, message: t("pages.iam.user.validation.nickname") }]} />
           <Form.Input field="email" label={t("pages.iam.user.fields.email")} rules={[{ type: "email", message: t("pages.iam.user.validation.email") }]} />
           <Form.Input field="phone" label={t("pages.iam.user.fields.phone")} />

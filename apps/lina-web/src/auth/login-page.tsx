@@ -10,6 +10,7 @@ import { useStore } from "zustand";
 
 import type { LoginParams } from "#/api/auth";
 import { AuthRuntime } from "#/auth/auth-runtime";
+import { LocalizedPasswordField } from "#/plugin-ui/password-field";
 import type { AuthPanelLayout } from "#/runtime/public-config";
 import { LanguageToggle } from "#/runtime/language-toggle";
 
@@ -176,13 +177,14 @@ export function LoginPage({
                 placeholder={t("auth.usernamePlaceholder")}
                 rules={[{ message: t("auth.usernameRequired"), required: true }]}
               />
-              <Form.Input
+              <LocalizedPasswordField
                 field="password"
+                hidePasswordLabel={t("pages.common.hidePassword")}
                 id="password"
                 label={t("auth.password")}
-                mode="password"
                 placeholder={t("auth.passwordPlaceholder")}
                 rules={[{ message: t("auth.passwordRequired"), required: true }]}
+                showPasswordLabel={t("pages.common.showPassword")}
               />
               <Button
                 aria-label="login"

@@ -5,6 +5,7 @@ import SideSheet from "@douyinfe/semi-ui/lib/es/sideSheet";
 import Space from "@douyinfe/semi-ui/lib/es/space";
 import Tag from "@douyinfe/semi-ui/lib/es/tag";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
+import { LocalizedPasswordField } from "@linapro/plugin-ui";
 import { useCallback, useEffect, useState } from "react";
 
 import type { AiCoreApi, ProviderEndpoint, ProviderEndpointSaveInput, ProviderProtocol } from "./ai-client";
@@ -45,7 +46,7 @@ export function EndpointSideSheet({ api, onClose, onSaved, open, providerId, pro
     <Form<EndpointFormValues> key={editing?.id ?? "new"} initValues={initial} labelPosition="top" onSubmit={submit}>
       <Form.Select field="protocol" label={t("plugin.linapro-ai-core.endpoint.fields.protocol")} optionList={protocolOptions} rules={[{ required: true }]} />
       <Form.Input field="baseUrl" label={t("plugin.linapro-ai-core.endpoint.fields.baseUrl")} rules={[{ required: true }]} />
-      <Form.Input field="secretRef" label={t("plugin.linapro-ai-core.endpoint.fields.secretRef")} mode="password" placeholder={editing ? t("plugin.linapro-ai-core.endpoint.placeholders.keepSecret") : ""} />
+      <LocalizedPasswordField field="secretRef" hidePasswordLabel={t("pages.common.hidePassword")} label={t("plugin.linapro-ai-core.endpoint.fields.secretRef")} placeholder={editing ? t("plugin.linapro-ai-core.endpoint.placeholders.keepSecret") : ""} showPasswordLabel={t("pages.common.showPassword")} />
       <Form.RadioGroup field="enabled" label={t("pages.common.status")} options={[{ label: t("plugin.linapro-ai-core.common.enabled"), value: 1 }, { label: t("plugin.linapro-ai-core.common.disabled"), value: 0 }]} />
       <Form.TextArea field="metadataJson" label={t("plugin.linapro-ai-core.endpoint.fields.metadataJson")} rows={4} />
       <div className="ai-core-form-actions"><Button onClick={() => setEditing(undefined)}>{t("plugin.linapro-ai-core.common.reset")}</Button><Button htmlType="submit" loading={saving} theme="solid" type="primary">{t(editing ? "pages.common.save" : "plugin.linapro-ai-core.endpoint.actions.add")}</Button></div>

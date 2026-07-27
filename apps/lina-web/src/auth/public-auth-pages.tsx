@@ -8,6 +8,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import type { AuthApi } from "#/api/auth";
+import { LocalizedPasswordField } from "#/plugin-ui/password-field";
 import { LanguageToggle } from "#/runtime/language-toggle";
 
 type PublicAuthApi = Required<Pick<AuthApi, "forgetPassword" | "register" | "resetPassword">>;
@@ -49,8 +50,8 @@ export function RegisterPage({ api, appName, enabled, logoUrl, privacyPolicy = "
   }}>
     <Form.Input field="username" label={t("auth.username")} rules={[{ required: true, message: t("auth.usernameRequired") }]} />
     <Form.Input field="email" label={t("auth.email")} rules={[{ required: true, message: t("auth.emailRequired") }]} />
-    <Form.Input field="password" label={t("auth.password")} mode="password" rules={[{ required: true, message: t("auth.passwordRequired") }, { min: 6, message: t("auth.passwordTooShort") }]} />
-    <Form.Input field="passwordConfirm" label={t("auth.register.confirmPassword")} mode="password" rules={[{ required: true, message: t("auth.register.confirmRequired") }]} />
+    <LocalizedPasswordField field="password" hidePasswordLabel={t("pages.common.hidePassword")} label={t("auth.password")} rules={[{ required: true, message: t("auth.passwordRequired") }, { min: 6, message: t("auth.passwordTooShort") }]} showPasswordLabel={t("pages.common.showPassword")} />
+    <LocalizedPasswordField field="passwordConfirm" hidePasswordLabel={t("pages.common.hidePassword")} label={t("auth.register.confirmPassword")} rules={[{ required: true, message: t("auth.register.confirmRequired") }]} showPasswordLabel={t("pages.common.showPassword")} />
     {requiresConsent ? <Checkbox checked={consented} data-testid="register-consent" onChange={(event) => setConsented(Boolean(event.target.checked))}>{t("auth.register.consent")} {privacyPolicy ? <Button data-testid="register-privacy-policy" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setPolicy("privacy"); }} theme="borderless">{t("auth.register.privacyPolicy")}</Button> : null} {termsOfService ? <Button data-testid="register-terms-of-service" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setPolicy("terms"); }} theme="borderless">{t("auth.register.termsOfService")}</Button> : null}</Checkbox> : null}
     <Button block data-testid="register-submit" htmlType="submit" loading={submitting} theme="solid" type="primary">{t("auth.register.submit")}</Button>
   </Form>{error ? <Typography.Text role="alert" type="danger">{error}</Typography.Text> : null}<Modal footer={null} onCancel={() => setPolicy(undefined)} title={policy === "privacy" ? t("auth.register.privacyPolicy") : t("auth.register.termsOfService")} visible={Boolean(policy)} width="min(520px, calc(100vw - 24px))"><Typography.Paragraph style={{ whiteSpace: "pre-wrap" }}>{policy === "privacy" ? privacyPolicy : termsOfService}</Typography.Paragraph></Modal></PublicAuthShell>;
@@ -72,5 +73,5 @@ export function ResetPasswordPage({ api, appName, enabled, logoUrl }: PublicAuth
   return <PublicAuthShell appName={appName} logoUrl={logoUrl} title={t("auth.reset.title")}><Form<{ password: string; passwordConfirm: string }> labelPosition="top" onSubmit={async (values) => {
     if (values.password !== values.passwordConfirm) { setError(t("auth.register.passwordMismatch")); return; }
     setSubmitting(true); setError(""); try { await api.resetPassword({ password: values.password, token }); await navigate("/auth/login", { replace: true }); } catch (reason) { setError(publicError(reason, t("auth.reset.failed"))); } finally { setSubmitting(false); }
-  }}><Form.Input field="password" label={t("auth.password")} mode="password" rules={[{ required: true, message: t("auth.passwordRequired") }, { min: 6, message: t("auth.passwordTooShort") }]} /><Form.Input field="passwordConfirm" label={t("auth.register.confirmPassword")} mode="password" rules={[{ required: true, message: t("auth.register.confirmRequired") }]} /><Button block data-testid="reset-password-submit" htmlType="submit" loading={submitting} theme="solid" type="primary">{t("auth.reset.submit")}</Button></Form>{error ? <Typography.Text role="alert" type="danger">{error}</Typography.Text> : null}</PublicAuthShell>;
+  }}><LocalizedPasswordField field="password" hidePasswordLabel={t("pages.common.hidePassword")} label={t("auth.password")} rules={[{ required: true, message: t("auth.passwordRequired") }, { min: 6, message: t("auth.passwordTooShort") }]} showPasswordLabel={t("pages.common.showPassword")} /><LocalizedPasswordField field="passwordConfirm" hidePasswordLabel={t("pages.common.hidePassword")} label={t("auth.register.confirmPassword")} rules={[{ required: true, message: t("auth.register.confirmRequired") }]} showPasswordLabel={t("pages.common.showPassword")} /><Button block data-testid="reset-password-submit" htmlType="submit" loading={submitting} theme="solid" type="primary">{t("auth.reset.submit")}</Button></Form>{error ? <Typography.Text role="alert" type="danger">{error}</Typography.Text> : null}</PublicAuthShell>;
 }

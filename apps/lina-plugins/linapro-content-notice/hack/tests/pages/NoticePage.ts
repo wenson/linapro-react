@@ -48,6 +48,10 @@ export class NoticePage {
       .click();
 
     await waitForDialogReady(this.modal);
+    await expect(this.modal.getByRole("button", { name: "加粗" })).toBeVisible();
+    await expect(this.modal.getByRole("button", { name: "斜体" })).toBeVisible();
+    await expect(this.modal.getByRole("button", { name: "下划线" })).toBeVisible();
+    await expect(this.modal.getByRole("button", { name: "Bold" })).toHaveCount(0);
 
     // Fill title - use placeholder to find the input inside the modal
     const titleInput = this.modal.getByPlaceholder("请输入公告标题").first();

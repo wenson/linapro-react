@@ -3,6 +3,7 @@ import { Form } from "@douyinfe/semi-ui/lib/es/form";
 import SideSheet from "@douyinfe/semi-ui/lib/es/sideSheet";
 import Spin from "@douyinfe/semi-ui/lib/es/spin";
 import Toast from "@douyinfe/semi-ui/lib/es/toast";
+import { LocalizedPasswordField } from "@linapro/plugin-ui";
 import { useEffect, useState } from "react";
 
 import type { AiCoreApi, Provider, ProviderEndpoint, ProviderEndpointSaveInput, ProviderSaveInput } from "./ai-client";
@@ -73,7 +74,7 @@ export function ProviderSideSheet({ api, onClose, onSaved, open, providerId, t }
       <Form.Input field="name" label={t("plugin.linapro-ai-core.provider.fields.name")} rules={[{ message: t("plugin.linapro-ai-core.common.required"), required: true }]} />
       <Form.Input field="websiteUrl" label={t("plugin.linapro-ai-core.provider.fields.websiteUrl")} />
       <Form.RadioGroup field="enabled" label={t("pages.common.status")} options={[{ label: t("plugin.linapro-ai-core.common.enabled"), value: 1 }, { label: t("plugin.linapro-ai-core.common.disabled"), value: 0 }]} />
-      <Form.Input field="secretRef" label={t("plugin.linapro-ai-core.provider.fields.apiKeySecretRef")} mode="password" placeholder={t(providerId ? "plugin.linapro-ai-core.provider.placeholders.keepSecret" : "plugin.linapro-ai-core.provider.placeholders.apiKeyCreate")} />
+      <LocalizedPasswordField field="secretRef" hidePasswordLabel={t("pages.common.hidePassword")} label={t("plugin.linapro-ai-core.provider.fields.apiKeySecretRef")} placeholder={t(providerId ? "plugin.linapro-ai-core.provider.placeholders.keepSecret" : "plugin.linapro-ai-core.provider.placeholders.apiKeyCreate")} showPasswordLabel={t("pages.common.showPassword")} />
       <Form.Input field="openaiBaseUrl" label={t("plugin.linapro-ai-core.provider.fields.openaiBaseUrl")} placeholder={t("plugin.linapro-ai-core.provider.placeholders.openaiBaseUrl")} />
       <Form.Input field="anthropicBaseUrl" label={t("plugin.linapro-ai-core.provider.fields.anthropicBaseUrl")} placeholder={t("plugin.linapro-ai-core.provider.placeholders.anthropicBaseUrl")} />
       <Form.TextArea field="remark" label={t("pages.common.remark")} rows={3} />

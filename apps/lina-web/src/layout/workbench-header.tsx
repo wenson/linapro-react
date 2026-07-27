@@ -60,8 +60,8 @@ export function WorkbenchHeader({ currentTenantId, defaultAvatarUrl, onLogout, o
       <div className="workbench-header-plugin-slot workbench-header-plugin-slot-after" data-testid="layout-header-plugin-slots">{pluginActionsAfter}</div>
       <div className="desktop-preference-shortcuts">
         <LanguageToggle />
-        <Button aria-label="light" onClick={() => applyThemePreference("light")} theme="borderless">☀</Button>
-        <Button aria-label="dark" onClick={() => applyThemePreference("dark")} theme="borderless">☾</Button>
+        <Button aria-label={t("workbench.preferences.light")} onClick={() => applyThemePreference("light")} theme="borderless">☀</Button>
+        <Button aria-label={t("workbench.preferences.dark")} onClick={() => applyThemePreference("dark")} theme="borderless">☾</Button>
       </div>
       <Button
         aria-label={t("workbench.preferences.open")}
