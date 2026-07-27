@@ -417,6 +417,12 @@ html.dark .workbench-brand img {
   white-space: nowrap;
 }
 
+.tab-label:focus-visible {
+  outline: 2px solid var(--semi-color-focus-border);
+  outline-offset: -3px;
+  border-radius: var(--lina-radius-control);
+}
+
 .page-surface-page {
   width: 100%;
   max-width: 1600px;
@@ -463,12 +469,27 @@ html.dark .workbench-brand img {
   overflow: auto;
 }
 
+.page-surface-workspace > .feature-page > * {
+  flex-shrink: 0;
+}
+
 .feature-page-header > * {
   margin-bottom: var(--lina-space-1);
 }
 
 .mobile-record-list {
   display: none;
+}
+
+.responsive-list-feedback {
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lina-space-3);
+  padding: var(--lina-space-5);
+  text-align: center;
 }
 
 .mobile-record-card {

@@ -29,4 +29,6 @@ export {
   MobileRecordFields,
   MobileRecordList,
   MobileRecordTitle,
+  ResponsiveListFeedback,
 } from "#/plugin-ui/mobile-record";
+export { LocalizedPasswordField } from "#/plugin-ui/password-field";
