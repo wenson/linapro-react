@@ -138,7 +138,7 @@ export default function LoginLogManagement() {
     { dataIndex: "status", render: (value) => <Tag color={dictColor(statuses, Number(value))}>{dictLabel(statuses, Number(value))}</Tag>, title: host.t("plugin.linapro-monitor-loginlog.fields.status"), width: 120 },
     { dataIndex: "msg", ellipsis: true, title: host.t("plugin.linapro-monitor-loginlog.fields.message"), width: 220 },
     { dataIndex: "loginTime", render: (value) => formatTimestamp(value as number | null, host.locale), sorter: true, title: host.t("plugin.linapro-monitor-loginlog.fields.loginDate"), width: 190 },
-    { render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
+    { fixed: "right", render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
   ];
 
   return <section className="monitor-loginlog-page" data-testid="loginlog-management-page">

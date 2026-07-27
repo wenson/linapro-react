@@ -45,7 +45,11 @@ export class ConfigPage {
   }
 
   get listFeedback() {
-    return this.page.getByTestId("config-table");
+    return this.page.getByTestId("config-list-feedback");
+  }
+
+  async setViewportSize(width: number, height: number) {
+    await this.page.setViewportSize({ height, width });
   }
 
   private async fillInputAndWaitForStableValue(input: Locator, value: string) {

@@ -40,26 +40,31 @@ test.describe("TC-4 文件列表状态反馈", () => {
 
     const filePage = new FilePage(adminPage);
     await filePage.gotoForListFeedback();
-    await expect(filePage.table.getByRole("status", { name: "正在加载" })).toBeVisible();
+    await expect(filePage.listFeedback.getByRole("status", { name: "正在加载" })).toBeVisible();
     await captureEvidence(adminPage, "file-list-loading-zh");
 
     releaseInitialRequest?.();
-    await expect(filePage.table.locator(".semi-table")).toBeVisible();
+    await expect(filePage.listFeedback).toHaveAttribute("data-state", "empty");
 
     mode = "failure";
+    await filePage.setViewportSize(390, 844);
     await filePage.gotoForListFeedback();
-    const alert = filePage.root.getByRole("alert");
+    const alert = filePage.listFeedback;
+    await expect(alert).toBeVisible();
+    await expect(alert).toHaveAttribute("data-state", "error");
     await expect(alert).toContainText("无法加载所需数据。");
     await expect(alert.getByRole("button", { name: "重试" })).toBeVisible();
     await captureEvidence(adminPage, "file-list-failed-zh");
 
     mode = "recovered";
     await alert.getByRole("button", { name: "重试" }).click();
-    await expect(filePage.table.locator(".semi-table")).toBeVisible();
+    await expect(filePage.listFeedback).toHaveAttribute("data-state", "empty");
 
+    await filePage.setViewportSize(1366, 768);
     const mainLayout = new MainLayout(adminPage);
     await mainLayout.switchLanguage("English");
     await expect(filePage.root.getByRole("heading", { name: "File management" })).toBeVisible();
+    await expect(filePage.listFeedback).toContainText("No records to display.");
     await captureEvidence(adminPage, "file-list-empty-en");
   });
 });

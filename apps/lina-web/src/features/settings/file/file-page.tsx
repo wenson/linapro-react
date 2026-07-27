@@ -27,7 +27,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { downloadBlob } from "#/features/iam/download";
 import { ManagedUpload } from "#/features/settings/file/managed-upload";
-import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle, ResponsiveListFeedback } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 const imageSuffixes = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
@@ -219,6 +219,7 @@ export default function FilePage() {
       width: 120,
     },
     {
+      fixed: "right",
       render: (_, row) => (
         <Space>
           <Button
@@ -279,29 +280,25 @@ export default function FilePage() {
   return (
     <section className="feature-page" data-testid="file-page">
       <Typography.Title heading={3}>{t("pages.settings.file.title")}</Typography.Title>
-      {list.isError ? (
-        <div role="alert">
-          <Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>
-          {list.error.message ? <Typography.Text type="tertiary">{list.error.message}</Typography.Text> : null}
-          <Button onClick={() => void list.refetch()}>{t("fallback.retry")}</Button>
-        </div>
-      ) : null}
       <Card>
         <Form<FileListParams>
           className="iam-search-form"
+          id="file-filter-form"
           key={formKey}
           layout="horizontal"
           onSubmit={(values) => setParams((current) => ({ ...current, ...values, pageNum: 1 }))}
         >
-          <Form.Input field="name" label={t("pages.settings.file.name")} />
-          <Form.Input field="original" label={t("pages.settings.file.original")} />
+          <Form.Input field="name" id="file-filter-name" label={t("pages.settings.file.name")} />
+          <Form.Input field="original" id="file-filter-original" label={t("pages.settings.file.original")} />
           <Form.Select
             field="suffix"
+            id="file-filter-suffix"
             label={t("pages.settings.file.suffix")}
             optionList={options.data?.suffixes ?? []}
           />
           <Form.Select
             field="scene"
+            id="file-filter-scene"
             label={t("pages.settings.file.scene")}
             optionList={options.data?.scenes ?? []}
           />
@@ -341,8 +338,10 @@ export default function FilePage() {
             ) : null}
           </Space>
         </div>
+        <ResponsiveListFeedback empty={!list.data?.list.length} emptyLabel={t("pages.common.emptyList")} error={list.isError} errorLabel={t("pages.common.loadFailed")} loading={list.isPending} loadingLabel={t("pages.common.loading")} onRetry={() => void list.refetch()} retryLabel={t("fallback.retry")} testId="file-list-feedback" />
+        {!list.isPending && !list.isError && list.data?.list.length ? <>
         <div className="responsive-desktop-table" data-testid="file-table">
-          {list.isError ? null : list.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : <Table<FileInfo>
+          <Table<FileInfo>
             columns={columns}
             dataSource={list.data?.list ?? []}
             onChange={({ pagination, sorter }) => setParams((current) => ({
@@ -362,10 +361,10 @@ export default function FilePage() {
               selectedRowKeys: selected,
             }}
             scroll={{ x: 1318 }}
-          />}
+          />
         </div>
         <MobileRecordList testId="file-mobile-list">
-          {(list.data?.list ?? []).map((row) => (
+          {list.data.list.map((row) => (
             <MobileRecordCard key={row.id} testId={`file-mobile-card-${row.id}`}>
               <MobileRecordTitle>{row.original}</MobileRecordTitle>
               <MobileRecordFields>
@@ -382,6 +381,7 @@ export default function FilePage() {
             </MobileRecordCard>
           ))}
         </MobileRecordList>
+        </> : null}
       </Card>
       <Modal
         footer={null}

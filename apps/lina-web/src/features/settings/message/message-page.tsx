@@ -1,7 +1,6 @@
 import Badge from "@douyinfe/semi-ui/lib/es/badge";
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
-import Empty from "@douyinfe/semi-ui/lib/es/empty";
 import List from "@douyinfe/semi-ui/lib/es/list";
 import Modal from "@douyinfe/semi-ui/lib/es/modal";
 import Pagination from "@douyinfe/semi-ui/lib/es/pagination";
@@ -19,6 +18,7 @@ import {
   type UserMessage,
 } from "#/api/system/message";
 import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
+import { ResponsiveListFeedback } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 export default function MessagePage() {
@@ -119,9 +119,7 @@ export default function MessagePage() {
           </Space> : null}
         </div>
         <div data-testid="message-list">
-          {list.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : null}
-          {list.isError ? <div role="alert"><Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>{list.error.message ? <Typography.Text type="tertiary">{list.error.message}</Typography.Text> : null}<Button onClick={() => void list.refetch()}>{t("fallback.retry")}</Button></div> : null}
-          {!list.isPending && !list.isError && !list.data?.list.length ? <Empty description={t("pages.settings.message.empty")} image={null}><Typography.Text type="tertiary">{t("pages.settings.message.emptyDescription")}</Typography.Text></Empty> : null}
+          <ResponsiveListFeedback empty={!list.data?.list.length} emptyLabel={t("pages.settings.message.empty")} error={list.isError} errorLabel={t("pages.common.loadFailed")} loading={list.isPending} loadingLabel={t("pages.common.loading")} onRetry={() => void list.refetch()} primaryAction={<Typography.Text type="tertiary">{t("pages.settings.message.emptyDescription")}</Typography.Text>} retryLabel={t("fallback.retry")} testId="message-list-feedback" />
           {!list.isPending && !list.isError && list.data?.list.length ? <List<UserMessage>
             dataSource={list.data?.list ?? []}
             renderItem={(item) => (

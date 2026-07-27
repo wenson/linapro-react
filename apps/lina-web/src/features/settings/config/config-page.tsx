@@ -1,6 +1,5 @@
 import Button from "@douyinfe/semi-ui/lib/es/button";
 import Card from "@douyinfe/semi-ui/lib/es/card";
-import Empty from "@douyinfe/semi-ui/lib/es/empty";
 import CheckboxGroup from "@douyinfe/semi-ui/lib/es/checkbox/checkboxGroup";
 import { Form } from "@douyinfe/semi-ui/lib/es/form";
 import Input from "@douyinfe/semi-ui/lib/es/input";
@@ -12,7 +11,6 @@ import RadioGroup from "@douyinfe/semi-ui/lib/es/radio/radioGroup";
 import Select from "@douyinfe/semi-ui/lib/es/select";
 import SideSheet from "@douyinfe/semi-ui/lib/es/sideSheet";
 import Space from "@douyinfe/semi-ui/lib/es/space";
-import Spin from "@douyinfe/semi-ui/lib/es/spin";
 import Table from "@douyinfe/semi-ui/lib/es/table";
 import type { ColumnProps } from "@douyinfe/semi-ui/lib/es/table/interface";
 import Tag from "@douyinfe/semi-ui/lib/es/tag";
@@ -34,7 +32,7 @@ import { useWorkbenchRuntime } from "#/app/workbench-runtime-context";
 import { useAuthContext } from "#/auth/auth-context";
 import { downloadBlob } from "#/features/iam/download";
 import { ImportDialog } from "#/features/settings/import-dialog";
-import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle } from "#/plugin-ui/mobile-record";
+import { MobileRecordActions, MobileRecordCard, MobileRecordField, MobileRecordFields, MobileRecordList, MobileRecordTitle, ResponsiveListFeedback } from "#/plugin-ui/mobile-record";
 import { formatTimestamp } from "#/shared/format";
 
 const valueTypes: readonly ConfigValueType[] = [
@@ -278,6 +276,7 @@ export default function ConfigPage() {
       width: 170,
     },
     {
+      fixed: "right",
       render: (_, row) => <Space>{renderActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
@@ -294,9 +293,9 @@ export default function ConfigPage() {
   return <section className="feature-page" data-testid="config-page">
     <Typography.Title heading={3}>{t("pages.settings.config.title")}</Typography.Title>
     <Card>
-      <Form<ConfigListParams> className="iam-search-form" key={searchFormKey} layout="horizontal" onSubmit={(values) => setParams((current) => ({ ...current, ...values, pageNum: 1 }))}>
-        <Form.Input field="name" label={t("pages.settings.config.name")} />
-        <Form.Input field="key" label={t("pages.settings.config.key")} />
+      <Form<ConfigListParams> className="iam-search-form" id="config-filter-form" key={searchFormKey} layout="horizontal" onSubmit={(values) => setParams((current) => ({ ...current, ...values, pageNum: 1 }))}>
+        <Form.Input field="name" id="config-filter-name" label={t("pages.settings.config.name")} />
+        <Form.Input field="key" id="config-filter-key" label={t("pages.settings.config.key")} />
         <Button htmlType="reset" onClick={() => { setSearchFormKey((value) => value + 1); setParams((current) => ({ pageNum: 1, pageSize: current.pageSize })); }}>{t("pages.common.reset")}</Button>
         <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>
       </Form>
@@ -306,8 +305,11 @@ export default function ConfigPage() {
         {allowed(permissions, "system:config:export") ? <Button onClick={() => Modal.confirm({ content: t("pages.settings.exportConfirm"), onOk: () => api.export({ ...params, ids: selected }).then((blob) => downloadBlob(blob, "configs.xlsx")), title: t("pages.common.confirmTitle") })}>{t("pages.settings.export")}</Button> : null}
         {allowed(permissions, "system:config:add") ? <><Button onClick={() => setImportOpen(true)}>{t("pages.settings.importAction")}</Button><Button onClick={openCreate} theme="solid" type="primary">{t("pages.common.add")}</Button></> : null}
       </Space></div>
-      <div className="responsive-desktop-table" data-testid="config-table">{query.isPending ? <div aria-live="polite" aria-label={t("pages.common.loading")} role="status"><Spin /></div> : query.isError ? <div role="alert"><Typography.Text type="danger">{t("pages.common.loadFailed")}</Typography.Text>{query.error.message ? <Typography.Text type="tertiary">{query.error.message}</Typography.Text> : null}<Button onClick={() => void query.refetch()}>{t("fallback.retry")}</Button></div> : !query.data?.list.length ? <Empty description={t("pages.settings.config.empty")} image={null} /> : <Table<SysConfig> columns={columns} dataSource={query.data.list} pagination={{ currentPage: params.pageNum, onChange: (page) => setParams((current) => ({ ...current, pageNum: page })), pageSize: params.pageSize, total: query.data.total }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1200 }} />}</div>
-      <MobileRecordList testId="config-mobile-list">{(query.data?.list ?? []).map((row) => <MobileRecordCard key={row.id} testId={`config-mobile-card-${row.id}`}><MobileRecordTitle>{row.name}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.settings.config.key")} value={row.key} /><MobileRecordField label={t("pages.settings.config.valueType")} value={valueTypeLabel(row)} /><MobileRecordField label={t("pages.settings.config.value")} value={row.value} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
+      <ResponsiveListFeedback empty={!query.data?.list.length} emptyLabel={t("pages.settings.config.empty")} error={query.isError} errorLabel={t("pages.common.loadFailed")} loading={query.isPending} loadingLabel={t("pages.common.loading")} onRetry={() => void query.refetch()} retryLabel={t("fallback.retry")} testId="config-list-feedback" />
+      {!query.isPending && !query.isError && query.data?.list.length ? <>
+        <div className="responsive-desktop-table" data-testid="config-table"><Table<SysConfig> columns={columns} dataSource={query.data.list} pagination={{ currentPage: params.pageNum, onChange: (page) => setParams((current) => ({ ...current, pageNum: page })), pageSize: params.pageSize, total: query.data.total }} rowKey="id" rowSelection={{ getCheckboxProps: (row) => ({ disabled: row?.canEdit === false || row?.isBuiltin === 1 }), onChange: (keys) => setSelected((keys ?? []).map(Number)), selectedRowKeys: selected }} scroll={{ x: 1200 }} /></div>
+        <MobileRecordList testId="config-mobile-list">{query.data.list.map((row) => <MobileRecordCard key={row.id} testId={`config-mobile-card-${row.id}`}><MobileRecordTitle>{row.name}</MobileRecordTitle><MobileRecordFields><MobileRecordField label={t("pages.settings.config.key")} value={row.key} /><MobileRecordField label={t("pages.settings.config.valueType")} value={valueTypeLabel(row)} /><MobileRecordField label={t("pages.settings.config.value")} value={row.value} /></MobileRecordFields><MobileRecordActions>{renderActions(row)}</MobileRecordActions></MobileRecordCard>)}</MobileRecordList>
+      </> : null}
     </Card>
     <SideSheet onCancel={() => setEditId(undefined)} title={t(editId === "new" ? "pages.settings.config.create" : "pages.settings.config.edit")} visible={editId !== undefined} width="min(448px, 100vw)">
       <form className="semi-form" data-testid="config-editor-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>

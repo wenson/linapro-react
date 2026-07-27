@@ -442,6 +442,7 @@ export default function JobPage() {
     { dataIndex: "stopReason", render: (value) => value ? <Tag color="amber">{String(value)}</Tag> : "-", title: t("pages.scheduler.job.stopReason"), width: 180 },
     { dataIndex: "updatedAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), title: t("pages.common.updatedAt"), width: 180 },
     {
+      fixed: "right",
       render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 280,
@@ -496,17 +497,20 @@ export default function JobPage() {
       <Card>
         <Form<JobFilters>
           className="iam-search-form"
+          id="job-filter-form"
           key={searchKey}
           layout="horizontal"
           onSubmit={(values) => { setFilters(values); setPage(1); }}
         >
           <Form.Select
             field="groupId"
+            id="job-filter-group"
             label={t("pages.scheduler.job.group")}
             optionList={(groups.data?.list ?? []).map((group) => ({ label: group.name, value: group.id }))}
           />
           <Form.Select
             field="status"
+            id="job-filter-status"
             label={t("pages.scheduler.job.status")}
             optionList={[
               { label: t("pages.scheduler.job.enabled"), value: "enabled" },
@@ -514,7 +518,7 @@ export default function JobPage() {
               { label: t("pages.scheduler.job.pluginUnavailable"), value: "paused_by_plugin" },
             ]}
           />
-          <Form.Input field="keyword" label={t("pages.scheduler.job.keyword")} />
+          <Form.Input field="keyword" id="job-filter-keyword" label={t("pages.scheduler.job.keyword")} />
           <Button htmlType="reset" onClick={resetSearch}>{t("pages.common.reset")}</Button>
           <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>
         </Form>

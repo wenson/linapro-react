@@ -1,4 +1,4 @@
-import { test } from "@host-tests/fixtures/auth";
+import { expect, test } from "@host-tests/fixtures/auth";
 import { prepareSourcePluginsBaseline } from "@host-tests/fixtures/plugin";
 
 import { SmartCenterPage } from "../pages/SmartCenterPage";
@@ -107,6 +107,12 @@ test.describe("TC-10 AI 管理列表响应式布局", () => {
         });
 
         await page.gotoInvocations();
+        const searchButton = adminPage
+          .getByTestId("ai-invocation-logs-page")
+          .getByRole("button", { name: /搜索|Search/i });
+        const searchButtonBox = await searchButton.boundingBox();
+        expect(searchButtonBox).not.toBeNull();
+        expect(searchButtonBox!.width).toBeLessThan(180);
         await page.filterInvocationsByCapabilityAndPurpose(
           "text.generate",
           invocationPurpose,

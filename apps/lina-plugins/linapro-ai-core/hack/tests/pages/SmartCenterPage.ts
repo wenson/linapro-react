@@ -116,7 +116,11 @@ export class SmartCenterPage {
   }
 
   providerListFeedback() {
-    return this.providerTable();
+    return this.page.getByTestId("ai-provider-list-feedback");
+  }
+
+  async setViewportSize(width: number, height: number) {
+    await this.page.setViewportSize({ height, width });
   }
 
   async gotoModels() {
@@ -195,15 +199,18 @@ export class SmartCenterPage {
     expect(tableBox).not.toBeNull();
     expect(tableBox!.x).toBeGreaterThanOrEqual(0);
     expect(tableBox!.x + tableBox!.width).toBeLessThanOrEqual(1367);
+    const desktopAction = table.getByRole("button", { name: input.action }).first();
+    await expect(desktopAction).toBeVisible();
+    const actionBox = await desktopAction.boundingBox();
+    expect(actionBox).not.toBeNull();
+    expect(actionBox!.x).toBeGreaterThanOrEqual(0);
+    expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(1367);
     if (input.scrollToEnd) {
       const scrollBody = table.locator(".semi-table-body").first();
       await scrollBody.evaluate((node) => {
         node.scrollLeft = node.scrollWidth;
       });
     }
-    await expect(
-      table.getByRole("button", { name: input.action }).first(),
-    ).toBeVisible();
     await this.captureEvidence(`${input.evidenceName}-1366x768-desktop`);
 
     await this.page.setViewportSize({ height: 844, width: 390 });
@@ -250,6 +257,8 @@ export class SmartCenterPage {
     await expect(this.dialog.getByText("新增渠道", { exact: true })).toBeVisible();
     await expect(this.dialog.getByLabel(/名称/).first()).toBeVisible();
     await expect(this.dialog.getByLabel(/API 密钥/).first()).toBeVisible();
+    await expect(this.dialog.getByRole("button", { name: "显示密码" })).toBeVisible();
+    await expect(this.dialog.getByRole("button", { name: "Show password" })).toHaveCount(0);
     await expect(this.dialog.getByLabel(/OpenAI.*地址/).first()).toBeVisible();
     await expect(this.dialog.getByLabel(/Anthropic.*地址/).first()).toBeVisible();
     await expect(this.dialog.getByText(legacyChineseProviderPattern)).toHaveCount(0);

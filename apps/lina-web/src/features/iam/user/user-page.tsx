@@ -119,7 +119,7 @@ export default function UserPage() {
     { dataIndex: "phone", title: t("pages.iam.user.fields.phone"), width: 130 },
     { dataIndex: "status", render: (_, row) => renderStatus(row), title: t("pages.common.status"), width: 90 },
     { dataIndex: "createdAt", render: (value) => formatTimestamp(value as number | null, i18n.resolvedLanguage || "en-US"), sorter: true, title: t("pages.common.createdAt"), width: 180 },
-    { render: (_, row) => <Space>{renderActions(row)}</Space>, title: t("pages.common.actions"), width: 280 },
+    { fixed: "right", render: (_, row) => <Space>{renderActions(row)}</Space>, title: t("pages.common.actions"), width: 280 },
   ];
   return <section className="feature-page iam-page" data-testid="user-page">
     <header className="feature-page-header"><Typography.Title heading={3}>{t("pages.iam.user.title")}</Typography.Title>{capabilities.organizationEnabled ? <Button aria-expanded={departmentFilterOpen} data-testid="user-department-filter-toggle" onClick={() => setDepartmentFilterOpen((value) => !value)}>{t(departmentFilterOpen ? "pages.common.collapse" : "pages.common.expand")} {t("pages.iam.user.fields.department")}</Button> : null}</header>
@@ -142,12 +142,12 @@ export default function UserPage() {
         </div>
       </Card> : null}
       <div className="iam-user-main">
-        <Card><Form<SearchValues> className="iam-search-form" key={searchFormKey} layout="horizontal" onSubmit={search}>
-          <Form.Input field="username" label={t("pages.iam.user.fields.username")} />
-          <Form.Input field="nickname" label={t("pages.iam.user.fields.nickname")} />
-          <Form.Input field="phone" label={t("pages.iam.user.fields.phone")} />
-          <Form.Select field="status" label={t("pages.common.status")} optionList={(statusOptionsQuery.data ?? []).map((item) => ({ label: item.label, value: Number(item.value) }))} />
-          {capabilities.tenantEnabled && isPlatform ? <Form.Select data-testid="user-tenant-filter" field="tenantId" label={t("pages.iam.user.fields.tenants")} optionList={tenantOptionsQuery.data ?? []} /> : null}
+        <Card><Form<SearchValues> className="iam-search-form" id="user-filter-form" key={searchFormKey} layout="horizontal" onSubmit={search}>
+          <Form.Input field="username" id="user-filter-username" label={t("pages.iam.user.fields.username")} />
+          <Form.Input field="nickname" id="user-filter-nickname" label={t("pages.iam.user.fields.nickname")} />
+          <Form.Input field="phone" id="user-filter-phone" label={t("pages.iam.user.fields.phone")} />
+          <Form.Select field="status" id="user-filter-status" label={t("pages.common.status")} optionList={(statusOptionsQuery.data ?? []).map((item) => ({ label: item.label, value: Number(item.value) }))} />
+          {capabilities.tenantEnabled && isPlatform ? <Form.Select data-testid="user-tenant-filter" field="tenantId" id="user-filter-tenant" label={t("pages.iam.user.fields.tenants")} optionList={tenantOptionsQuery.data ?? []} /> : null}
           <Button htmlType="reset" onClick={resetSearch}>{t("pages.common.reset")}</Button>
           <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>
         </Form></Card>

@@ -63,7 +63,7 @@ export default function OnlineUserPage() {
     { dataIndex: "browser", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.browser"), width: 180 },
     { dataIndex: "os", render: (value) => truncatedCell(value), title: host.t("plugin.linapro-monitor-online.page.fields.os"), width: 200 },
     { dataIndex: "loginTime", render: (value) => formatTimestamp(value as number | null, host.locale), title: host.t("plugin.linapro-monitor-online.page.fields.loginTime"), width: 190 },
-    { render: (_, row) => renderActions(row), title: host.t("plugin.linapro-monitor-online.page.fields.actions"), width: 130 },
+    { fixed: "right", render: (_, row) => renderActions(row), title: host.t("plugin.linapro-monitor-online.page.fields.actions"), width: 130 },
   ];
 
   return <section className="monitor-online-page" data-testid="online-user-page">

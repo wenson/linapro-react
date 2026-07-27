@@ -50,10 +50,12 @@ test.describe("TC-9 参数设置列表状态反馈", () => {
     await expect(configPage.listFeedback.getByText("当前筛选条件下暂无参数。")).toBeVisible();
 
     mode = "failure";
+    await configPage.setViewportSize(390, 844);
     await configPage.fillSearchField("参数名称", "feedback failure");
     await configPage.refreshListForFeedback();
     const alert = configPage.listFeedback.getByRole("alert");
     await expect(alert).toContainText("无法加载所需数据。");
+    await expect(configPage.listFeedback).toBeVisible();
     await expect(alert.getByRole("button", { name: "重试" })).toBeVisible();
     await captureEvidence(adminPage, "config-list-failed-zh");
 
@@ -61,6 +63,7 @@ test.describe("TC-9 参数设置列表状态反馈", () => {
     await alert.getByRole("button", { name: "重试" }).click();
     await expect(configPage.listFeedback.getByText("当前筛选条件下暂无参数。")).toBeVisible();
 
+    await configPage.setViewportSize(1366, 768);
     const mainLayout = new MainLayout(adminPage);
     await mainLayout.switchLanguage("English");
     await expect(configPage.listFeedback.getByText("No parameters match the current filters.")).toBeVisible();

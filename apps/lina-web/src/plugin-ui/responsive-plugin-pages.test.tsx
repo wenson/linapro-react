@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -124,6 +124,34 @@ describe("plugin responsive list contracts", () => {
 
   it("shares AI tier data, permissions and edit actions", async () => {
     await expectResponsiveRecord(<AiTierManagement />, "ai-tier-table", "ai-tier-mobile-list", tier.binding.providerName, "pages.common.edit");
+  });
+
+  it("clears old tier rows and ignores a late response after capability switches", async () => {
+    let releaseImage!: (value: unknown) => void;
+    const imageResponse = new Promise<unknown>((resolve) => { releaseImage = resolve; });
+    const value = hostValue();
+    value.api.plugin = vi.fn(async (_pluginId: string, path: string) => {
+      if (path.includes("capabilityType=image")) return imageResponse;
+      if (path.includes("capabilityType=audio")) return {
+        list: [{ ...tier, binding: { ...tier.binding, providerName: "UIR Audio Provider" }, capabilityType: "audio" }],
+      };
+      return { list: [tier] };
+    }) as PluginHostApi["plugin"];
+
+    render(<LinaPluginHostProvider value={value}><AiTierManagement /></LinaPluginHostProvider>);
+    expect((await screen.findAllByText("UIR Tier Provider")).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByTestId("ai-tier-capability-tab-image"));
+    expect(screen.queryAllByText("UIR Tier Provider")).toHaveLength(0);
+    expect(screen.getByTestId("ai-tier-list-feedback")).toHaveAttribute("data-state", "loading");
+
+    fireEvent.click(screen.getByTestId("ai-tier-capability-tab-audio"));
+    expect((await screen.findAllByText("UIR Audio Provider")).length).toBeGreaterThan(0);
+    releaseImage({
+      list: [{ ...tier, binding: { ...tier.binding, providerName: "Late Image Provider" }, capabilityType: "image" }],
+    });
+    await waitFor(() => expect(screen.queryAllByText("Late Image Provider")).toHaveLength(0));
+    expect(screen.getAllByText("UIR Audio Provider").length).toBeGreaterThan(0);
   });
 
   it("shares AI invocation data, permissions and detail actions", async () => {

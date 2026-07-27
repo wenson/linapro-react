@@ -20,6 +20,14 @@ export class FilePage {
     return this.page.getByTestId('file-table');
   }
 
+  get listFeedback() {
+    return this.page.getByTestId('file-list-feedback');
+  }
+
+  async setViewportSize(width: number, height: number) {
+    await this.page.setViewportSize({ height, width });
+  }
+
   get rows() {
     return this.table.locator('.semi-table-tbody > .semi-table-row');
   }

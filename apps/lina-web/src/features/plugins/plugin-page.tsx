@@ -234,6 +234,7 @@ export default function PluginPage() {
       width: 132,
     },
     {
+      fixed: "right",
       render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 250,
@@ -246,14 +247,16 @@ export default function PluginPage() {
       <Card>
         <Form<Filters>
           className="iam-search-form"
+          id="plugin-filter-form"
           key={formKey}
           layout="horizontal"
           onSubmit={(values) => { setFilters(values); setPage(1); }}
         >
-          <Form.Input field="id" label={t("pages.plugins.id")} />
-          <Form.Input field="name" label={t("pages.plugins.name")} />
+          <Form.Input field="id" id="plugin-filter-id" label={t("pages.plugins.id")} />
+          <Form.Input field="name" id="plugin-filter-name" label={t("pages.plugins.name")} />
           <Form.Select
             field="type"
+            id="plugin-filter-type"
             label={t("pages.plugins.type")}
             optionList={[
               { label: t("pages.plugins.source"), value: "source" },
@@ -264,6 +267,7 @@ export default function PluginPage() {
             <>
               <Form.Select
                 field="installed"
+                id="plugin-filter-installed"
                 label={t("pages.plugins.installed")}
                 optionList={[
                   { label: t("pages.common.yes"), value: 1 },
@@ -272,6 +276,7 @@ export default function PluginPage() {
               />
               <Form.Select
                 field="status"
+                id="plugin-filter-status"
                 label={t("pages.common.status")}
                 optionList={[
                   { label: t("pages.common.enabled"), value: 1 },

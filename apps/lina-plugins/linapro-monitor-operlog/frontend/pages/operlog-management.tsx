@@ -167,7 +167,7 @@ export default function OperLogManagement() {
     { dataIndex: "status", render: (value) => <Tag color={dictColor(statuses, Number(value))}>{dictLabel(statuses, Number(value))}</Tag>, title: host.t("plugin.linapro-monitor-operlog.fields.operResult"), width: 130 },
     { dataIndex: "operTime", render: (value) => formatTimestamp(value as number | null, host.locale), sorter: true, title: host.t("plugin.linapro-monitor-operlog.fields.operDate"), width: 190 },
     { dataIndex: "costTime", render: (value) => `${Number(value)} ms`, sorter: true, title: host.t("plugin.linapro-monitor-operlog.fields.duration"), width: 110 },
-    { render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
+    { fixed: "right", render: (_, row) => renderActions(row), title: host.t("pages.common.actions"), width: 100 },
   ];
 
   return <section className="monitor-operlog-page" data-testid="operlog-management-page">

@@ -121,7 +121,7 @@ it("uses localized failure feedback and recovers after retry", async () => {
 
   const alert = await screen.findByRole("alert");
   expect(alert).toHaveTextContent("The requested data could not be loaded.");
-  expect(alert).toHaveTextContent("database unavailable");
+  expect(alert).not.toHaveTextContent("database unavailable");
   await user.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByText("No parameters match the current filters.")).toBeVisible();
 });

@@ -31,7 +31,7 @@ test.describe("TC-9 智能中心列表状态反馈", () => {
     const smartCenter = new SmartCenterPage(adminPage);
     await smartCenter.gotoProvidersForListFeedback();
     const feedback = smartCenter.providerListFeedback();
-    await expect(feedback.getByTestId("ai-list-loading")).toBeVisible();
+    await expect(feedback).toHaveAttribute("data-state", "loading");
     await expect(feedback.getByText("当前没有可显示的记录。")).toHaveCount(0);
 
     releaseInitialRequest?.();
@@ -40,8 +40,11 @@ test.describe("TC-9 智能中心列表状态反馈", () => {
     await smartCenter.captureEvidence("TC009-provider-empty-zh");
 
     mode = "failure";
+    await smartCenter.setViewportSize(390, 844);
     await smartCenter.gotoProvidersForListFeedback();
-    const alert = feedback.getByTestId("ai-list-failed");
+    const alert = smartCenter.providerListFeedback();
+    await expect(alert).toBeVisible();
+    await expect(alert).toHaveAttribute("data-state", "error");
     await expect(alert).toContainText("无法加载所需数据。");
     await expect(alert.getByRole("button", { name: "重试" })).toBeVisible();
     await smartCenter.captureEvidence("TC009-provider-failed-zh");
@@ -50,6 +53,7 @@ test.describe("TC-9 智能中心列表状态反馈", () => {
     await alert.getByRole("button", { name: "重试" }).click();
     await expect(feedback.getByText("当前没有可显示的记录。")).toBeVisible();
 
+    await smartCenter.setViewportSize(1366, 768);
     const mainLayout = new MainLayout(adminPage);
     await mainLayout.switchLanguage("English");
     await expect(feedback.getByText("No records to display.")).toBeVisible();

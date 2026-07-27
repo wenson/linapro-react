@@ -209,6 +209,7 @@ export default function DictPage() {
       width: 90,
     },
     {
+      fixed: "right",
       render: (_, row) => <Space>{renderTypeActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
@@ -225,6 +226,7 @@ export default function DictPage() {
     },
     { dataIndex: "sort", title: t("pages.common.sort"), width: 80 },
     {
+      fixed: "right",
       render: (_, row) => <Space>{renderDataActions(row)}</Space>,
       title: t("pages.common.actions"),
       width: 140,
@@ -238,12 +240,13 @@ export default function DictPage() {
         <Card title={t("pages.settings.dict.types")}>
           <Form<DictTypeListParams>
             className="iam-search-form"
+            id="dict-type-filter-form"
             key={typeFormKey}
             layout="horizontal"
             onSubmit={(values) => setTypeParams((current) => ({ ...current, ...values, pageNum: 1 }))}
           >
-            <Form.Input field="name" label={t("pages.settings.dict.name")} />
-            <Form.Input field="type" label={t("pages.settings.dict.type")} />
+            <Form.Input field="name" id="dict-type-filter-name" label={t("pages.settings.dict.name")} />
+            <Form.Input field="type" id="dict-type-filter-type" label={t("pages.settings.dict.type")} />
             <Button htmlType="reset" onClick={resetTypeSearch}>{t("pages.common.reset")}</Button>
             <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>
           </Form>
@@ -272,11 +275,12 @@ export default function DictPage() {
         <Card title={selectedType || t("pages.settings.dict.selectType")}>
           <Form<DictDataListParams>
             className="iam-search-form"
+            id="dict-data-filter-form"
             key={dataFormKey}
             layout="horizontal"
             onSubmit={(values) => setDataParams((current) => ({ ...current, ...values, pageNum: 1 }))}
           >
-            <Form.Input field="label" label={t("pages.settings.dict.label")} />
+            <Form.Input field="label" id="dict-data-filter-label" label={t("pages.settings.dict.label")} />
             <Button htmlType="reset" onClick={resetDataSearch}>{t("pages.common.reset")}</Button>
             <Button htmlType="submit" disabled={!selectedType} theme="solid" type="primary">{t("pages.common.search")}</Button>
           </Form>

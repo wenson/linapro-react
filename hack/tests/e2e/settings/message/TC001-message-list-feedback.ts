@@ -47,9 +47,11 @@ test.describe("TC-1 我的消息列表状态反馈", () => {
     await expect(messagePage.list).toContainText("工作台和已启用插件的消息会显示在这里。");
 
     mode = "failure";
+    await messagePage.setViewportSize(390, 844);
     await messagePage.gotoForListFeedback();
     const alert = messagePage.list.getByRole("alert");
     await expect(alert).toContainText("无法加载所需数据。");
+    await expect(alert).toBeVisible();
     await expect(alert.getByRole("button", { name: "重试" })).toBeVisible();
     await captureEvidence(adminPage, "message-list-failed-zh");
 
@@ -57,6 +59,7 @@ test.describe("TC-1 我的消息列表状态反馈", () => {
     await alert.getByRole("button", { name: "重试" }).click();
     await expect(messagePage.list).toContainText("工作台和已启用插件的消息会显示在这里。");
 
+    await messagePage.setViewportSize(1366, 768);
     const mainLayout = new MainLayout(adminPage);
     await mainLayout.switchLanguage("English");
     await expect(messagePage.list).toContainText("Messages from the workbench and enabled plugins appear here.");

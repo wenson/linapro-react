@@ -19,6 +19,10 @@ export class MessagePage {
     return this.page.getByTestId('message-list');
   }
 
+  async setViewportSize(width: number, height: number) {
+    await this.page.setViewportSize({ height, width });
+  }
+
   get detailDialog() {
     return this.page
       .locator('.semi-modal-content[role="dialog"]:visible')

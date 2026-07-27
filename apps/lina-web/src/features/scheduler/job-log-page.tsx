@@ -225,6 +225,7 @@ export default function JobLogPage() {
     { dataIndex: "durationMs", title: t("pages.scheduler.log.duration"), width: 120 },
     { dataIndex: "errMsg", render: (value) => String(value || "-"), title: t("pages.scheduler.log.errorSummary"), width: 220 },
     {
+      fixed: "right",
       render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 220,
@@ -242,18 +243,20 @@ export default function JobLogPage() {
     <section className="feature-page" data-testid="job-log-page">
       <Typography.Title heading={3}>{t("pages.scheduler.log.title")}</Typography.Title>
       <Card>
-        <Form<LogSearchValues> className="iam-search-form" key={searchKey} layout="horizontal" onSubmit={search}>
+        <Form<LogSearchValues> className="iam-search-form" id="job-log-filter-form" key={searchKey} layout="horizontal" onSubmit={search}>
           <Form.Select
             field="jobId"
+            id="job-log-filter-job"
             label={t("pages.scheduler.log.job")}
             optionList={(jobs.data?.list ?? []).map((job) => ({ label: job.name, value: job.id }))}
           />
           <Form.Select
             field="status"
+            id="job-log-filter-status"
             label={t("pages.scheduler.log.status")}
             optionList={["running", "success", "failed", "cancelled", "timeout"].map((value) => ({ label: statusLabel(value), value }))}
           />
-          <Form.Input field="nodeId" label={t("pages.scheduler.log.node")} />
+          <Form.Input field="nodeId" id="job-log-filter-node" label={t("pages.scheduler.log.node")} />
           <Form.DatePicker field="startTime" label={t("pages.scheduler.log.started")} type="dateTimeRange" />
           <Button htmlType="reset" onClick={resetSearch}>{t("pages.common.reset")}</Button>
           <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>

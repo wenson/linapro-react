@@ -105,6 +105,7 @@ export default function JobGroupPage() {
     },
     { dataIndex: "remark", title: t("pages.common.remark") },
     {
+      fixed: "right",
       render: (_, row) => renderActions(row),
       title: t("pages.common.actions"),
       width: 160,
@@ -117,12 +118,13 @@ export default function JobGroupPage() {
       <Card>
         <Form<GroupFilters>
           className="iam-search-form"
+          id="job-group-filter-form"
           key={formKey}
           layout="horizontal"
           onSubmit={(values) => { setFilters(values); setPage(1); }}
         >
-          <Form.Input field="code" label={t("pages.scheduler.group.code")} />
-          <Form.Input field="name" label={t("pages.scheduler.group.name")} />
+          <Form.Input field="code" id="job-group-filter-code" label={t("pages.scheduler.group.code")} />
+          <Form.Input field="name" id="job-group-filter-name" label={t("pages.scheduler.group.name")} />
           <Button htmlType="reset" onClick={resetSearch}>{t("pages.common.reset")}</Button>
           <Button htmlType="submit" theme="solid" type="primary">{t("pages.common.search")}</Button>
         </Form>
