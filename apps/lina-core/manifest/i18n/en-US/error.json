@@ -258,6 +258,9 @@
     "http": {
       "error": "Request failed",
       "forbidden": "Permission denied",
+      "internal": {
+        "error": "An internal error occurred. Please try again later"
+      },
       "not": {
         "found": "Resource not found"
       },

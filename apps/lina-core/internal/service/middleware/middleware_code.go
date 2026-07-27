@@ -33,6 +33,13 @@ var (
 		"Request failed",
 		gcode.CodeUnknown,
 	)
+	// CodeMiddlewareHTTPInternalError reports an unexpected server-side failure
+	// without exposing the wrapped technical cause to the caller.
+	CodeMiddlewareHTTPInternalError = bizerr.MustDefine(
+		"HTTP_INTERNAL_ERROR",
+		"An internal error occurred. Please try again later",
+		gcode.CodeInternalError,
+	)
 	// CodeMiddlewarePermissionCurrentUserMissing reports that permission middleware has no user context.
 	// messageKey is derived as error.permission.current.user.missing.
 	CodeMiddlewarePermissionCurrentUserMissing = bizerr.MustDefine(

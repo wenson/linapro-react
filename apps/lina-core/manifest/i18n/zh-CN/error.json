@@ -258,6 +258,9 @@
     "http": {
       "error": "请求失败",
       "forbidden": "没有权限",
+      "internal": {
+        "error": "系统内部错误，请稍后重试"
+      },
       "not": {
         "found": "资源不存在"
       },

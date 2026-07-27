@@ -4,14 +4,17 @@
 package middleware
 
 import (
+	"errors"
 	"mime"
 	"net/http"
 
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/util/gvalid"
 
 	"lina-core/pkg/bizerr"
+	"lina-core/pkg/logger"
 )
 
 const (
@@ -64,11 +67,24 @@ func (s *serviceImpl) Response(r *ghttp.Request) {
 	var (
 		err  = r.GetError()
 		res  = r.GetHandlerResponse()
-		code = gerror.Code(err)
+		code gcode.Code
 		msg  string
 	)
 
 	if err != nil {
+		if !isPublicResponseError(err) {
+			logger.Errorf(
+				r.Context(),
+				"unexpected request failure method=%s path=%s err=%v",
+				r.Method,
+				r.URL.Path,
+				err,
+			)
+			err = bizerr.WrapCode(err, CodeMiddlewareHTTPInternalError)
+			r.SetError(err)
+		}
+
+		code = gerror.Code(err)
 		if code == gcode.CodeNil {
 			code = gcode.CodeInternalError
 		}
@@ -107,6 +123,20 @@ func (s *serviceImpl) Response(r *ghttp.Request) {
 	}
 	applyRuntimeErrorMetadata(&response, err)
 	r.Response.WriteJson(response)
+}
+
+// isPublicResponseError reports whether an error carries caller-safe business
+// or validation semantics. All other errors are treated as internal failures at
+// the HTTP response boundary, even when their raw text appears readable.
+func isPublicResponseError(err error) bool {
+	if err == nil {
+		return true
+	}
+	if _, ok := bizerr.As(err); ok {
+		return true
+	}
+	var validationErr gvalid.Error
+	return errors.As(err, &validationErr)
 }
 
 // applyRuntimeErrorMetadata copies structured runtime-message metadata into the
