@@ -110,6 +110,17 @@ test.describe('TC002 默认工作台', () => {
     const platformLabel = adminPage.getByText('平台', { exact: true }).first();
     await expect(platformLabel).toHaveCSS('white-space', 'nowrap');
     expect((await platformLabel.boundingBox())?.height).toBeLessThanOrEqual(24);
+    const workspaceLayout = await dashboardPage.workspacePage.evaluate((page) => ({
+      childShrinkValues: Array.from(page.children).map(
+        (child) => window.getComputedStyle(child).flexShrink,
+      ),
+      clientHeight: page.clientHeight,
+      scrollHeight: page.scrollHeight,
+    }));
+    expect(workspaceLayout.childShrinkValues.every((value) => value === '0')).toBe(true);
+    expect(workspaceLayout.scrollHeight).toBeGreaterThan(workspaceLayout.clientHeight);
+    await dashboardPage.workspaceTrends.scrollIntoViewIfNeeded();
+    await expect(dashboardPage.workspaceTrends).toBeInViewport();
     await adminPage.screenshot({
       path: resolve(
         remediationScreenshotDirectory,

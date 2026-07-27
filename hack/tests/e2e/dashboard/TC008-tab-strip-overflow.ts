@@ -103,6 +103,9 @@ test.describe("TC-8 标签栏溢出", () => {
     await expect(activeLabel).toHaveText("关于项目");
     await activeLabel.focus();
     await expect(activeLabel).toBeFocused();
+    await expect(activeLabel).toHaveCSS("outline-style", "solid");
+    await expect(activeLabel.locator("..")).toHaveClass(/tab-item-active/);
+    await expect(activeLabel.locator("..")).toHaveCSS("box-shadow", /.+/);
     await captureEvidence(adminPage, "tab-strip-zh-light");
 
     await mainLayout.openWorkbenchRoute("/system/plugin");
@@ -121,5 +124,31 @@ test.describe("TC-8 标签栏溢出", () => {
     await expect(mainLayout.tabTitle("关于项目")).toBeVisible();
     await expect(adminPage.getByText("English", { exact: true })).toHaveCount(0);
     await captureEvidence(adminPage, "tab-strip-zh-dark");
+  });
+
+  test("TC-8c: 保留标签页中的同名字段使用唯一编号和本页标签", async ({
+    adminPage,
+    mainLayout,
+  }) => {
+    await mainLayout.openWorkbenchRoute("/system/menu");
+    await mainLayout.openWorkbenchRoute("/system/role");
+    await mainLayout.openWorkbenchRoute("/system/config");
+
+    for (const id of ["menu-filter-name", "role-filter-name", "config-filter-name"]) {
+      await expect(adminPage.locator(`[id="${id}"]`)).toHaveCount(1);
+    }
+    await expect(adminPage.locator('[id="name"], [id="status"]')).toHaveCount(0);
+
+    const currentRoute = adminPage.locator(
+      '[data-route-cache-path="/system/config"]:not([hidden])',
+    );
+    const currentName = currentRoute.locator('#config-filter-name');
+    await expect(currentName).toHaveAttribute(
+      "aria-labelledby",
+      "config-filter-name-label",
+    );
+    await expect(
+      currentRoute.locator('#config-filter-name-label'),
+    ).toHaveText("参数名称");
   });
 });

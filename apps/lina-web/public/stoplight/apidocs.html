@@ -212,7 +212,12 @@
 
     function isApiDocsRendered() {
       var sidebar = document.querySelector('.sl-overflow-y-auto.sl-flex-col.sl-sticky');
-      return !!(sidebar && sidebar.querySelector('.sl-uppercase'));
+      var apiElement = document.querySelector('elements-api');
+      var mainContent = document.querySelector('h1, [data-testid="docs-content"], .sl-prose');
+      return !!(
+        (sidebar && sidebar.querySelector('.sl-uppercase')) ||
+        (apiElement && mainContent)
+      );
     }
 
     function updateApiDocsReadyState() {
@@ -250,12 +255,12 @@
       var apiElement = document.createElement('elements-api');
       apiElement.setAttribute('apiDescriptionUrl', apiDescriptionUrl);
       apiElement.setAttribute('router', 'memory');
-      apiElement.setAttribute('layout', 'sidebar');
+      apiElement.setAttribute('layout', 'responsive');
       apiElement.setAttribute('tryItCredentialsPolicy', 'same-origin');
       apiElement.setAttribute('hideInternal', 'true');
       apiElement.apiDescriptionUrl = apiDescriptionUrl;
       apiElement.router = 'memory';
-      apiElement.layout = 'sidebar';
+      apiElement.layout = 'responsive';
       apiElement.tryItCredentialsPolicy = 'same-origin';
       apiElement.hideInternal = true;
       document.body.appendChild(apiElement);
@@ -308,9 +313,9 @@
     // 等待 Stoplight Elements 渲染完成后执行
     var observer = new MutationObserver(function() {
       var sidebar = document.querySelector('.sl-overflow-y-auto.sl-flex-col.sl-sticky');
-      if (sidebar && sidebar.querySelector('.sl-uppercase')) {
+      if (isApiDocsRendered()) {
         markApiDocsReady();
-        setupSchemasCollapse();
+        if (sidebar) setupSchemasCollapse();
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });

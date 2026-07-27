@@ -54,6 +54,7 @@ test.describe('TC001 系统接口页面', () => {
     const frame = adminPage.frameLocator('iframe.api-docs-frame');
     const apiElement = frame.locator('elements-api');
     await expect(apiElement).toBeAttached({ timeout: 15_000 });
+    await expect(apiElement).toHaveAttribute('layout', 'responsive');
     // Verify Overview is visible in sidebar
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // Verify ENDPOINTS section is visible
@@ -369,6 +370,29 @@ test.describe('TC001 系统接口页面', () => {
     } finally {
       await adminPage.unroute('**/api.json?**');
     }
+  });
+
+  test('TC001l: 手机端使用响应式目录且正文不被横向遮挡', async ({
+    adminPage,
+    mainLayout,
+  }) => {
+    await mainLayout.switchLanguage('简体中文');
+    await adminPage.setViewportSize({ height: 844, width: 390 });
+    await adminPage.goto('/about/api-docs');
+
+    const iframe = adminPage.locator('iframe.api-docs-frame');
+    await expect(iframe).toBeVisible({ timeout: 10_000 });
+    const frame = adminPage.frameLocator('iframe.api-docs-frame');
+    const apiElement = frame.locator('elements-api');
+    await expect(apiElement).toHaveAttribute('layout', 'responsive');
+    await expect(
+      frame.locator('h1', { hasText: 'LinaPro 框架 API' }),
+    ).toBeVisible({ timeout: 15_000 });
+    const width = await frame.locator('html').evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(width.scrollWidth).toBeLessThanOrEqual(width.clientWidth);
   });
 });
 
