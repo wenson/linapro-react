@@ -3,7 +3,7 @@ import {
   appendImageViewPrompt,
   normalizeImageCameraControl,
   normalizeImageLightingRig,
-} from '@tapcanvas/image-view-controls'
+} from '../../protocols/image-view-controls'
 
 describe('image view controls prompt helpers', () => {
   it('normalizes camera control and preserves enable state', () => {

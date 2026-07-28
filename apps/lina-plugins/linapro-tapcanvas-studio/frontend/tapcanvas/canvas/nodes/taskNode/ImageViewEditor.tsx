@@ -16,7 +16,7 @@ import { IconBulb, IconCamera } from '@tabler/icons-react'
 import imageViewControlsModule, {
   type ImageCameraControlConfig,
   type ImageLightingRigConfig,
-} from '@tapcanvas/image-view-controls'
+} from '../../../protocols/image-view-controls'
 
 import { toast } from '../../../ui/toast'
 import { isRemoteUrl } from './utils'

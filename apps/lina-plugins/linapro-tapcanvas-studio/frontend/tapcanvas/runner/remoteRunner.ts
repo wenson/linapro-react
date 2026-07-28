@@ -1,6 +1,6 @@
 import { t } from '../canvas/i18n'
 import type { Edge, Node } from '@xyflow/react'
-import { normalizePublicFlowAnchorBindings, type PublicFlowAnchorBinding } from '@tapcanvas/flow-anchor-bindings'
+import { normalizePublicFlowAnchorBindings, type PublicFlowAnchorBinding } from '../protocols/flow-anchor-bindings'
 import type { ProjectBookIndexDto, ProjectRoleCardAssetDto, TaskKind, TaskRequestDto, TaskResultDto } from '../api/server'
 import {
   agentsChat,
@@ -86,7 +86,7 @@ import {
   resolveCompiledImagePrompt,
   resolveImagePromptExecution,
 } from '../canvas/nodes/taskNode/imagePromptSpec'
-import imageViewControlsModule from '@tapcanvas/image-view-controls'
+import imageViewControlsModule from '../protocols/image-view-controls'
 import {
   resolveSemanticNodeRoleBinding,
   resolveSemanticNodeVisualReferenceBinding,

@@ -1,4 +1,4 @@
-import { parseImagePromptSpecV2, type ImagePromptSpecV2 } from '@tapcanvas/image-prompt-spec'
+import { parseImagePromptSpecV2, type ImagePromptSpecV2 } from '../../../protocols/image-prompt-spec'
 import { runPublicTask } from '../../../api/server'
 import { useUIStore } from '../../../ui/uiStore'
 import { extractTextFromTaskResult } from '../taskNodeHelpers'

@@ -1,7 +1,7 @@
 import type {
   ImageCameraControlConfig,
   ImageLightControlConfig,
-} from '@tapcanvas/image-view-controls'
+} from '../../../protocols/image-view-controls'
 
 export type OrbitPoint3D = {
   x: number

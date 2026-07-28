@@ -1,4 +1,4 @@
-import { collectPublicFlowAnchorBindingImageUrls } from '@tapcanvas/flow-anchor-bindings'
+import { collectPublicFlowAnchorBindingImageUrls } from '../protocols/flow-anchor-bindings'
 
 type AssetInputLike = {
   url?: unknown

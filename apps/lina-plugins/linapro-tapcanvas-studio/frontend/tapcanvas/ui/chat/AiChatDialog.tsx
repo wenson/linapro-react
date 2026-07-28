@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import {
   normalizeStoryboardSelectionContext,
   type StoryboardSelectionContext,
-} from '@tapcanvas/storyboard-selection-protocol'
+} from '../../protocols/storyboard-selection-protocol'
 import { $, t} from '../../canvas/i18n'
 import {
   API_BASE,
@@ -61,7 +61,7 @@ import {
 import {
   normalizePublicFlowAnchorBindings,
   type PublicFlowAnchorBinding,
-} from '@tapcanvas/flow-anchor-bindings'
+} from '../../protocols/flow-anchor-bindings'
 import {
   resolvePrimarySemanticAnchorBinding,
   resolveSemanticNodeAnchorBindings,
