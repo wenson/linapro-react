@@ -139,6 +139,9 @@ export async function discoverPluginUIManifests(pluginsRoot: string): Promise<Pl
   const realPluginsRoot = await fs.realpath(pluginsRoot);
   const manifests: PluginUIManifest[] = [];
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (entry.name === "node_modules") {
+      continue;
+    }
     if (entry.isSymbolicLink()) {
       throw new Error(`Plugin directories must not be symlinks: ${entry.name}`);
     }

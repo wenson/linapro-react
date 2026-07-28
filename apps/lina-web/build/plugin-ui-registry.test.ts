@@ -34,6 +34,7 @@ describe("Vite source-plugin UI discovery", () => {
     await writeFile(path.join(root, "alpha-source-plugin", "frontend", "plugin-ui.ts"), "export default {};\n");
     await writeFile(path.join(root, "alpha-source-plugin", "frontend", "pages", "ignored.tsx"), "export default 1;\n");
     await writeFile(path.join(root, "nested", "child", "frontend", "plugin-ui.ts"), "export default {};\n");
+    await writeFile(path.join(root, "node_modules", "example", "index.js"), "export default {};\n");
 
     const manifests = await discoverPluginUIManifests(root);
     expect(manifests.map((item) => item.pluginId)).toEqual([
