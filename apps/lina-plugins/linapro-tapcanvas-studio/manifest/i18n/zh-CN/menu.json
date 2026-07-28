@@ -1,0 +1,12 @@
+{
+  "menu": {
+    "plugin:linapro-tapcanvas-studio:flow-mutate": { "title": "修改 Flow" },
+    "plugin:linapro-tapcanvas-studio:flow-view": { "title": "查看 Flow" },
+    "plugin:linapro-tapcanvas-studio:projects": { "title": "项目" },
+    "plugin:linapro-tapcanvas-studio:projects-create": { "title": "创建项目" },
+    "plugin:linapro-tapcanvas-studio:projects-delete": { "title": "删除项目" },
+    "plugin:linapro-tapcanvas-studio:projects-update": { "title": "更新项目" },
+    "plugin:linapro-tapcanvas-studio:root": { "title": "TapCanvas Studio" },
+    "plugin:linapro-tapcanvas-studio:studio": { "title": "创作工作台" }
+  }
+}
