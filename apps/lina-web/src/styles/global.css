@@ -425,9 +425,7 @@ html.dark .workbench-brand img {
 
 .page-surface-page {
   width: 100%;
-  max-width: 1600px;
   min-height: 100%;
-  margin: 0 auto;
   padding: var(--lina-space-6);
 }
 

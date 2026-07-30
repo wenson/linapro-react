@@ -12,6 +12,16 @@ import {
 export class ConfigPage {
   constructor(private page: Page) {}
 
+  get root() {
+    return this.page.getByTestId("config-page");
+  }
+
+  get heading() {
+    return this.root.getByRole("heading", {
+      name: /参数配置|Parameter configuration/i,
+    });
+  }
+
   private escapeRegex(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
@@ -50,6 +60,21 @@ export class ConfigPage {
 
   async setViewportSize(width: number, height: number) {
     await this.page.setViewportSize({ height, width });
+  }
+
+  async getHorizontalGutters() {
+    const viewport = this.page.viewportSize();
+    const [pageBox, sidebarBox] = await Promise.all([
+      this.root.boundingBox(),
+      this.page.locator(".workbench-sider").first().boundingBox(),
+    ]);
+    if (!viewport || !pageBox || !sidebarBox) {
+      throw new Error("无法测量参数设置页的宽屏布局");
+    }
+    return {
+      left: pageBox.x - sidebarBox.x - sidebarBox.width,
+      right: viewport.width - pageBox.x - pageBox.width,
+    };
   }
 
   private async fillInputAndWaitForStableValue(input: Locator, value: string) {
